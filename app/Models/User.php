@@ -141,4 +141,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Bed::class, 'patient_id');
     }
+
+    public function beds()
+    {
+        return $this->hasMany(Bed::class, 'patient_id');
+    }
 }

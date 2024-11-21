@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Validation\ValidationException;
 
 class RoomManagementController extends Controller
 {
@@ -224,10 +226,9 @@ class RoomManagementController extends Controller
     }
 
     public function updateBed(Request $request, Bed $bed)
-    {
-        try {
-            // Validate request
-            $validated = $request->validate([
+    {   
+        // Validate request
+        $validated = $request->validate([
                 'status' => 'required|in:available,occupied,maintenance',
                 'patient_id' => 'nullable|exists:users,id'
             ]);
@@ -252,17 +253,17 @@ class RoomManagementController extends Controller
 
             $bed->update($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Bed updated successfully',
-                'bed' => $bed->fresh()
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update bed: ' . $e->getMessage()
-            ], 500);
-        }
+            if ($bed->save()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Bed updated successfully',
+                ], 200);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update bed in the database.',
+                ], 500);
+            }
     }
 
     public function removeBed(Bed $bed)
@@ -406,41 +407,76 @@ class RoomManagementController extends Controller
     public function manageBed(Request $request)
     {
         try {
-            $bed = Bed::findOrFail($request->bed_id);
+            // Log the incoming request data
+            \Log::info('Manage Bed Request:', $request->all());
+
+            // Validate the incoming request
+            $validated = $request->validate([
+                'id' => 'required|exists:beds,id',
+                'patient_id' => 'required|exists:users,id'
+            ]);
+
+            // Find the bed
+            $bed = Bed::findOrFail($request->id);
             
-            switch ($request->action) {
-                case 'assign':
-                    $bed->patient_id = $request->patient_id;
-                    $bed->status = 'occupied';
-                    break;
-                    
-                case 'maintenance':
-                    $bed->patient_id = null;
-                    $bed->status = 'maintenance';
-                    break;
-                    
-                case 'transfer':
-                    $newBed = Bed::findOrFail($request->new_bed_id);
-                    $newBed->patient_id = $bed->patient_id;
-                    $newBed->status = 'occupied';
-                    $bed->patient_id = null;
-                    $bed->status = 'available';
-                    $newBed->save();
-                    break;
+            // Check if the patient is already assigned to any bed
+            $isAssigned = Bed::where('patient_id', $request->patient_id)
+                ->where('status', 'occupied')
+                ->exists();
+
+            if ($isAssigned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This patient is already assigned to another bed.'
+                ], 422);
             }
-            
+
+            // Update the bed
+            $bed->patient_id = $request->patient_id;
+            $bed->status = 'occupied';
             $bed->save();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Bed updated successfully'
             ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
+            \Log::error('Bed Management Error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update bed: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // Helper method to check if patient is assigned
+    private function isPatientAssigned($patientId)
+    {
+        return Bed::where('patient_id', $patientId)
+            ->where('status', 'occupied')
+            ->exists();
+    }
+
+    // Helper method to get unassigned patients
+    private function getUnassignedPatients()
+    {
+        return DB::table('users')
+            ->leftJoin('beds', 'beds.patient_id', '=', 'users.id')
+            ->select('users.id as patient_id', 'users.name', 'users.ic_number', 'users.email')
+            ->where('users.role', 'patient')
+            ->whereNull('beds.patient_id')
+            ->get();
     }
 
     public function dischargeBed($bedId)
@@ -504,7 +540,7 @@ class RoomManagementController extends Controller
     public function getAllPatients()
     {
         try {
-            $patients = DB::select("SELECT id, name, ic_number, contact_number FROM users WHERE role = 'patient' ORDER BY name ASC");
+            $patients = DB::select("SELECT id, name, ic_number, contact_number, gender, blood_type, address, email, emergency_contact FROM users WHERE role = 'patient' ORDER BY name ASC");
             return response()->json($patients);
         } catch (\Exception $e) {
             \Log::error('Error fetching patients: ' . $e->getMessage());
@@ -512,5 +548,22 @@ class RoomManagementController extends Controller
                 'error' => 'Failed to fetch patients'
             ], 500);
         }
+    }
+
+    public function checkPatientAssignment($patientId)
+    {
+        // Check if the patient is already assigned to any bed
+        $isAssigned = Bed::where('patient_id', $patientId)->exists();
+
+        return response()->json(['isAssigned' => $isAssigned]);
+    }
+
+    public function editBedsPage()
+    {
+        $patients = User::where('role', 'patient')->get();
+        $currentBedStatus = request('status', null); // Get status from request or default to empty
+        $currentBedId = request('id', null); // Get bed ID from request or default to empty
+
+        return view('nurseAdmin.editBeds', compact('patients', 'currentBedStatus', 'currentBedId'));
     }
 } 
