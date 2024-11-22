@@ -222,6 +222,7 @@ document.getElementById('roomPatientSearch').addEventListener('input', function(
         if (!patientData) return false;
         
         return (
+            String('Bed ' + bed.bed_number)?.toLowerCase().includes(searchTerm) ||
             patientData.name?.toLowerCase().includes(searchTerm) ||
             patientData.staff_id?.toLowerCase().includes(searchTerm) ||
             patientData.gender?.toLowerCase().includes(searchTerm) ||
