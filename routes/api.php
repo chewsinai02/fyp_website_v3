@@ -30,4 +30,12 @@ Route::get('/patients/all', [RoomManagementController::class, 'getAllPatients'])
 Route::get('/api/check-patient-assignment/{patientId}', [RoomManagementController::class, 'checkPatientAssignment']);
 Route::get('/api/beds/manage', [RoomManagementController::class, 'manageBed'])->name('manageBed');
 Route::post('/api/beds/manage', [RoomManagementController::class, 'manageBed'])->name('manageBed');
-Route::get('/nurse-admin/edit-beds', [RoomManagementController::class, 'editBedsPage'])->name('editBedsPage');
+Route::get('/nurse-admin/edit-beds', [RoomManagementController::class, 'editBedsPage'])->name('editBeds');
+Route::get('/nurseadmin/beds', [RoomManagementController::class, 'index'])->name('nurseadmin.beds');
+
+// Route to fetch beds for a specific room
+Route::get('/nurseadmin/rooms/{roomId}/beds', [RoomManagementController::class, 'getBedsForRoom']);
+
+// Route to change the status of a bed
+Route::post('/beds/change-status', [RoomManagementController::class, 'changeStatus'])->name('changeStatus');
+Route::post('/patients/transfer', [RoomManagementController::class, 'transferPatient']);

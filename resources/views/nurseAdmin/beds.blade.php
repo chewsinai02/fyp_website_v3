@@ -169,12 +169,12 @@ function updateRowWithPatientData(row, bed, patientData, statusClass) {
         <td>
             <button class="btn btn-sm btn-outline-primary me-1" 
                     onclick="editBedStatus(${bed.id}, '${bed.status}')"
-                    ${bed.status === 'occupied' ? 'disabled' : ''}>
+                    ${bed.status === 'occupied'}>
                 <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" 
                     onclick="deleteBed(${bed.id})"
-                    ${bed.status === 'occupied' ? 'disabled' : ''}>
+                    ${bed.status === 'occupied'}>
                 <i class="bi bi-trash"></i>
             </button>
         </td>
@@ -194,12 +194,12 @@ function updateRowWithError(row, bed, statusClass) {
         <td>
             <button class="btn btn-sm btn-outline-primary me-1" 
                     onclick="editBedStatus(${bed.id}, '${bed.status}')"
-                    ${bed.status === 'occupied' ? 'disabled' : ''}>
+                    ${bed.status === 'occupied'}>
                 <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" 
                     onclick="deleteBed(${bed.id})"
-                    ${bed.status === 'occupied' ? 'disabled' : ''}>
+                    ${bed.status === 'occupied'}>
                 <i class="bi bi-trash"></i>
             </button>
         </td>
@@ -248,20 +248,25 @@ function editBedStatus(bedId, status) {
     currentBedStatus = status;
     
     const editModal = new bootstrap.Modal(document.getElementById('editBedModal'));
-    const availableOptions = document.getElementById('availableBedOptions');
-    const occupiedOptions = document.getElementById('occupiedBedOptions');
     
+    // Reset all sections
+    $('#availableBedOptions').hide();
+    $('#occupiedBedOptions').hide();
+    $('#maintenanceBedOptions').hide();
+
     // Show/hide appropriate sections based on bed status
     if (status === 'available') {
-        availableOptions.style.display = 'block';
-        occupiedOptions.style.display = 'none';
-        loadUnassignedPatients();
+        $('#availableBedOptions').show();
+        loadUnassignedPatients(); // Load patients for available beds
     } else if (status === 'occupied') {
-        availableOptions.style.display = 'none';
-        occupiedOptions.style.display = 'block';
-        loadAvailableRooms();
+        $('#occupiedBedOptions').show();
+        loadAvailableRooms(); // Load rooms for occupied beds
+    } else if (status === 'maintenance') {
+        $('#maintenanceBedOptions').show();
+        loadUnassignedPatients(); // Load patients for maintenance
+        // Optionally load all beds or specific beds if needed
     }
-    
+
     editModal.show();
 }
 
@@ -388,6 +393,53 @@ function deleteBed(bedId) {
                 }
             });
         }
+    });
+}
+
+function changeBedStatus(bedId, newStatus, notes) {
+    const data = {
+        bed_id: bedId,
+        status: newStatus,
+        notes: notes // Optional notes for the status change
+    };
+
+    fetch('/api/beds/change-status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => { throw new Error(text); });
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Bed status updated to available successfully!'
+            });
+            showBeds(currentRoomId); // Refresh the beds table
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: result.message
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error updating bed status:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to update bed status: ' + error.message
+        });
     });
 }
 </script>

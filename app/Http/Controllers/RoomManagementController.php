@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Room;
 use App\Models\Bed;
 use App\Models\User;
+use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -52,7 +53,10 @@ class RoomManagementController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('nurseAdmin.editBeds', compact('patients', 'search'));
+        $beds = Bed::with('patient')->get(); // Assuming you have a relationship set up
+        dd($beds);
+
+        return view('nurseAdmin.editBeds', compact('patients', 'beds', 'search'));
     }
 
     public function store(Request $request)
@@ -558,12 +562,113 @@ class RoomManagementController extends Controller
         return response()->json(['isAssigned' => $isAssigned]);
     }
 
-    public function editBedsPage()
+    public function editBedsPage(Request $request)
     {
+        $beds = Bed::all();
         $patients = User::where('role', 'patient')->get();
-        $currentBedStatus = request('status', null); // Get status from request or default to empty
-        $currentBedId = request('id', null); // Get bed ID from request or default to empty
+        
+        // Get the bed ID from the request
+        $currentBedId = $request->input('id');
 
-        return view('nurseAdmin.editBeds', compact('patients', 'currentBedStatus', 'currentBedId'));
+        // Retrieve the bed from the database
+        $bed = Bed::find($currentBedId);
+
+        // Check if the bed exists
+        if (!$bed) {
+            // Handle the case where the bed is not found (e.g., redirect or show an error)
+            return redirect()->back()->with('error', 'Bed not found.');
+        }
+
+        // Get the current bed status from the retrieved bed
+        $currentBedStatus = $bed->status; // Assuming 'status' is the column name in the beds table
+
+        // Pass the variables to the view
+        return view('nurseAdmin.editBeds', compact('patients', 'currentBedId', 'currentBedStatus'));
+    }
+
+    public function changeStatus(Request $request)
+    {
+        // Validate the incoming request
+        $request->validate([
+            'bed_id' => 'required|exists:beds,id',
+            'status' => 'required|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Find the bed by ID
+        $bed = Bed::find($request->bed_id);
+        if (!$bed) {
+            return response()->json(['success' => false, 'message' => 'Resource not found.'], 404);
+        }
+
+        // Update the bed status
+        $bed->status = $request->status;
+        $bed->notes = $request->notes;
+        $bed->save();
+
+        return response()->json(['success' => true, 'message' => 'Bed status updated successfully!']);
+    }
+
+    public function getAvailableBeds($roomId)
+    {
+        // Validate the room ID
+        $room = Room::find($roomId);
+        if (!$room) {
+            return response()->json(['message' => 'Room not found'], 404);
+        }
+
+        // Fetch available beds for the specified room
+        $availableBeds = Bed::where('room_id', $roomId)
+            ->where('status', 'available') // Assuming 'available' is the status for available beds
+            ->get();
+
+        // Return the available beds as a JSON response
+        return response()->json(['beds' => $availableBeds]);
+    }
+
+    public function transferPatient(Request $request)
+    {
+        // Validate the incoming request
+        $request->validate([
+            'patient_id' => 'required|exists:users,id',
+            'room_id' => 'required|exists:rooms,id',
+            'bed_id' => 'required|exists:beds,id', // New bed ID
+            'current_bed_id' => 'required|exists:beds,id', // Current bed ID must be required
+        ]);
+
+        // Find the current bed that needs to be updated
+        $currentBed = Bed::find($request->current_bed_id); // Use current_bed_id from the request
+        if (!$currentBed) {
+            return response()->json(['success' => false, 'message' => 'Current bed not found.'], 404);
+        }
+
+        // Find the new bed where the patient will be transferred
+        $newBed = Bed::find($request->bed_id); // Use bed_id from the request
+        if (!$newBed) {
+            return response()->json(['success' => false, 'message' => 'New bed not found.'], 404);
+        }
+
+        try {
+            // Update the current bed's status to maintenance and clear the patient_id
+            $currentBed->status = 'maintenance'; // Change status to maintenance
+            $currentBed->patient_id = null; // Set patient_id to null
+            $currentBed->updated_at = now(); // Update the timestamp
+            $currentBed->save(); // Save the changes
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error updating current bed: ' . $e->getMessage()], 500);
+        }
+
+        try {
+            // Update the new bed with the patient_id and set status to occupied
+            $newBed->patient_id = $request->patient_id; // Assign the patient to the new bed
+            $newBed->status = 'occupied'; // Change status to occupied
+            $newBed->updated_at = now(); // Update the timestamp
+            $newBed->save(); // Save the changes
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error saving patient to new bed: ' . $e->getMessage()], 500);
+        }
+
+        // Return a success response
+        return response()->json(['success' => true, 'message' => 'Patient transferred successfully!']);
     }
 } 
