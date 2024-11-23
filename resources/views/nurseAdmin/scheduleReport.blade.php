@@ -32,7 +32,7 @@
                             <td>{{ $schedule->date->format('M d, Y') }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ $schedule->nurse->profile_picture ?? asset('images/profile.png') }}" 
+                                    <img src="{{ $schedule->nurse->user->profile_picture ?? asset('images/profile.png') }}" 
                                          class="rounded-circle me-2" 
                                          width="32" 
                                          height="32"
@@ -42,10 +42,8 @@
                             </td>
                             <td>{{ ucfirst($schedule->shift) }}</td>
                             <td>
-                                @if($schedule->nurse->roomAssignments->where('status', 'active')->isNotEmpty())
-                                    @foreach($schedule->nurse->roomAssignments->where('status', 'active') as $assignment)
-                                        <span class="badge bg-info">Room {{ $assignment->room->room_number }}</span>
-                                    @endforeach
+                                @if($schedule->room)
+                                    <span class="badge bg-info">Room {{ $schedule->room->room_number }}</span>
                                 @else
                                     <span class="text-muted">No room assigned</span>
                                 @endif
@@ -74,7 +72,7 @@
 @push('scripts')
 <script>
 function exportReport(type) {
-    window.location.href = `{{ route('nurseadmin.exportReport') }}?type=${type}`;
+    window.location.href = `{{ route('nurseadmin.exportScheduleReport') }}?type=${type}`;
 }
 </script>
 @endpush

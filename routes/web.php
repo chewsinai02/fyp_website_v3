@@ -16,6 +16,7 @@ use App\Http\Controllers\DoctorReportController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NurseAdminDashboardController;
 use App\Http\Controllers\RoomManagementController;
+use App\Http\Controllers\CalendarController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -249,8 +250,12 @@ Route::middleware(['auth', 'role:nurse_admin'])->group(function () {
         ->name('nurseadmin.reports');
     Route::get('/nurseadmin/reports/schedule', [NurseAdminDashboardController::class, 'scheduleReport'])
         ->name('nurseadmin.scheduleReport');
+    Route::get('/export-report', [NurseAdminDashboardController::class, 'exportScheduleReport'])
+        ->name('nurseadmin.exportScheduleReport');
     Route::get('/nurseadmin/reports/assignment', [NurseAdminDashboardController::class, 'assignmentReport'])
         ->name('nurseadmin.assignmentReport');
+    Route::get('/nurseadmin/reports/export-assignment', [NurseAdminDashboardController::class, 'exportAssignmentReport'])
+        ->name('nurseadmin.exportAssignmentReport');
 
     // Schedule Management with Room Assignment
     Route::get('/nurseadmin/nurses/{nurse}/current-assignment', [NurseAdminDashboardController::class, 'getCurrentAssignment'])
@@ -263,6 +268,11 @@ Route::middleware(['auth', 'role:nurse_admin'])->group(function () {
 
     Route::get('/nurseadmin/search-patients', [RoomManagementController::class, 'searchPatients'])
         ->name('nurseadmin.searchPatients');
+
+    //calander
+    Route::get('full-calendar', [CalendarController::class, 'index'])->name('full-calendar');
+    Route::post('full-calendar/action', [CalendarController::class, 'action'])->name('full-calendar.action');
+    Route::get('/calendar/schedule/{id}', [CalendarController::class, 'getSchedule']);
 });
 
 Route::middleware(['auth'])->group(function () {

@@ -344,6 +344,14 @@
                     <span>Reports</span>
                 </a>
             </li>
+
+            <!-- Calander -->
+            <li class="nav-item">
+                <a href="{{ route('full-calendar') }}" class="nav-link {{ Request::routeIs('full-calendar') ? 'active' : '' }}">
+                    <i class="bi bi-calendar"></i>
+                    <span>Calendar</span>
+                </a>
+            </li>
         </ul>
 
         <div class="profile-section">
@@ -412,6 +420,8 @@
     <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
         @csrf
     </form>
+
+    @stack('scripts')
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

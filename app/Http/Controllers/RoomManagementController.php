@@ -160,7 +160,7 @@ class RoomManagementController extends Controller
 
             DB::commit();
             return response()->json(['success' => true]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             \Log::error('Failed to update room: ' . $e->getMessage());
             return response()->json([
@@ -192,7 +192,7 @@ class RoomManagementController extends Controller
             DB::commit();
             return redirect()->route('nurseadmin.roomList')
                 ->with('success', 'Room and associated beds deleted successfully');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             \Log::error('Error deleting room: ' . $e->getMessage());
             return back()->with('error', 'Failed to delete room. Please try again later.');
@@ -317,7 +317,7 @@ class RoomManagementController extends Controller
                     'notes' => $room->notes
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             \Log::error('Error fetching room: ' . $e->getMessage());
             
             if (request()->ajax()) {
@@ -348,7 +348,7 @@ class RoomManagementController extends Controller
                     'room_number' => $room->room_number
                 ]
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             \Log::error('Error fetching beds: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -402,7 +402,7 @@ class RoomManagementController extends Controller
             }
     
             return response()->json($patient);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             \Log::error('Error fetching patient details: ' . $e->getMessage());
             return response()->json(null, 500);
         }
@@ -451,7 +451,7 @@ class RoomManagementController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             \Log::error('Bed Management Error:', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -495,7 +495,7 @@ class RoomManagementController extends Controller
                 'success' => true,
                 'message' => 'Patient discharged and bed set to maintenance'
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to discharge patient: ' . $e->getMessage()
@@ -534,7 +534,7 @@ class RoomManagementController extends Controller
             return response()->json([
                 'patients' => $patients
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'error' => 'Failed to fetch patients: ' . $e->getMessage()
             ], 500);
@@ -546,7 +546,7 @@ class RoomManagementController extends Controller
         try {
             $patients = DB::select("SELECT id, name, ic_number, contact_number, gender, blood_type, address, email, emergency_contact FROM users WHERE role = 'patient' ORDER BY name ASC");
             return response()->json($patients);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             \Log::error('Error fetching patients: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to fetch patients'
@@ -654,7 +654,7 @@ class RoomManagementController extends Controller
             $currentBed->patient_id = null; // Set patient_id to null
             $currentBed->updated_at = now(); // Update the timestamp
             $currentBed->save(); // Save the changes
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error updating current bed: ' . $e->getMessage()], 500);
         }
 
@@ -664,7 +664,7 @@ class RoomManagementController extends Controller
             $newBed->status = 'occupied'; // Change status to occupied
             $newBed->updated_at = now(); // Update the timestamp
             $newBed->save(); // Save the changes
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error saving patient to new bed: ' . $e->getMessage()], 500);
         }
 

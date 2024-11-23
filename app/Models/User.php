@@ -146,4 +146,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Bed::class, 'patient_id');
     }
+
+    public function scopeNurse($query)
+    {
+        return $query->where('role', 'nurse');
+    }
 }

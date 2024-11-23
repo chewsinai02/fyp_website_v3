@@ -76,7 +76,12 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Schedule</button>
+                    <button type="submit" class="btn btn-primary" id="saveButton">
+                        <span class="d-flex align-items-center">
+                            <span class="spinner-border spinner-border-sm d-none me-2" role="status" id="saveSpinner"></span>
+                            Save Changes
+                        </span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -92,27 +97,101 @@ $(document).ready(function() {
         width: '100%',
         placeholder: 'Search for a room...',
         allowClear: true,
-        dropdownParent: $('#scheduleModal'), // This ensures the dropdown works in modal
+        dropdownParent: $('#scheduleModal'),
         templateResult: formatRoom,
         templateSelection: formatRoom
     });
+
+    // Form submission handling
+    $('#scheduleForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Get the button and spinner
+        const saveButton = $('#saveButton');
+        const saveSpinner = $('#saveSpinner');
+        
+        // Disable button and show spinner
+        saveButton.prop('disabled', true);
+        saveSpinner.removeClass('d-none');
+        
+        const formData = new FormData(this);
+
+        // Show processing alert
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Please wait while we save your changes.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            }
+        })
+        .done(function(response) {
+            // Close the processing alert
+            Swal.close();
+            
+            if (response.success) {
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: response.message,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#28a745'
+                }).then((result) => {
+                    // Close modal and reload page
+                    $('#scheduleModal').modal('hide');
+                    window.location.reload();
+                });
+            } else {
+                // Show error message
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: response.message || 'An error occurred while saving.',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        })
+        .fail(function(xhr) {
+            // Close the processing alert
+            Swal.close();
+            
+            let errorMessage = 'Failed to save changes. Please try again.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            
+            // Show error message
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: errorMessage,
+                confirmButtonColor: '#dc3545'
+            });
+        })
+        .always(function() {
+            // Re-enable button and hide spinner
+            saveButton.prop('disabled', false);
+            saveSpinner.addClass('d-none');
+        });
+    });
 });
-
-@if(session('success'))
-    Swal.fire({
-        icon: 'success',
-        title: 'Success',
-        text: '{{ session('success') }}'
-    });
-@endif
-
-@if(session('error'))
-    Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: '{{ session('error') }}'
-    });
-@endif
 
 // Custom formatting for room options
 function formatRoom(room) {
@@ -132,7 +211,7 @@ function formatRoom(room) {
     return $(html);
 }
 
-// Update the existing checkExistingAssignment function
+// Check existing assignment function
 function checkExistingAssignment(nurseId) {
     if (!nurseId) return;
 
@@ -172,70 +251,13 @@ function checkExistingAssignment(nurseId) {
         });
 }
 
-// Form submission handling
-document.getElementById('scheduleForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Disable submit button and show loading state
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
-    
-    const formData = new FormData(this);
-    
-    fetch(this.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Reset button state
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
-        
-        if (data.success) {
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('scheduleModal')).hide();
-            
-            // Show success message and redirect
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: data.message,
-                showConfirmButton: false,
-                timer: 1500
-            }).then(() => {
-                // Redirect to schedule list
-                window.location.href = '{{ route('nurseadmin.scheduleList') }}';
-            });
-        } else {
-            // Show error message
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.message,
-                confirmButtonText: 'OK'
-            });
-        }
-    })
-    .catch(error => {
-        // Reset button state
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
-        
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'An unexpected error occurred. Please try again.',
-            confirmButtonText: 'OK'
-        });
+// Test function to check if SweetAlert2 is working
+function testSweetAlert() {
+    Swal.fire({
+        title: 'Test Alert',
+        text: 'SweetAlert2 is working!',
+        icon: 'success'
     });
-});
+}
 </script>
 @endpush 

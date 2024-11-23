@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Models\Bed;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class NurseAdminDashboardController extends Controller
 {
@@ -105,45 +106,65 @@ class NurseAdminDashboardController extends Controller
     }
 
     public function storeSchedule(Request $request)
-{
-    DB::beginTransaction();
+    {
+        try {
+            DB::beginTransaction();
 
-    try {
-        // Validate request
-        $validatedData = $request->validate([
-            'nurse_id' => 'required|exists:users,id',
-            'room_id' => 'required|exists:rooms,id',
-            'date' => 'required|date|after_or_equal:today',
-            'shift' => 'required|in:morning,afternoon,night',
-            'notes' => 'nullable|string|max:255'
-        ]);
+            // Validate request
+            $validatedData = $request->validate([
+                'nurse_id' => 'required|exists:users,id',
+                'room_id' => 'required|exists:rooms,id',
+                'date' => 'required|date|after_or_equal:today',
+                'shift' => 'required|in:morning,afternoon,night',
+                'notes' => 'nullable|string|max:255'
+            ]);
 
-        // Check for nurse schedule conflicts
-        $nurseConflict = NurseSchedule::where('nurse_id', $validatedData['nurse_id'])
-            ->whereDate('date', $validatedData['date'])
-            ->where('shift', $validatedData['shift'])
-            ->exists();
+            // Check if nurse already has ANY shift for this date
+            $nurseConflict = NurseSchedule::where('nurse_id', $validatedData['nurse_id'])
+                ->whereDate('date', $validatedData['date'])
+                ->exists();
 
-        if ($nurseConflict) {
+            if ($nurseConflict) {
+                DB::rollback();
+                \Log::info('Nurse conflict detected', [
+                    'nurse_id' => $validatedData['nurse_id'], 
+                    'date' => $validatedData['date']
+                ]);
+                
+                // Return JSON response for conflict
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Nurse is already assigned to a shift on the selected date.'
+                ], 422);
+            }
+
+            // Create schedule
+            $schedule = NurseSchedule::create($validatedData);
+            
+            DB::commit();
+
+            // Return success response
             return response()->json([
-                'success' => false,
-                'message' => 'Nurse is already scheduled for this shift on the selected date.'
-            ], 422);
+                'status' => 'success',
+                'message' => 'Schedule created successfully',
+                'data' => [
+                    'schedule' => $schedule->load('nurse', 'room'),
+                    'redirect' => route('nurseadmin.scheduleList')
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Schedule creation failed: ' . $e->getMessage());
+
+            // Return error response
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to create schedule: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Create schedule
-        NurseSchedule::create($validatedData);
-
-        DB::commit();
-
-        return response()->json(['success' => true, 'message' => 'Schedule created successfully']);
-    } catch (\Exception $e) {
-        DB::rollback();
-
-        return response()->json(['success' => false, 'message' => 'Failed to create schedule: ' . $e->getMessage()], 500);
     }
-}
-
+    
     public function getSchedule(NurseSchedule $schedule)
     {
         try {
@@ -166,33 +187,33 @@ class NurseAdminDashboardController extends Controller
     }
 
     public function deleteSchedule($id)
-{
-    try {
-        $schedule = NurseSchedule::findOrFail($id);
-        $schedule->delete();
+    {
+        try {
+            $schedule = NurseSchedule::findOrFail($id);
+            $schedule->delete();
 
-        if (request()->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Schedule deleted successfully.'
-            ]);
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Schedule deleted successfully.'
+                ]);
+            }
+
+            return redirect()
+                ->back()
+                ->with('success', 'Schedule deleted successfully.');
+
+        } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete schedule: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', 'Failed to delete schedule: ' . $e->getMessage());
         }
-
-        return redirect()
-            ->back()
-            ->with('success', 'Schedule deleted successfully.');
-
-    } catch (\Exception $e) {
-        if (request()->wantsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete schedule: ' . $e->getMessage()
-            ], 500);
-        }
-
-        return back()->with('error', 'Failed to delete schedule: ' . $e->getMessage());
     }
-}
 
     // Room Management
     public function roomList()
@@ -281,31 +302,50 @@ class NurseAdminDashboardController extends Controller
         $schedules = NurseSchedule::with(['nurse', 'room'])
             ->whereDate('date', '>=', Carbon::now()->startOfMonth())
             ->orderBy('date')
-            ->orderBy('shift')
+            ->orderBy('shift', 'asc')
+            ->join('users', 'nurse_schedules.nurse_id', '=', 'users.id')
+            ->orderBy('users.name')
+            ->select('nurse_schedules.*')
             ->get();
 
         return view('nurseAdmin.scheduleReport', compact('schedules'));
     }
 
-    public function exportReport(Request $request)
+    public function exportScheduleReport(Request $request)
     {
-        $type = $request->query('type', 'schedule');
-        
-        if ($type === 'schedule') {
-            $data = NurseSchedule::with(['nurse'])
-                ->whereDate('date', '>=', Carbon::now()->startOfMonth())
-                ->orderBy('date')
-                ->get();
-        } else {
-            $data = NurseSchedule::with(['nurse', 'room'])
-                ->whereDate('date', '>=', Carbon::now()->startOfMonth())
-                ->orderBy('date')
-                ->get();
-        }
+        // Get schedules with consistent ordering
+        $schedules = NurseSchedule::with(['nurse', 'room'])
+            ->whereDate('date', '>=', Carbon::now()->startOfMonth())
+            ->orderBy('date')
+            ->orderBy('shift', 'asc')
+            ->join('users', 'nurse_schedules.nurse_id', '=', 'users.id')
+            ->orderBy('users.name')
+            ->select('nurse_schedules.*')
+            ->get();
 
-        // Export logic here (you can use Laravel Excel or generate PDF)
-        // For now, we'll just download as JSON
-        return response()->json($data);
+        // Debug the data
+        \Log::info('Total schedules:', ['count' => $schedules->count()]);
+
+        // Group schedules by date
+        $groupedSchedules = $schedules->groupBy(function ($schedule) {
+            return $schedule->date->format('Y-m-d');
+        });
+
+        // Debug the grouped data
+        \Log::info('Grouped schedules:', [
+            'dates' => $groupedSchedules->keys()->toArray(),
+            'counts' => $groupedSchedules->map->count()->toArray()
+        ]);
+
+        // Generate PDF
+        $pdf = PDF::loadView('nurseAdmin.schedule-report', [
+            'groupedSchedules' => $groupedSchedules,
+            'generatedDate' => Carbon::now()->format('M d, Y h:i A')
+        ]);
+
+        $filename = 'schedule_report_' . Carbon::now()->format('Y-m-d') . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function filterSchedules(Request $request)
@@ -518,4 +558,117 @@ class NurseAdminDashboardController extends Controller
             ], 500);
         }
     }
+
+    protected function formatJsonResponse($data, $view = true)
+    {
+        if (request()->wantsJson()) {
+            return response()->json($data);
+        }
+
+        return view('nurseAdmin.json-response', [
+            'success' => $data['success'] ?? false,
+            'message' => $data['message'] ?? '',
+            'data' => $data,
+            'title' => 'API Response'
+        ]);
+    }
+
+    public function assignmentReport()
+    {
+        $schedules = NurseSchedule::with(['nurse', 'room'])
+            ->whereDate('date', '>=', Carbon::now()->startOfMonth())
+            ->orderBy('date')
+            ->orderBy('shift', 'asc')
+            ->join('users', 'nurse_schedules.nurse_id', '=', 'users.id')
+            ->orderBy('users.name')
+            ->select('nurse_schedules.*')
+            ->get();
+
+        // Group schedules by nurse
+        $groupedSchedules = $schedules->groupBy('nurse_id');
+
+        return view('nurseAdmin.assignmentReport', [
+            'groupedSchedules' => $groupedSchedules,
+            'currentDate' => Carbon::now()->format('M d, Y')
+        ]);
+    }
+
+    public function exportAssignmentReport()
+    {
+        $schedules = NurseSchedule::with(['nurse', 'room'])
+            ->whereDate('date', '>=', Carbon::now()->startOfMonth())
+            ->orderBy('date')
+            ->orderBy('shift', 'asc')
+            ->join('users', 'nurse_schedules.nurse_id', '=', 'users.id')
+            ->orderBy('users.name')
+            ->select('nurse_schedules.*')
+            ->get();
+
+        // Group schedules by nurse
+        $groupedSchedules = $schedules->groupBy('nurse_id');
+
+        // Generate PDF
+        $pdf = PDF::loadView('nurseAdmin.assignment-report', [
+            'groupedSchedules' => $groupedSchedules,
+            'generatedDate' => Carbon::now()->format('M d, Y h:i A')
+        ]);
+
+        $filename = 'assignment_report_' . Carbon::now()->format('Y-m-d') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    public function calendar()
+    {
+        $schedules = NurseSchedule::with(['nurse', 'room'])
+            ->whereDate('date', '>=', now()->startOfMonth())
+            ->whereDate('date', '<=', now()->endOfMonth())
+            ->get();
+    
+        $events = $schedules->map(function($schedule) {
+            $colors = $this->getShiftColor($schedule->shift);
+            return [
+                'title' => $schedule->nurse->name . ' - ' . ucfirst($schedule->shift),
+                'start' => $schedule->date,
+                'backgroundColor' => $colors['bg'],
+                'borderColor' => $colors['border'],
+                'textColor' => $colors['text'],
+                'extendedProps' => [
+                    'nurse' => $schedule->nurse->name,
+                    'room' => $schedule->room->room_number ?? 'No Room',
+                    'shift' => $schedule->shift,
+                    'status' => $schedule->status
+                ]
+            ];
+        });
+    
+        return view('nurseAdmin.calendar', compact('events'));
+    }
+    
+    private function getShiftColor($shift)
+    {
+        return match($shift) {
+            'morning' => [
+                'bg' => '#E3F2FD',    // Light blue background
+                'border' => '#2196F3', // Blue border
+                'text' => '#1565C0'    // Dark blue text
+            ],
+            'afternoon' => [
+                'bg' => '#FFF3E0',    // Light orange background
+                'border' => '#FF9800', // Orange border
+                'text' => '#E65100'    // Dark orange text
+            ],
+            'night' => [
+                'bg' => '#E8EAF6',    // Light indigo background
+                'border' => '#3F51B5', // Indigo border
+                'text' => '#283593'    // Dark indigo text
+            ],
+            default => [
+                'bg' => '#ECEFF1',    // Light grey background
+                'border' => '#607D8B', // Blue grey border
+                'text' => '#37474F'    // Dark grey text
+            ]
+        };
+    }
+    
 }
