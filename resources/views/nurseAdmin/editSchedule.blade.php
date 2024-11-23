@@ -117,4 +117,31 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        $('#scheduleForm').submit(function(e) {
+            e.preventDefault();
+            alert('Form submitted');
+        });
+    });
+
+    @if(session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: '{{ session('success') }}'
+        });
+    @endif
+
+    @if(session('error'))
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: '{{ session('error') }}'
+        });
+    @endif    
+</script>
+@endpush
 @endsection

@@ -29,25 +29,20 @@
               <select class="form-select" id="patientSelect" style="width:100%">
                 <option value="">Search patient details...</option>
                 @foreach ($patients as $patient)
-                  <option value="{{ $patient->id }}" 
-                          data-name="{{ $patient->name }}"
-                          data-ic="{{ $patient->ic_number }}"
-                          data-gender="{{ $patient->gender }}"
-                          data-blood="{{ $patient->blood_type }}"
-                          data-contact="{{ $patient->contact_number }}"
-                          data-email="{{ $patient->email }}"
-                          data-address="{{ $patient->address }}"
-                          data-emergency="{{ $patient->emergency_contact }}">
-                    {{ $patient->name }}
-                    {{ $patient->ic_number }}
-                    {{ $patient->gender }}
-                    {{ $patient->blood_type }}
-                    {{ $patient->contact_number }}
-                    {{ $patient->email }}
-                    {{ $patient->address }}
-                    {{ $patient->emergency_contact }}
-                  </option>
-                @endforeach
+          <option value="{{ $patient->id }}" data-name="{{ $patient->name }}" data-ic="{{ $patient->ic_number }}"
+            data-gender="{{ $patient->gender }}" data-blood="{{ $patient->blood_type }}"
+            data-contact="{{ $patient->contact_number }}" data-email="{{ $patient->email }}"
+            data-address="{{ $patient->address }}" data-emergency="{{ $patient->emergency_contact }}">
+            {{ $patient->name }}
+            {{ $patient->ic_number }}
+            {{ $patient->gender }}
+            {{ $patient->blood_type }}
+            {{ $patient->contact_number }}
+            {{ $patient->email }}
+            {{ $patient->address }}
+            {{ $patient->emergency_contact }}
+          </option>
+        @endforeach
               </select>
             </div>
           </div>
@@ -61,7 +56,8 @@
             </div>
             <div class="mb-3">
               <label class="form-label fw-medium">Notes (Optional)</label>
-              <textarea class="form-control" id="maintenanceNotes" rows="3" placeholder="Enter maintenance details..."></textarea>
+              <textarea class="form-control" id="maintenanceNotes" rows="3"
+                placeholder="Enter maintenance details..."></textarea>
             </div>
           </div>
         </div>
@@ -80,8 +76,8 @@
               <select class="form-select" id="roomSelect">
                 <option value="">Select a room</option>
                 @foreach ($rooms as $room)
-                  <option value="{{ $room->id }}">{{ $room->room_number }}</option>
-                @endforeach
+          <option value="{{ $room->id }}">{{ $room->room_number }}</option>
+        @endforeach
               </select>
             </div>
             <div class="mb-3">
@@ -90,30 +86,32 @@
                 <option value="">Select room first</option>
               </select>
               @foreach ($rooms as $room)
-                  @foreach ($room->beds as $bed)
-                      <input type="hidden" id="patientId_{{ $bed->id }}" value="{{ $bed->patient_id }}">
-                  @endforeach
-              @endforeach
+          @foreach ($room->beds as $bed)
+        <input type="hidden" id="patientId_{{ $bed->id }}" value="{{ $bed->patient_id }}">
+      @endforeach
+        @endforeach
             </div>
           </div>
         </div>
 
         <div id="maintenanceBedOptions" style="display: none;">
-            <div class="mb-3">
-                <label class="form-label">What do you want to do?</label>
-                <select class="form-select" id="maintenanceActionSelect">
-                    <option value="setToAvailable">Set to Available</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-medium">Notes (Optional)</label>
-                <textarea class="form-control" id="statusChangeNotes" rows="3" placeholder="Enter any notes about the status change..."></textarea>
-            </div>
+          <div class="mb-3">
+            <label class="form-label">What do you want to do?</label>
+            <select class="form-select" id="maintenanceActionSelect">
+              <option value="setToAvailable">Set to Available</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Notes (Optional)</label>
+            <textarea class="form-control" id="statusChangeNotes" rows="3"
+              placeholder="Enter any notes about the status change..."></textarea>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="saveChangesButton" onclick="saveChangesButton()">Save Changes</button>
+        <button type="button" class="btn btn-primary" id="saveChangesButton" onclick="saveChangesButton()">Save
+          Changes</button>
       </div>
     </div>
   </div>
@@ -127,7 +125,7 @@
     }
   });
 
-  $(document).ready(function() {
+  $(document).ready(function () {
     $('#patientSelect').select2({
       theme: 'bootstrap-5',
       width: '100%',
@@ -139,9 +137,25 @@
     });
   });
 
+  @if(session('success'))
+    Swal.fire({
+    icon: 'success',
+    title: 'Success',
+    text: '{{ session('success') }}'
+    });
+  @endif
+
+  @if(session('error'))
+    Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    text: '{{ session('error') }}'
+    });
+  @endif
+
   function editBedStatus(bedId, status) {
     console.log('Editing bed:', bedId, 'Current status:', status); // Debug log
-    
+
     currentBedId = bedId; // Store the current bed ID
     currentBedStatus = status;
 
@@ -163,20 +177,20 @@
     maintenanceOptions.style.display = 'none';
 
     if (status === 'available') {
-        availableOptions.style.display = 'block';
-        $('#availableActionSelect').val('assignPatient');
-        handleActionChange();
-        saveChangesButton.setAttribute('onclick', 'addPatientToBed()'); // Set onclick for assigning patient
+      availableOptions.style.display = 'block';
+      $('#availableActionSelect').val('assignPatient');
+      handleActionChange();
+      saveChangesButton.setAttribute('onclick', 'addPatientToBed()'); // Set onclick for assigning patient
     } else if (status === 'occupied') {
-        occupiedOptions.style.display = 'block';
-        $('#occupiedActionSelect').val('transferPatient');
-        $('#transferSection').show();
-        loadAvailableRooms();
-        saveChangesButton.setAttribute('onclick', 'transferRoomOrBed()'); // Set onclick for transferring
+      occupiedOptions.style.display = 'block';
+      $('#occupiedActionSelect').val('transferPatient');
+      $('#transferSection').show();
+      loadAvailableRooms();
+      saveChangesButton.setAttribute('onclick', 'transferRoomOrBed()'); // Set onclick for transferring
     } else if (['maintenance', 'cleaning', 'repair', 'inspection'].includes(status)) {
-        maintenanceOptions.style.display = 'block';
-        $('#maintenanceActionSelect').val('setToAvailable');
-        saveChangesButton.setAttribute('onclick', 'setToAvailable()'); // Set onclick for changing status
+      maintenanceOptions.style.display = 'block';
+      $('#maintenanceActionSelect').val('setToAvailable');
+      saveChangesButton.setAttribute('onclick', 'setToAvailable()'); // Set onclick for changing status
     }
 
     // Show the modal
@@ -189,34 +203,34 @@
     console.log('Bed ID:', bedId); // Log the bed ID
 
     // Get the status change notes (if any) from the input field
-    const statusChangeNotes = $('#statusChangeNotes').val(); 
+    const statusChangeNotes = $('#statusChangeNotes').val();
 
     // Make the AJAX request
     $.ajax({
-        url: '/api/beds/change-status', // Ensure this URL is correct
-        type: 'POST',
-        contentType: 'application/json', // Set content type to JSON
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') // Include CSRF token
-        },
-        data: JSON.stringify({ // Send data as JSON
-            bed_id: bedId,
-            status: 'available',
-            notes: statusChangeNotes
-        }),
-        success: function(response) {
-            console.log('Success:', response);
-            if (response.success) {
-                alert('Bed status updated successfully!');
-                window.location.reload(); // Refresh the page on success
-            } else {
-                alert('Failed to update bed status: ' + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error:', error);
-            alert('An error occurred: ' + xhr.responseText); // Show error message
+      url: '/api/beds/change-status', // Ensure this URL is correct
+      type: 'POST',
+      contentType: 'application/json', // Set content type to JSON
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') // Include CSRF token
+      },
+      data: JSON.stringify({ // Send data as JSON
+        bed_id: bedId,
+        status: 'available',
+        notes: statusChangeNotes
+      }),
+      success: function (response) {
+        console.log('Success:', response);
+        if (response.success) {
+          alert('Bed status updated successfully!');
+          window.location.reload(); // Refresh the page on success
+        } else {
+          alert('Failed to update bed status: ' + response.message);
         }
+      },
+      error: function (xhr, status, error) {
+        console.error('Error:', error);
+        alert('An error occurred: ' + xhr.responseText); // Show error message
+      }
     });
   }
 
@@ -226,24 +240,24 @@
     $.ajax({
       url: '/api/rooms-and-beds', // Replace with your API endpoint
       type: 'GET',
-      success: function(response) {
+      success: function (response) {
         $('#roomSelect').empty().append('<option value="">Select a room</option>');
-        $.each(response.rooms, function(index, room) {
+        $.each(response.rooms, function (index, room) {
           $('#roomSelect').append('<option value="' + room.id + '">' + room.name + '</option>');
         });
 
         $('#bedSelect').empty().append('<option value="">Select a room first</option>').prop('disabled', true);
 
-        $('#roomSelect').on('change', function() {
+        $('#roomSelect').on('change', function () {
           var selectedRoomId = $(this).val();
           $('#bedSelect').prop('disabled', false).empty().append('<option value="">Select a bed</option>');
 
-          $.each(response.beds[selectedRoomId], function(index, bed) {
+          $.each(response.beds[selectedRoomId], function (index, bed) {
             $('#bedSelect').append('<option value="' + bed.id + '">' + bed.number + '</option>');
           });
         });
       },
-      error: function(error) {
+      error: function (error) {
         console.error('Error loading rooms and beds:', error);
       }
     });
@@ -256,20 +270,20 @@
     }
     return $('<div class="patient-option">' +
       '<div class="patient-info">' +
-        '<span class="fw-bold">' + $(patient.element).data('name') + '</span><br>' +
-        '<span class="text-muted">IC: ' + $(patient.element).data('ic') + '</span><br>' +
+      '<span class="fw-bold">' + $(patient.element).data('name') + '</span><br>' +
+      '<span class="text-muted">IC: ' + $(patient.element).data('ic') + '</span><br>' +
       '</div>' +
       '<div class="patient-details">' +
-        '<span class="badge bg-soft-info text-black">' + $(patient.element).data('gender') + '</span>' +
-        '<span class="badge bg-soft-danger text-black">' + $(patient.element).data('blood') + '</span><br>' +
-        '<span class="text-muted">📞 ' + $(patient.element).data('contact') + '</span><br>' +
-        '<span class="text-muted">✉️ ' + $(patient.element).data('email') + '</span><br>' +
+      '<span class="badge bg-soft-info text-black">' + $(patient.element).data('gender') + '</span>' +
+      '<span class="badge bg-soft-danger text-black">' + $(patient.element).data('blood') + '</span><br>' +
+      '<span class="text-muted">📞 ' + $(patient.element).data('contact') + '</span><br>' +
+      '<span class="text-muted">✉️ ' + $(patient.element).data('email') + '</span><br>' +
       '</div>' +
       '<div class="patient-address">' +
-        '<span class="text-muted">🏠 ' + $(patient.element).data('address') + '</span><br>' +
-        '<span class="text-muted">🚑 ' + $(patient.element).data('emergency') + '</span><br>' +
+      '<span class="text-muted">🏠 ' + $(patient.element).data('address') + '</span><br>' +
+      '<span class="text-muted">🚑 ' + $(patient.element).data('emergency') + '</span><br>' +
       '</div>' +
-    '</div>');
+      '</div>');
   }
 
   // Function to format the selected option
@@ -280,270 +294,268 @@
   function saveChangesButton() {
     // Check which section is currently visible and call the appropriate function
     if ($('#availableBedOptions').is(':visible') && $('#availableActionSelect').val() === 'assignPatient') {
-        addPatientToBed();
+      addPatientToBed();
     } else if ($('#maintenanceBedOptions').is(':visible') && $('#maintenanceActionSelect').val() === 'setToAvailable') {
-        setToAvailable(currentBedId);
+      setToAvailable(currentBedId);
     } else if ($('#occupiedBedOptions').is(':visible') && $('#occupiedActionSelect').val() === 'transferPatient') {
-        transferRoomOrBed();
+      transferRoomOrBed();
     } else {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Validation Error',
-            text: 'Please select a valid action.',
-            confirmButtonColor: '#3085d6'
-        });
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Error',
+        text: 'Please select a valid action.',
+        confirmButtonColor: '#3085d6'
+      });
     }
   }
-    function addPatientToBed() {
-        console.log('Button was clicked');
-        console.log('saveBedChanges function called');
-    
-        // Get the selected patient ID and bed ID
-        const patientId = $('#patientSelect').val();
-        const bedId = currentBedId;
+  function addPatientToBed() {
+    console.log('Button was clicked');
+    console.log('saveBedChanges function called');
 
-        console.log('Selected Patient ID:', patientId);
-        console.log('Current Bed ID:', bedId);
+    // Get the selected patient ID and bed ID
+    const patientId = $('#patientSelect').val();
+    const bedId = currentBedId;
 
-        // Validate selections
-        if (!patientId || !bedId) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Validation Error',
-                text: 'Please select both a patient and a bed.',
-                confirmButtonColor: '#3085d6'
-            });
-            return;
-        }
+    console.log('Selected Patient ID:', patientId);
+    console.log('Current Bed ID:', bedId);
 
-        // Show loading state
-        Swal.fire({
-            title: 'Processing...',
-            text: 'Please wait while we update the bed assignment.',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Make the AJAX call
-        $.ajax({
-            url: "{{ route('manageBed') }}",
-            type: 'POST',
-            data: {
-                id: bedId,
-                patient_id: patientId,
-                _token: "{{ csrf_token() }}"
-            },
-            success: function(response) {
-                console.log('Success:', response);
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: 'Bed updated successfully!',
-                        confirmButtonColor: '#28a745',
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $('#editBedModal').modal('hide');
-                            window.location.reload();
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Operation Failed',
-                        text: response.message,
-                        confirmButtonColor: '#dc3545'
-                    });
-                }
-            },
-            error: function(xhr, status, error) {
-                console.log('Error details:', {
-                    status: xhr.status,
-                    responseText: xhr.responseText,
-                    error: error
-                });
-                
-                try {
-                    const errorResponse = JSON.parse(xhr.responseText);
-                    const errorMessage = errorResponse.errors ? 
-                        Object.values(errorResponse.errors).flat().join('\n') : 
-                        (errorResponse.message || 'Unknown error occurred');
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMessage,
-                        confirmButtonColor: '#dc3545',
-                        confirmButtonText: 'OK'
-                    });
-                } catch (e) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to update bed: ' + error,
-                        confirmButtonColor: '#dc3545',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            }
-        });
+    // Validate selections
+    if (!patientId || !bedId) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Error',
+        text: 'Please select both a patient and a bed.',
+        confirmButtonColor: '#3085d6'
+      });
+      return;
     }
 
-    // Assuming you have a function that loads available beds when a room is selected
-    document.getElementById('roomSelect').addEventListener('change', function(e) {
-        const roomId = e.target.value;
-        const bedSelect = document.getElementById('bedSelect');
-
-        if (!roomId) {
-            // If no room is selected, show "Select room first" and disable the bed select
-            bedSelect.innerHTML = '<option value="">Select room first</option>';
-            bedSelect.disabled = true; // Disable the bed select
-        } else {
-            // If a room is selected, enable the bed select and show "Select a bed"
-            bedSelect.innerHTML = '<option value="">Select a bed</option>';
-            bedSelect.disabled = false; // Enable the bed select
-
-            // Fetch available beds for the selected room
-            fetch(`/api/rooms/${roomId}/available-beds`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Check if the data contains beds
-                    if (data.beds && data.beds.length > 0) {
-                        // Populate the bed select with available beds
-                        data.beds.forEach(bed => {
-                            const option = document.createElement('option');
-                            option.value = bed.id;
-                            option.textContent = `Bed ${bed.bed_number}`;
-                            bedSelect.appendChild(option);
-                        });
-                    } else {
-                        // If no beds are available, show a message
-                        bedSelect.innerHTML = '<option value="">No beds available</option>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching beds:', error);
-                    bedSelect.innerHTML = '<option value="">Error loading beds</option>';
-                });
-        }
+    // Show loading state
+    Swal.fire({
+      title: 'Processing...',
+      text: 'Please wait while we update the bed assignment.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
     });
 
-    function transferRoomOrBed() {
-        console.log('transferRoomOrBed function called');
-
-        // Get the selected room ID from the room select dropdown
-        const roomSelect = document.getElementById('roomSelect');
-        const roomId = roomSelect.value;
-
-        // Get the selected bed ID from the bed select dropdown
-        const bedSelect = document.getElementById('bedSelect');
-        const newBedId = bedSelect.value;
-
-        alert(roomId);
-        alert(newBedId);
-        alert(currentBedId);
-
-        const patientId = document.getElementById(`patientId_${currentBedId}`).value; // Get patient ID from a hidden input
-        alert(patientId);
-        // Validate the selections
-        if (!patientId || !roomId || !newBedId || !currentBedId) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Information',
-                text: 'Please select a patient, room, and bed to transfer.',
-                confirmButtonColor: '#dc3545'
-            });
-            return; // Exit the function if validation fails
-        }
-
-        // Prepare the data to send to the server
-        const data = {
-            patient_id: patientId,
-            room_id: roomId,
-            bed_id: newBedId,
-            current_bed_id: currentBedId,
-            _token: "{{ csrf_token() }}" // Include CSRF token for security
-        };
-
-        // Make the AJAX request to transfer the patient
-        $.ajax({
-            url: '/api/patients/transfer', // Ensure this URL is correct
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function(response) {
-                console.log('Success:', response);
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Transfer Successful',
-                        text: 'Patient has been transferred successfully!',
-                        confirmButtonColor: '#28a745'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $('#editBedModal').modal('hide');
-                            window.location.reload(); // Refresh the page to see the updated data
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Transfer Failed',
-                        text: response.message,
-                        confirmButtonColor: '#dc3545'
-                    });
-                }
-            },
-            error: function(xhr, status, error) {
-                console.log('Error details:', {
-                    status: xhr.status,
-                    responseText: xhr.responseText,
-                    error: error
-                });
-
-                try {
-                    const errorResponse = JSON.parse(xhr.responseText);
-                    const errorMessage = errorResponse.errors ? 
-                        Object.values(errorResponse.errors).flat().join('\n') : 
-                        (errorResponse.message || 'Unknown error occurred');
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: errorMessage,
-                        confirmButtonColor: '#dc3545',
-                        confirmButtonText: 'OK'
-                    });
-                } catch (e) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to transfer patient: ' + error,
-                        confirmButtonColor: '#dc3545',
-                        confirmButtonText: 'OK'
-                    });
-                }
+    // Make the AJAX call
+    $.ajax({
+      url: "{{ route('manageBed') }}",
+      type: 'POST',
+      data: {
+        id: bedId,
+        patient_id: patientId,
+        _token: "{{ csrf_token() }}"
+      },
+      success: function (response) {
+        console.log('Success:', response);
+        if (response.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: 'Bed updated successfully!',
+            confirmButtonColor: '#28a745',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              $('#editBedModal').modal('hide');
+              window.location.reload();
             }
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Operation Failed',
+            text: response.message,
+            confirmButtonColor: '#dc3545'
+          });
+        }
+      },
+      error: function (xhr, status, error) {
+        console.log('Error details:', {
+          status: xhr.status,
+          responseText: xhr.responseText,
+          error: error
+        });
+
+        try {
+          const errorResponse = JSON.parse(xhr.responseText);
+          const errorMessage = errorResponse.errors ?
+            Object.values(errorResponse.errors).flat().join('\n') :
+            (errorResponse.message || 'Unknown error occurred');
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorMessage,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'OK'
+          });
+        } catch (e) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to update bed: ' + error,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'OK'
+          });
+        }
+      }
+    });
+  }
+
+  // Assuming you have a function that loads available beds when a room is selected
+  document.getElementById('roomSelect').addEventListener('change', function (e) {
+    const roomId = e.target.value;
+    const bedSelect = document.getElementById('bedSelect');
+
+    if (!roomId) {
+      // If no room is selected, show "Select room first" and disable the bed select
+      bedSelect.innerHTML = '<option value="">Select room first</option>';
+      bedSelect.disabled = true; // Disable the bed select
+    } else {
+      // If a room is selected, enable the bed select and show "Select a bed"
+      bedSelect.innerHTML = '<option value="">Select a bed</option>';
+      bedSelect.disabled = false; // Enable the bed select
+
+      // Fetch available beds for the selected room
+      fetch(`/api/rooms/${roomId}/available-beds`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Check if the data contains beds
+          if (data.beds && data.beds.length > 0) {
+            // Populate the bed select with available beds
+            data.beds.forEach(bed => {
+              const option = document.createElement('option');
+              option.value = bed.id;
+              option.textContent = `Bed ${bed.bed_number}`;
+              bedSelect.appendChild(option);
+            });
+          } else {
+            // If no beds are available, show a message
+            bedSelect.innerHTML = '<option value="">No beds available</option>';
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching beds:', error);
+          bedSelect.innerHTML = '<option value="">Error loading beds</option>';
         });
     }
+  });
+
+  function transferRoomOrBed() {
+    console.log('transferRoomOrBed function called');
+
+    // Get the selected room ID from the room select dropdown
+    const roomSelect = document.getElementById('roomSelect');
+    const roomId = roomSelect.value;
+
+    // Get the selected bed ID from the bed select dropdown
+    const bedSelect = document.getElementById('bedSelect');
+    const newBedId = bedSelect.value;
+
+    const patientId = document.getElementById(`patientId_${currentBedId}`).value; // Get patient ID from a hidden input
+    alert(patientId);
+    // Validate the selections
+    if (!patientId || !roomId || !newBedId || !currentBedId) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Missing Information',
+        text: 'Please select a patient, room, and bed to transfer.',
+        confirmButtonColor: '#dc3545'
+      });
+      return; // Exit the function if validation fails
+    }
+
+    // Prepare the data to send to the server
+    const data = {
+      patient_id: patientId,
+      room_id: roomId,
+      bed_id: newBedId,
+      current_bed_id: currentBedId,
+      _token: "{{ csrf_token() }}" // Include CSRF token for security
+    };
+
+    // Make the AJAX request to transfer the patient
+    $.ajax({
+      url: '/api/patients/transfer', // Ensure this URL is correct
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(data),
+      success: function (response) {
+        console.log('Success:', response);
+        if (response.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Transfer Successful',
+            text: 'Patient has been transferred successfully!',
+            confirmButtonColor: '#28a745'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              $('#editBedModal').modal('hide');
+              window.location.reload(); // Refresh the page to see the updated data
+            }
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Transfer Failed',
+            text: response.message,
+            confirmButtonColor: '#dc3545'
+          });
+        }
+      },
+      error: function (xhr, status, error) {
+        console.log('Error details:', {
+          status: xhr.status,
+          responseText: xhr.responseText,
+          error: error
+        });
+
+        try {
+          const errorResponse = JSON.parse(xhr.responseText);
+          const errorMessage = errorResponse.errors ?
+            Object.values(errorResponse.errors).flat().join('\n') :
+            (errorResponse.message || 'Unknown error occurred');
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorMessage,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'OK'
+          });
+        } catch (e) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to transfer patient: ' + error,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'OK'
+          });
+        }
+      }
+    });
+  }
 </script>
 
 <style>
   .modal-lg {
-    max-width: 800px; /* Adjust modal width */
+    max-width: 800px;
+    /* Adjust modal width */
   }
 
   .form-label {
-    font-weight: 600; /* Bold labels */
+    font-weight: 600;
+    /* Bold labels */
   }
 
   .select2-container--bootstrap-5 .select2-selection {
@@ -553,7 +565,8 @@
   }
 
   .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-    line-height: 2.25; /* Center text vertically */
+    line-height: 2.25;
+    /* Center text vertically */
   }
 
   .select2-results__option {

@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Models\Bed;
 
 class NurseAdminDashboardController extends Controller
@@ -73,9 +74,14 @@ class NurseAdminDashboardController extends Controller
     }
 
     // Schedule Management
-    public function scheduleList()
+    public function scheduleList(Request $request)
     {
-        $schedules = NurseSchedule::with(['nurse', 'room'])
+        // Get the date from the request or default to today
+        $date = $request->input('date', date('Y-m-d')); // Default to today if no date is provided
+
+        // Retrieve schedules for the specified date
+        $schedules = NurseSchedule::whereDate('date', $date)
+            ->with(['nurse', 'room'])
             ->orderBy('date', 'asc')
             ->orderByRaw("CASE 
                 WHEN shift = 'morning' THEN 1 
@@ -84,134 +90,59 @@ class NurseAdminDashboardController extends Controller
                 END")
             ->get();
 
+        // Check if the request is an AJAX call
+        if ($request->ajax()) {
+            return response()->json($schedules);
+        }
+
+        // Get all nurses
         $nurses = User::where('role', 'nurse')
             ->orderBy('name')
             ->get();
 
+        // Return the view with schedules and nurses
         return view('nurseAdmin.scheduleList', compact('schedules', 'nurses'));
     }
 
     public function storeSchedule(Request $request)
-    {
-        try {
-            DB::beginTransaction();
+{
+    DB::beginTransaction();
 
-            // Validate request
-            $validated = $request->validate([
-                'nurse_id' => 'required|exists:users,id',
-                'room_id' => 'required|exists:rooms,id',
-                'date' => 'required|date|after_or_equal:today',
-                'shift' => 'required|in:morning,evening,night',
-                'notes' => 'nullable|string|max:255'
-            ]);
+    try {
+        // Validate request
+        $validatedData = $request->validate([
+            'nurse_id' => 'required|exists:users,id',
+            'room_id' => 'required|exists:rooms,id',
+            'date' => 'required|date|after_or_equal:today',
+            'shift' => 'required|in:morning,afternoon,night',
+            'notes' => 'nullable|string|max:255'
+        ]);
 
-            // Get the room
-            $room = Room::findOrFail($request->room_id);
+        // Check for nurse schedule conflicts
+        $nurseConflict = NurseSchedule::where('nurse_id', $validatedData['nurse_id'])
+            ->whereDate('date', $validatedData['date'])
+            ->where('shift', $validatedData['shift'])
+            ->exists();
 
-            // 1. Check if nurse is already scheduled for any room in the same shift
-            $nurseConflict = NurseSchedule::where('nurse_id', $request->nurse_id)
-                ->whereDate('date', $request->date)
-                ->where('shift', $request->shift)
-                ->exists();
-
-            if ($nurseConflict) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Nurse is already scheduled for this shift on the selected date.'
-                ], 422);
-            }
-
-            // 2. Check maximum nurses per room per shift (configurable per room)
-            $currentNursesInShift = NurseSchedule::where('room_id', $request->room_id)
-                ->whereDate('date', $request->date)
-                ->where('shift', $request->shift)
-                ->count();
-
-            // Get max nurses allowed per shift for this room (default to 3 if not set)
-            $maxNursesPerShift = $room->max_nurses_per_shift ?? 3;
-
-            if ($currentNursesInShift >= $maxNursesPerShift) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => "Maximum number of nurses ($maxNursesPerShift) for this room and shift has been reached."
-                ], 422);
-            }
-
-            // 3. Check nurse's consecutive shifts (prevent overwork)
-            $previousShift = NurseSchedule::where('nurse_id', $request->nurse_id)
-                ->whereDate('date', Carbon::parse($request->date)->subDay())
-                ->where('shift', 'night')
-                ->exists();
-
-            $nextShift = NurseSchedule::where('nurse_id', $request->nurse_id)
-                ->whereDate('date', Carbon::parse($request->date)->addDay())
-                ->where('shift', 'morning')
-                ->exists();
-
-            if (($request->shift === 'morning' && $previousShift) || 
-                ($request->shift === 'night' && $nextShift)) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot schedule nurse for consecutive shifts without proper rest period.'
-                ], 422);
-            }
-
-            // 4. Check weekly hours limit (assuming 40 hours per week)
-            $weekStart = Carbon::parse($request->date)->startOfWeek();
-            $weekEnd = Carbon::parse($request->date)->endOfWeek();
-            
-            $weeklyShifts = NurseSchedule::where('nurse_id', $request->nurse_id)
-                ->whereBetween('date', [$weekStart, $weekEnd])
-                ->count();
-
-            if ($weeklyShifts >= 5) { // Assuming 8-hour shifts, 5 shifts = 40 hours
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Nurse has reached maximum weekly hours.'
-                ], 422);
-            }
-
-            // 5. Create schedule if all validations pass
-            $schedule = NurseSchedule::create([
-                'nurse_id' => $request->nurse_id,
-                'room_id' => $request->room_id,
-                'date' => $request->date,
-                'shift' => $request->shift,
-                'status' => 'scheduled',
-                'notes' => $request->notes
-            ]);
-
-            DB::commit();
-
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Schedule created successfully'
-                ]);
-            }
-
-            return redirect()->route('nurseadmin.scheduleList')
-                ->with('success', 'Schedule created successfully');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Schedule creation error: ' . $e->getMessage());
-            
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to create schedule: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return redirect()->back()
-                ->with('error', 'Failed to create schedule. Please try again.');
+        if ($nurseConflict) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nurse is already scheduled for this shift on the selected date.'
+            ], 422);
         }
+
+        // Create schedule
+        NurseSchedule::create($validatedData);
+
+        DB::commit();
+
+        return response()->json(['success' => true, 'message' => 'Schedule created successfully']);
+    } catch (\Exception $e) {
+        DB::rollback();
+
+        return response()->json(['success' => false, 'message' => 'Failed to create schedule: ' . $e->getMessage()], 500);
     }
+}
 
     public function getSchedule(NurseSchedule $schedule)
     {
@@ -234,15 +165,34 @@ class NurseAdminDashboardController extends Controller
         }
     }
 
-    public function deleteSchedule(NurseSchedule $schedule)
-    {
-        try {
-            $schedule->delete();
-            return redirect()->back()->with('success', 'Schedule deleted successfully');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Failed to delete schedule');
+    public function deleteSchedule($id)
+{
+    try {
+        $schedule = NurseSchedule::findOrFail($id);
+        $schedule->delete();
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Schedule deleted successfully.'
+            ]);
         }
+
+        return redirect()
+            ->back()
+            ->with('success', 'Schedule deleted successfully.');
+
+    } catch (\Exception $e) {
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete schedule: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return back()->with('error', 'Failed to delete schedule: ' . $e->getMessage());
     }
+}
 
     // Room Management
     public function roomList()

@@ -311,7 +311,7 @@ function deleteSchedule(id) {
                         showConfirmButton: false,
                         timer: 1500
                     }).then(() => {
-                        window.location.reload();
+                        window.location.reload(); // Reload the page after deletion
                     });
                 } else {
                     throw new Error(data.message);

@@ -229,15 +229,17 @@ Route::middleware(['auth', 'role:nurse_admin'])->group(function () {
         ->name('nurseadmin.scheduleList');
     Route::get('/nurseadmin/schedules/filter', [NurseAdminDashboardController::class, 'filterSchedules'])
         ->name('nurseadmin.filterSchedules');
-    Route::post('/nurseadmin/schedule', [NurseAdminDashboardController::class, 'storeSchedule'])
+    Route::post('/nurseadmin/schedules', [NurseAdminDashboardController::class, 'storeSchedule'])
         ->name('nurseadmin.addSchedule');
     Route::delete('/nurseadmin/schedules/{schedule}', [NurseAdminDashboardController::class, 'deleteSchedule'])
         ->name('nurseadmin.deleteSchedule');
+    Route::delete('/nurseadmin/schedules/{id}', [NurseAdminDashboardController::class, 'destroySchedule'])
+        ->name('nurseadmin.destroySchedule');
     Route::get('/schedules/{schedule}/edit', [NurseAdminDashboardController::class, 'editSchedule'])
         ->name('nurseadmin.editSchedule');
     Route::put('/schedules/{schedule}', [NurseAdminDashboardController::class, 'updateSchedule'])
         ->name('nurseadmin.updateSchedule');
-    Route::get('/nurseadmin/schedule/{id}', [NurseAdminDashboardController::class, 'getSchedule'])
+    Route::get('/nurseadmin/schedules/{id}', [NurseAdminDashboardController::class, 'getSchedule'])
         ->name('nurseadmin.getSchedule');
     Route::get('/nurseadmin/schedules/filter', [NurseAdminDashboardController::class, 'filterSchedules'])
         ->name('nurseadmin.filterSchedules');

@@ -108,9 +108,15 @@
 
 <!-- Include the schedule modal with nurses data -->
 @include('nurseAdmin.schedule', ['nurses' => $nurses])
-@endsection
 
 @push('scripts')
 <script>
+    function filterSchedules(date) {
+       console.log("Filtering schedules for date:", date); // Debugging line
+       if (date) {
+           window.location.href = `{{ route('nurseadmin.scheduleList') }}?date=${date}`;
+       }
+   }
 </script>
 @endpush 
+@endsection

@@ -187,7 +187,7 @@ class RoomManagementController extends Controller
             $room->beds()->delete();
             
             // Delete the room
-            $room->delete();
+            $room->forceDelete();
             
             DB::commit();
             return redirect()->route('nurseadmin.roomList')
