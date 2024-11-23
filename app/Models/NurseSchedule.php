@@ -9,14 +9,22 @@ class NurseSchedule extends Model
 {
     use HasFactory;
 
+    protected $table = 'nurse_schedules';
+
     protected $fillable = [
         'nurse_id',
         'room_id',
-        'date',
         'shift',
+        'date',
         'status',
         'notes'
     ];
+
+    // Define the allowed status values
+    const STATUS_SCHEDULED = 'scheduled';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_ABSENT = 'absent';
+    const STATUS_CANCELLED = 'cancelled';
 
     protected $casts = [
         'date' => 'date'

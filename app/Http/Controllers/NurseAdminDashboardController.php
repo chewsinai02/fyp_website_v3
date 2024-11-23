@@ -16,8 +16,15 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class NurseAdminDashboardController extends Controller
 {
+    public function __construct()
+    {
+        DB::enableQueryLog();
+    }
+
     public function nurseAdminindex()
     {
+        $this->updateScheduleStatuses();
+
         $data = [
             'totalNurses' => User::where('role', 'nurse')->count(),
             'onDutyNurses' => NurseSchedule::whereDate('date', today())
@@ -77,6 +84,8 @@ class NurseAdminDashboardController extends Controller
     // Schedule Management
     public function scheduleList(Request $request)
     {
+        $this->updateScheduleStatuses();
+
         // Get the date from the request or default to today
         $date = $request->input('date', date('Y-m-d')); // Default to today if no date is provided
 
@@ -452,6 +461,49 @@ class NurseAdminDashboardController extends Controller
                 ->with('error', 'Failed to update schedule: ' . $e->getMessage());
         }
     } 
+
+    private function updateScheduleStatuses()
+    {
+        $now = Carbon::now();
+        
+        try {
+            // Update all past schedules
+            NurseSchedule::where(function ($query) use ($now) {
+                $query->where(function ($q) use ($now) {
+                    // Past dates
+                    $q->whereDate('date', '<', $now->toDateString());
+                })->orWhere(function ($q) use ($now) {
+                    // Current date but past shifts
+                    $q->whereDate('date', $now->toDateString())
+                        ->where(function ($sq) use ($now) {
+                            $sq->where(function ($morning) use ($now) {
+                                $morning->where('shift', 'morning')
+                                    ->where('date', '<=', $now->copy()->setTime(15, 0, 0));
+                            })->orWhere(function ($afternoon) use ($now) {
+                                $afternoon->where('shift', 'afternoon')
+                                        ->where('date', '<=', $now->copy()->setTime(23, 0, 0));
+                            })->orWhere(function ($night) use ($now) {
+                                $night->where('shift', 'night')
+                                    ->where('date', '<=', $now->copy()->subDay()->setTime(7, 0, 0));
+                            });
+                        });
+                });
+            })
+            ->where('status', 'scheduled')
+            ->update(['status' => 'completed']);
+
+            \Log::info('Schedule statuses updated successfully', [
+                'current_time' => $now->toDateTimeString(),
+                'updated_count' => DB::connection()->getQueryLog()[0]['rows'] ?? 0
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to update schedule statuses: ' . $e->getMessage(), [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
 
     public function nurseAdminManageProfile()
     {

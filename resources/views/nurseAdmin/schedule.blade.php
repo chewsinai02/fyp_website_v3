@@ -110,6 +110,22 @@ $(document).ready(function() {
         const saveButton = $('#saveButton');
         const saveSpinner = $('#saveSpinner');
         
+        // Validate form fields
+        const nurse_id = $('#nurse_id').val();
+        const date = $('#date').val();
+        const shift = $('#shift').val();
+        const room_id = $('#room_id').val();
+
+        if (!nurse_id || !date || !shift || !room_id) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Error',
+                text: 'Please fill in all required fields',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+        
         // Disable button and show spinner
         saveButton.prop('disabled', true);
         saveSpinner.removeClass('d-none');
@@ -145,25 +161,38 @@ $(document).ready(function() {
             Swal.close();
             
             if (response.success) {
-                // Show success message
+                // Show success message with details
                 Swal.fire({
                     icon: 'success',
-                    title: 'Success!',
-                    text: response.message,
+                    title: 'Schedule Updated Successfully!',
+                    html: `
+                        <div class="text-start">
+                            <p>${response.message}</p>
+                            <p><strong>Details:</strong></p>
+                            <ul>
+                                <li>Nurse: ${$('#nurse_id option:selected').text()}</li>
+                                <li>Date: ${new Date(date).toLocaleDateString()}</li>
+                                <li>Shift: ${shift.charAt(0).toUpperCase() + shift.slice(1)}</li>
+                                <li>Room: ${$('#room_id option:selected').text()}</li>
+                            </ul>
+                        </div>
+                    `,
                     showConfirmButton: true,
                     confirmButtonText: 'OK',
                     confirmButtonColor: '#28a745'
                 }).then((result) => {
-                    // Close modal and reload page
+                    // Reset form and close modal
+                    $('#scheduleForm')[0].reset();
                     $('#scheduleModal').modal('hide');
+                    // Reload page or update schedule display
                     window.location.reload();
                 });
             } else {
                 // Show error message
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error!',
-                    text: response.message || 'An error occurred while saving.',
+                    title: 'Failed to Update Schedule',
+                    text: response.message || 'An error occurred while saving changes.',
                     confirmButtonColor: '#dc3545'
                 });
             }
@@ -173,15 +202,33 @@ $(document).ready(function() {
             Swal.close();
             
             let errorMessage = 'Failed to save changes. Please try again.';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
+            let errorDetails = [];
+            
+            // Handle validation errors
+            if (xhr.status === 422 && xhr.responseJSON) {
+                if (xhr.responseJSON.errors) {
+                    errorDetails = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = errorDetails.join('<br>');
+                } else if (xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
             }
             
-            // Show error message
+            // Show detailed error message
             Swal.fire({
                 icon: 'error',
                 title: 'Error!',
-                text: errorMessage,
+                html: `
+                    <div class="text-start">
+                        <p>${errorMessage}</p>
+                        ${errorDetails.length ? `
+                            <p><strong>Please check the following:</strong></p>
+                            <ul>
+                                ${errorDetails.map(error => `<li>${error}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                    </div>
+                `,
                 confirmButtonColor: '#dc3545'
             });
         })
@@ -190,6 +237,15 @@ $(document).ready(function() {
             saveButton.prop('disabled', false);
             saveSpinner.addClass('d-none');
         });
+    });
+
+    // Reset form when modal is closed
+    $('#scheduleModal').on('hidden.bs.modal', function() {
+        $('#scheduleForm')[0].reset();
+        $('#saveButton').prop('disabled', false);
+        $('#saveSpinner').addClass('d-none');
+        $('.is-invalid').removeClass('is-invalid');
+        $('.invalid-feedback').remove();
     });
 });
 

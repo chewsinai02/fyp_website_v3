@@ -295,6 +295,125 @@
         text-align: right;
         margin-top: 5px;
     }
+
+    /* Additional badge colors */
+    .text-bg-indigo {
+        background-color: rgb(102, 16, 242) !important;
+        color: white !important;
+    }
+
+    .text-bg-purple {
+        background-color: rgb(111, 66, 193) !important;
+        color: white !important;
+    }
+
+    .text-bg-pink {
+        background-color: rgb(214, 51, 132) !important;
+        color: white !important;
+    }
+
+    .text-bg-orange {
+        background-color: rgb(253, 126, 20) !important;
+        color: white !important;
+    }
+
+    .text-bg-teal {
+        background-color: rgb(32, 201, 151) !important;
+        color: white !important;
+    }
+
+    .text-bg-cyan {
+        background-color: rgb(13, 202, 240) !important;
+        color: white !important;
+    }
+
+    /* Ensure text is readable */
+    .badge a.nurse-name {
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Hover effect */
+    .badge:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
+
+    /* Badge and text styling */
+    .badge {
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+    }
+
+    .badge a.nurse-name {
+        color: white !important;  /* Force white text */
+        text-decoration: none;
+    }
+
+    /* Custom badge colors */
+    .bg-indigo {
+        background-color: rgb(102, 16, 242) !important;
+    }
+
+    .bg-purple {
+        background-color: rgb(111, 66, 193) !important;
+    }
+
+    .bg-pink {
+        background-color: rgb(214, 51, 132) !important;
+    }
+
+    .bg-orange {
+        background-color: rgb(253, 126, 20) !important;
+    }
+
+    .bg-teal {
+        background-color: rgb(32, 201, 151) !important;
+    }
+
+    .bg-cyan {
+        background-color: rgb(13, 202, 240) !important;
+    }
+
+    /* Hover effects */
+    .badge:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
+
+    /* Light badge specific styling */
+    .bg-light a.nurse-name {
+        color: #212529 !important;  /* Dark text for light background */
+    }
+
+    .badge {
+        text-decoration: none !important;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .badge .nurse-name {
+        text-decoration: none !important;
+        cursor: pointer;
+    }
+
+    /* Default light badge */
+    .bg-light .nurse-name {
+        color: #212529 !important;
+    }
+
+    /* Ensure text colors are applied */
+    .text-white {
+        color: #ffffff !important;
+    }
+
+    .text-dark {
+        color: #212529 !important;
+    }
 </style>
 @endsection
 
@@ -309,6 +428,43 @@
     $lastDayOfMonth = $date->copy()->endOfMonth();
     // Get the last day of the calendar (next Saturday after or on the last day of month)
     $endDate = $lastDayOfMonth->copy()->endOfWeek(Carbon\Carbon::SATURDAY);
+
+    // Define available Bootstrap badge colors
+    $badgeColors = [
+        'primary' => ['bg' => 'primary', 'text' => 'white'],
+        'secondary' => ['bg' => 'secondary', 'text' => 'white'],
+        'success' => ['bg' => 'success', 'text' => 'white'],
+        'danger' => ['bg' => 'danger', 'text' => 'white'],
+        'warning' => ['bg' => 'warning', 'text' => 'dark'],  // Dark text for better contrast
+        'info' => ['bg' => 'info', 'text' => 'dark'],       // Dark text for better contrast
+        'dark' => ['bg' => 'dark', 'text' => 'white']
+    ];
+
+    // Additional colors if needed
+    $extraColors = [
+        'indigo' => 'rgb(102, 16, 242)',
+        'purple' => 'rgb(111, 66, 193)',
+        'pink' => 'rgb(214, 51, 132)',
+        'orange' => 'rgb(253, 126, 20)',
+        'teal' => 'rgb(32, 201, 151)',
+        'cyan' => 'rgb(13, 202, 240)'
+    ];
+
+    // Get or create color mapping for nurses
+    if (!session()->has('nurseColors')) {
+        $nurseColors = [];
+        foreach ($nurses as $index => $nurse) {
+            if ($index < count($badgeColors)) {
+                $nurseColors[$nurse->id] = array_keys($badgeColors)[$index];
+            } else {
+                // Random color for additional nurses
+                $randomColor = array_rand($badgeColors);
+                $nurseColors[$nurse->id] = $randomColor;
+            }
+        }
+        session(['nurseColors' => $nurseColors]);
+    }
+    $nurseColors = session('nurseColors');
 @endphp
 
 <div class="calendar-container">
@@ -332,14 +488,14 @@
                         </div>
                     </td>
                 </tr>
-                <tr>
-                    <th>Sunday</th>
-                    <th>Monday</th>
-                    <th>Tuesday</th>
-                    <th>Wednesday</th>
-                    <th>Thursday</th>
-                    <th>Friday</th>
-                    <th>Saturday</th>
+                <tr class="text-center">
+                    <th class="text-center bg-dark text-white">Sunday</th>
+                    <th class="text-center bg-dark text-white">Monday</th>
+                    <th class="text-center bg-dark text-white">Tuesday</th>
+                    <th class="text-center bg-dark text-white">Wednesday</th>
+                    <th class="text-center bg-dark text-white">Thursday</th>
+                    <th class="text-center bg-dark text-white">Friday</th>
+                    <th class="text-center bg-dark text-white">Saturday</th>
                 </tr>
             </thead>
             <tbody>
@@ -360,13 +516,13 @@
                         <div class="schedule-container">
                             @foreach($initialSchedules ?? [] as $schedule)
                                 @if(Carbon\Carbon::parse($schedule->date)->format('Y-m-d') === $currentDate->format('Y-m-d'))
-                                    <div class="schedule-item {{ $schedule->shift }}-shift" data-schedule-id="{{ $schedule->id }}">
-                                        <a class="nurse-name" data-bs-toggle="modal" data-bs-target="#scheduleDetailsModal">
+                                    <div class="badge rounded-pill bg-{{ $nurseColors[$schedule->nurse->id] ?? 'light' }} schedule-item {{ $schedule->shift }}-shift" data-schedule-id="{{ $schedule->id }}" style="cursor: pointer;">
+                                        <span class="nurse-name" data-bs-toggle="modal" data-bs-target="#scheduleDetailsModal">
                                             {{ optional($schedule->nurse)->name }}
                                             <span class="shift-badge {{ $schedule->shift }}">
                                                 ({{ ucfirst($schedule->shift) }})
                                             </span>
-                                        </a>
+                                        </span>
                                         <div class="schedule-details" style="display: none;">
                                             <span class="shift-badge {{ $schedule->shift }}">
                                                 {{ ucfirst($schedule->shift) }}
@@ -379,7 +535,7 @@
                                 @endif
                             @endforeach
                         </div>
-                        <button class="btn btn-sm btn-outline-primary add-schedule-btn"
+                        <button class="btn btn-sm btn-outline-primary add-schedule-btn m-1"
                                 data-date="{{ $currentDate->format('Y-m-d') }}"
                                 data-bs-toggle="modal"
                                 data-bs-target="#addEventModal">
@@ -482,10 +638,6 @@
                     <div class="fw-bold" id="eventNotes"></div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-danger" id="deleteSchedule">Delete</button>
-                <button type="button" class="btn btn-primary" id="editSchedule">Edit</button>
-            </div>
         </div>
     </div>
 </div>
@@ -517,8 +669,16 @@
                         <span id="modalDate">{{ \Carbon\Carbon::parse($schedule->date)->format('Y-m-d') }}</span>
                     </div>
                     <div class="info-group">
+                        <label>Status: </label>
+                        <span id="modalStatus" class="status-badge">{{$schedule->status}}</span>
+                    </div>
+                    <div class="info-group">
                         <label>Notes (optional): </label>
                         <span id="modalNotes">{{$schedule->notes}}</span>
+                    </div>
+                    <div class="info-group m-4 text-center">
+                        <button class="btn btn-sm btn-outline-primary" id="assignWeek">Week Assign</button>
+                        <button class="btn btn-sm btn-outline-primary" id="assignMonth">Month Assign</button>
                     </div>
                 </div>
             </div>
@@ -567,66 +727,75 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Save new schedule
-    $('#saveSchedule').click(function(e) {
-        e.preventDefault();
-        
-        // Get form data
+    $('#saveSchedule').click(function() {
         const form = $('#addScheduleForm');
-        
+        const formData = {
+            nurse_id: form.find('select[name="nurse_id"]').val(),
+            room_id: form.find('select[name="room_id"]').val(),
+            shift: form.find('select[name="shift"]').val(),
+            date: form.find('input[name="date"]').val(),
+            notes: form.find('textarea[name="notes"]').val(),
+            type: 'add'
+        };
+
         // Validate required fields
-        if (!validateScheduleForm()) {
+        if (!formData.nurse_id || !formData.room_id || !formData.shift || !formData.date) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'Please fill in all required fields'
+            });
             return;
         }
 
-        // Send AJAX request
+        // Show loading state
+        $('#saveSchedule').prop('disabled', true).html(
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
+        );
+
         $.ajax({
-            url: '/nurseadmin/schedules',
+            url: "{{ route('schedules.action') }}",
             type: 'POST',
-            data: form.serialize(),
+            data: formData,
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
+                // Hide modal
                 $('#addEventModal').modal('hide');
-                toastr.success('Schedule created successfully');
-                setTimeout(() => {
+                
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Schedule has been saved successfully',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Reload the page to show new schedule
                     window.location.reload();
-                }, 1000);
+                });
             },
-            error: function(xhr) {
-                const error = xhr.responseJSON;
-                toastr.error(error?.message || 'Failed to create schedule');
+            error: function(xhr, status, error) {
+                console.error('Save error:', {xhr, status, error});
+                
+                // Show error message
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: xhr.responseJSON?.message || 'Failed to save schedule. Please try again.'
+                });
+            },
+            complete: function() {
+                // Reset button state
+                $('#saveSchedule').prop('disabled', false).text('Save Schedule');
             }
         });
     });
 
-    // Validation function
-    function validateScheduleForm() {
-        const form = $('#addScheduleForm');
-        const nurse = form.find('select[name="nurse_id"]').val();
-        const room = form.find('select[name="room_id"]').val();
-        const shift = form.find('select[name="shift"]').val();
-        const date = form.find('input[name="date"]').val();
-
-        if (!nurse) {
-            toastr.error('Please select a nurse');
-            return false;
-        }
-        if (!room) {
-            toastr.error('Please select a room');
-            return false;
-        }
-        if (!shift) {
-            toastr.error('Please select a shift');
-            return false;
-        }
-        if (!date) {
-            toastr.error('Please select a date');
-            return false;
-        }
-
-        return true;
-    }
+    // Reset form when modal is closed
+    $('#addEventModal').on('hidden.bs.modal', function() {
+        $('#addScheduleForm')[0].reset();
+    });
 
     // Delete schedule
     $('#deleteSchedule').click(function() {
@@ -671,6 +840,285 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             error: function() {
                 toastr.error('Failed to load schedule details');
+            }
+        });
+    });
+});
+
+$(document).ready(function() {
+    // Weekly Assignment
+    $('#assignWeek').click(function() {
+        Swal.fire({
+            title: 'Weekly Schedule Assignment',
+            html: `
+                <form id="weeklyAssignForm" class="text-start">
+                    <div class="mb-3">
+                        <label class="form-label">Nurse</label>
+                        <select class="form-select" id="weeklyNurse" required>
+                            @foreach($nurses as $nurse)
+                                <option value="{{ $nurse->id }}">{{ $nurse->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Room</label>
+                        <select class="form-select" id="weeklyRoom" required>
+                            @foreach($rooms as $room)
+                                <option value="{{ $room->id }}">Room {{ $room->room_number }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Shift</label>
+                        <select class="form-select" id="weeklyShift" required>
+                            <option value="morning">Morning (7AM - 3PM)</option>
+                            <option value="evening">Evening (3PM - 11PM)</option>
+                            <option value="night">Night (11PM - 7AM)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Week Starting From</label>
+                        <input type="date" class="form-control" id="weekStartDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Rest Days</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $index => $day)
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input weekly-rest-day" 
+                                           value="{{ $index }}" id="weeklyRest{{ $index }}">
+                                    <label class="form-check-label" for="weeklyRest{{ $index }}">
+                                        {{ $day }}
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <small class="text-danger">* At least one rest day required</small>
+                    </div>
+                </form>`,
+            showCancelButton: true,
+            confirmButtonText: 'Assign Schedule',
+            cancelButtonText: 'Cancel',
+            didOpen: () => {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('weekStartDate').min = today;
+            },
+            preConfirm: () => {
+                const restDays = $('.weekly-rest-day:checked').length;
+                if (restDays === 0) {
+                    Swal.showValidationMessage('Please select at least one rest day');
+                    return false;
+                }
+                return true;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const formData = {
+                    nurse_id: $('#weeklyNurse').val(),
+                    room_id: $('#weeklyRoom').val(),
+                    shift: $('#weeklyShift').val(),
+                    start_date: $('#weekStartDate').val(),
+                    rest_days: $('.weekly-rest-day:checked').map(function() {
+                        return parseInt($(this).val());
+                    }).get()
+                };
+
+                // Add console.log for debugging
+                console.log('Sending formData:', formData);
+
+                // Send AJAX request
+                $.ajax({
+                    url: '/nurseadmin/schedules/assign-week',
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        console.log('Success response:', response);
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Weekly schedule has been assigned successfully',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error details:', {xhr, status, error});
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: xhr.responseJSON?.message || 'Failed to assign weekly schedule'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Monthly Assignment
+    $('#assignMonth').click(function() {
+        Swal.fire({
+            title: 'Monthly Schedule Assignment',
+            html: `
+                <form id="monthlyAssignForm" class="text-start">
+                    <div class="mb-3">
+                        <label class="form-label">Nurse</label>
+                        <select class="form-select" id="monthlyNurse" required>
+                            @foreach($nurses as $nurse)
+                                <option value="{{ $nurse->id }}">{{ $nurse->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Room</label>
+                        <select class="form-select" id="monthlyRoom" required>
+                            @foreach($rooms as $room)
+                                <option value="{{ $room->id }}">Room {{ $room->room_number }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Shift</label>
+                        <select class="form-select" id="monthlyShift" required>
+                            <option value="morning">Morning (7AM - 3PM)</option>
+                            <option value="evening">Evening (3PM - 11PM)</option>
+                            <option value="night">Night (11PM - 7AM)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Month</label>
+                        <input type="month" class="form-control" id="monthSelect" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Weekly Rest Days</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $index => $day)
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input monthly-rest-day" 
+                                           value="{{ $index }}" id="monthlyRest{{ $index }}">
+                                    <label class="form-check-label" for="monthlyRest{{ $index }}">
+                                        {{ $day }}
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <small class="text-danger">* At least one rest day per week required</small>
+                    </div>
+                </form>`,
+            showCancelButton: true,
+            confirmButtonText: 'Assign Schedule',
+            cancelButtonText: 'Cancel',
+            didOpen: () => {
+                const today = new Date();
+                const minMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+                document.getElementById('monthSelect').min = minMonth;
+            },
+            preConfirm: () => {
+                const restDays = $('.monthly-rest-day:checked').length;
+                if (restDays === 0) {
+                    Swal.showValidationMessage('Please select at least one rest day per week');
+                    return false;
+                }
+                return true;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const formData = {
+                    nurse_id: $('#monthlyNurse').val(),
+                    room_id: $('#monthlyRoom').val(),
+                    shift: $('#monthlyShift').val(),
+                    month: $('#monthSelect').val(),
+                    rest_days: $('.monthly-rest-day:checked').map(function() {
+                        return $(this).val();
+                    }).get()
+                };
+
+                // Send AJAX request
+                $.ajax({
+                    url: '/nurseadmin/schedules/assign-month',
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Monthly schedule has been assigned successfully',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: xhr.responseJSON?.message || 'Failed to assign monthly schedule'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Delete Schedule
+    $('#deleteSchedule').click(function() {
+        const scheduleId = $(this).data('schedule-id');
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/nurseadmin/schedules/${scheduleId}`,
+                    type: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire(
+                                'Deleted!',
+                                'Schedule has been deleted.',
+                                'success'
+                            ).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                response.message,
+                                'error'
+                            );
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire(
+                            'Error!',
+                            'Failed to delete schedule',
+                            'error'
+                        );
+                    }
+                });
             }
         });
     });

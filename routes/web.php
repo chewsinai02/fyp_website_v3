@@ -244,6 +244,7 @@ Route::middleware(['auth', 'role:nurse_admin'])->group(function () {
         ->name('nurseadmin.getSchedule');
     Route::get('/nurseadmin/schedules/filter', [NurseAdminDashboardController::class, 'filterSchedules'])
         ->name('nurseadmin.filterSchedules');
+    Route::post('/schedules/statuses', [NurseAdminDashboardController::class, 'updateScheduleStatuses'])->name('schedules.statuses');
 
     // Reports
     Route::get('/nurseadmin/reports', [NurseAdminDashboardController::class, 'reports'])
@@ -272,7 +273,11 @@ Route::middleware(['auth', 'role:nurse_admin'])->group(function () {
     //calander
     Route::get('full-calendar', [CalendarController::class, 'index'])->name('full-calendar');
     Route::post('full-calendar/action', [CalendarController::class, 'action'])->name('full-calendar.action');
-    Route::get('/calendar/schedule/{id}', [CalendarController::class, 'getSchedule']);
+    Route::get('/calendar/schedule/{id}', [CalendarController::class, 'getSchedule'])->name('calendar.getSchedule');
+    Route::post('nurseadmin/schedules/assign-week', [CalendarController::class, 'assignWeek'])->name('nurseadmin.schedules.assign-week');
+    Route::post('/nurseadmin/schedules/assign-month', [CalendarController::class, 'assignMonth'])->name('nurseadmin.schedules.assign-month');
+    Route::delete('/schedules/{id}', [CalendarController::class, 'destroy'])->name('schedules.destroy');
+    Route::post('/schedules/action', [CalendarController::class, 'action'])->name('schedules.action');
 });
 
 Route::middleware(['auth'])->group(function () {
