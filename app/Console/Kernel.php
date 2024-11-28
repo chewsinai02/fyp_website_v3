@@ -16,11 +16,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // Run every hour
-        $schedule->call(function () {
-            $controller = new NurseAdminDashboardController();
-            $controller->updateScheduleStatuses();
-        })->everyMinute();
+        $schedule->command('tasks:generate-daily')
+                 ->dailyAt('00:01')
+                 ->timezone('Asia/Kuala_Lumpur');
     }
 
     /**

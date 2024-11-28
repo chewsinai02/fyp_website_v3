@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Room extends Model
 {
@@ -107,5 +108,11 @@ class Room extends Model
     {
         $availableBeds = $this->getAvailableBedsAttribute();
         return $availableBeds === 0 ? 'full' : 'available';
+    }
+
+    public function nurses(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'nurse_schedules', 'room_id', 'nurse_id')
+                    ->whereDate('date', today());
     }
 } 

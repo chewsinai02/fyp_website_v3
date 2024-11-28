@@ -676,25 +676,30 @@ class NurseAdminDashboardController extends Controller
             ->whereDate('date', '>=', now()->startOfMonth())
             ->whereDate('date', '<=', now()->endOfMonth())
             ->get();
-    
+
         $events = $schedules->map(function($schedule) {
             $colors = $this->getShiftColor($schedule->shift);
             return [
-                'title' => $schedule->nurse->name . ' - ' . ucfirst($schedule->shift),
+                'title' => $schedule->nurse?->name . ' - ' . ucfirst($schedule->shift),
                 'start' => $schedule->date,
                 'backgroundColor' => $colors['bg'],
                 'borderColor' => $colors['border'],
                 'textColor' => $colors['text'],
                 'extendedProps' => [
-                    'nurse' => $schedule->nurse->name,
-                    'room' => $schedule->room->room_number ?? 'No Room',
+                    'nurse' => $schedule->nurse?->name ?? 'Unassigned',
+                    'room' => $schedule->room ? "Room {$schedule->room->room_number}" : 'Unassigned',
                     'shift' => $schedule->shift,
                     'status' => $schedule->status
                 ]
             ];
         });
-    
-        return view('nurseAdmin.calendar', compact('events'));
+
+        // Get nurses and rooms for the modals
+        $nurses = User::where('role', 'nurse')->orderBy('name')->get();
+        $rooms = Room::orderBy('room_number')->get();
+        $date = now();
+
+        return view('nurseAdmin.calendar', compact('events', 'nurses', 'rooms', 'date'));
     }
     
     private function getShiftColor($shift)
@@ -722,5 +727,4 @@ class NurseAdminDashboardController extends Controller
             ]
         };
     }
-    
 }

@@ -231,46 +231,35 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="logo-container">
-            <a href="{{ route('adminDashboard') }}" class="text-decoration-none text-white">
+            <a href="{{ route('nurseDashboard') }}" class="text-decoration-none text-white">
                 <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid mb-2">
                 <h6 class="mb-0">SUC Hospital</h6>
+            </a>
         </div>
 
         <ul class="nav flex-column mt-3">
             <li class="nav-item">
-                <a href="/admin/dashboard" class="nav-link">
-                    <i class="bi bi-people"></i>
-                    <span>My Users</span>
+                <a href="{{ route('nurseDashboard') }}" class="nav-link {{ request()->routeIs('nurseDashboard') ? 'active' : '' }}">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/admin/adminList" class="nav-link">
-                    <i class="bi bi-shield-lock"></i>
-                    <span>Admin</span>
+                <a href="{{ route('nurse.schedule') }}" class="nav-link {{ request()->routeIs('nurse.schedule*') ? 'active' : '' }}">
+                    <i class="bi bi-calendar-week"></i>
+                    <span>My Schedule</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/admin/doctorList" class="nav-link">
-                    <i class="fa-solid fa-user-doctor"></i>
-                    <span>Doctor</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('nurseAdminList') }}" class="nav-link">
-                    <i class="bi bi-person-badge"></i>
-                    <span>Nurse Admin</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="/admin/nurseList" class="nav-link">
-                    <i class="fa-solid fa-user-nurse"></i>
-                    <span>Nurse</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="/admin/patientList" class="nav-link">
+                <a href="{{ route('nurse.patients') }}" class="nav-link {{ request()->routeIs('nurse.patients*') ? 'active' : '' }}">
                     <i class="fa-solid fa-bed-pulse"></i>
-                    <span>Patient</span>
+                    <span>My Patients</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('nurse.tasks') }}" class="nav-link {{ request()->routeIs('nurse.patient.tasks*') ? 'active' : '' }}">
+                    <i class="bi bi-list-check"></i>
+                    <span>Tasks</span>
                 </a>
             </li>
         </ul>
@@ -282,7 +271,7 @@
                      class="profile-img">
                 <div class="ms-3">
                     <h6 class="mb-0">{{ auth()->user()->name }}</h6>
-                    <small class="text-muted-light">Administrator</small>
+                    <small class="text-muted-light">Ward Nurse</small>
                 </div>
             </div>
             <a href="#" onclick="confirmLogout(event)" class="btn logout-btn">
@@ -298,14 +287,14 @@
             <button class="btn" onclick="window.history.back()">
                 <i class="bi bi-arrow-left"></i>
             </button>
-            <a href="{{ route('adminDashboard') }}" class="text-decoration-none text-black">
+            <a href="{{ route('nurseDashboard') }}" class="text-decoration-none text-black">
                 <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid ms-3 rounded-circle" style="width: 5%; height: 5%; border-black">
                 &nbsp;&nbsp;SUC Hospital        
             </a>
         </div>
 
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('adminDashboard') }}" class="btn btn-primary">
+            <a href="{{ route('nurseDashboard') }}" class="btn btn-primary">
                 <i class="bi bi-house"></i>
                 <span>Home</span>
             </a>
@@ -317,7 +306,7 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                        <a class="dropdown-item" href="{{ route('admin.manageProfile') }}">
+                        <a class="dropdown-item" href="#">
                             <i class="bi bi-person me-2"></i>Profile
                         </a>
                     </li>
@@ -343,9 +332,10 @@
     </form>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function confirmLogout(event) {
             event.preventDefault();

@@ -482,7 +482,7 @@
                     <td colspan="7">
                         <div class="nav-buttons text-end">
                             <button class="btn btn-sm btn-outline-primary" id="prev"><i class="fa-solid fa-chevron-left"></i></button>
-                            <button class="btn btn-sm btn-outline-primary" id="today"><i class="fa-solid fa-calendar-days"></i></button>
+                            <button class="btn btn-sm btn-outline-primary" id="today" style="font-size: 0.9rem;height: 2.5rem;">Today</button>
                             <button class="btn btn-sm btn-outline-primary" id="next"><i class="fa-solid fa-chevron-right"></i></button>
                             <button class="btn btn-sm btn-outline-primary add-schedule-btn" data-bs-toggle="modal" data-bs-target="#addEventModal"><i class="fa-solid fa-plus"></i></button>
                         </div>
@@ -654,27 +654,27 @@
                 <div class="schedule-info">
                     <div class="info-group">
                         <label>Name: </label>
-                        <span id="modalNurseName">{{$schedule->nurse->name}}</span>
+                        <span id="modalNurseName"></span>
                     </div>
                     <div class="info-group">
                         <label>Shift: </label>
-                        <span id="modalShift" class="shift-badge">{{$schedule->shift}}</span>
+                        <span id="modalShift" class="shift-badge"></span>
                     </div>
                     <div class="info-group">
                         <label>Room: </label>
-                        <span id="modalRoom" class="room-badge">Room {{$schedule->room->room_number}}</span>
+                        <span id="modalRoom" class="room-badge"></span>
                     </div>
                     <div class="info-group">
                         <label>Date: </label>
-                        <span id="modalDate">{{ \Carbon\Carbon::parse($schedule->date)->format('Y-m-d') }}</span>
+                        <span id="modalDate"></span>
                     </div>
                     <div class="info-group">
                         <label>Status: </label>
-                        <span id="modalStatus" class="status-badge">{{$schedule->status}}</span>
+                        <span id="modalStatus" class="status-badge"></span>
                     </div>
                     <div class="info-group">
                         <label>Notes (optional): </label>
-                        <span id="modalNotes">{{$schedule->notes}}</span>
+                        <span id="modalNotes"></span>
                     </div>
                     <div class="info-group m-4 text-center">
                         <button class="btn btn-sm btn-outline-primary" id="assignWeek">Week Assign</button>
@@ -829,14 +829,15 @@ document.addEventListener('DOMContentLoaded', function() {
             url: `/calendar/schedule/${scheduleId}`,
             type: 'GET',
             success: function(schedule) {
-                $('#eventNurse').text(schedule.nurse ? schedule.nurse.name : 'Unassigned');
-                $('#eventRoom').text(schedule.room ? `Room ${schedule.room.room_number}` : 'Unassigned');
-                $('#eventShift').text(ucfirst(schedule.shift));
-                $('#eventStatus').text(ucfirst(schedule.status || 'pending'));
-                $('#eventNotes').text(schedule.notes || 'No notes');
+                $('#modalNurseName').text(schedule.nurse?.name ?? 'Unassigned');
+                $('#modalRoom').text(schedule.room ? `Room ${schedule.room.room_number}` : 'Unassigned');
+                $('#modalShift').text(schedule.shift ? schedule.shift.charAt(0).toUpperCase() + schedule.shift.slice(1) : '');
+                $('#modalDate').text(moment(schedule.date).format('YYYY-MM-DD'));
+                $('#modalStatus').text(schedule.status ? schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1) : 'Pending');
+                $('#modalNotes').text(schedule.notes || 'No notes');
                 
-                const eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
-                eventModal.show();
+                const modal = new bootstrap.Modal(document.getElementById('scheduleDetailsModal'));
+                modal.show();
             },
             error: function() {
                 toastr.error('Failed to load schedule details');

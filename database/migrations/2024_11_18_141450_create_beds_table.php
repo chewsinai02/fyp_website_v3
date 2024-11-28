@@ -15,6 +15,7 @@ return new class extends Migration
                 $table->integer('bed_number');
                 $table->enum('status', ['available', 'occupied', 'maintenance'])->default('available');
                 $table->text('notes')->nullable();
+                $table->enum('condition', ['Critical', 'Serious', 'Fair', 'Good'])->nullable();
                 $table->timestamps();
                 $table->softDeletes();
 

@@ -45,9 +45,9 @@ class Bed extends Model
         return $this->belongsTo(Room::class);
     }
 
-    public function patient(): BelongsTo
+    public function patient()
     {
-        return $this->belongsTo(User::class, 'patient_id');
+        return $this->belongsTo(User::class, 'patient_id')->where('role', 'patient');
     }
 
     public function isAvailable(): bool
@@ -71,5 +71,42 @@ class Bed extends Model
     public static function getOccupiedBedsCount()
     {
         return self::whereNotNull('patient_id')->count();
+    }
+
+    /**
+     * Get the color class based on the condition
+     */
+    public function getConditionColorAttribute()
+    {
+        return match ($this->condition) {
+            'Critical' => 'danger',
+            'Serious' => 'warning',
+            'Fair' => 'info',
+            'Good' => 'success',
+            'Stable' => 'primary',
+            default => 'secondary'
+        };
+    }
+
+    public function vital_signs()
+    {
+        return $this->hasMany(VitalSign::class, 'patient_id', 'patient_id');
+    }
+
+    public function latest_vital_signs()
+    {
+        return $this->hasOne(VitalSign::class, 'patient_id', 'patient_id')
+                    ->latest();
+    }
+
+    public function getLatestUpdateAttribute()
+    {
+        $vitalSignsUpdate = $this->vital_signs()
+                                ->latest()
+                                ->first()?->updated_at;
+                                
+        return $vitalSignsUpdate && $vitalSignsUpdate->gt($this->updated_at)
+            ? $vitalSignsUpdate
+            : $this->updated_at;
     }
 } 

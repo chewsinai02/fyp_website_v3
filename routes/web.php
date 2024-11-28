@@ -19,6 +19,7 @@ use App\Http\Controllers\RoomManagementController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\FirebaseController;
 use App\Http\Controllers\NurseCallController;
+use App\Http\Controllers\PatientTaskController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -294,7 +295,35 @@ Route::middleware(['auth'])->group(function () {
 
 //route access, create middleware, add kernel, web.php
 Route::middleware(['auth', 'role:nurse'])->group(function () {
+    // NurseDashboard routes
     Route::get('/nurse/dashboard', [NurseDashboardController::class, 'index'])->name('nurseDashboard');
+    Route::get('/nurse/patient/{user}', [NurseDashboardController::class, 'show'])->name('nurse.patient.view');
+    Route::post('/nurse/patient/{user}/vitals', [NurseDashboardController::class, 'storeVitals'])
+        ->name('nurse.patient.vitals.store');
+    Route::post('/nurse/patient/{user}/notes', [NurseDashboardController::class, 'storeNote'])
+        ->name('nurse.patient.notes.store');
+
+    // Task management
+    Route::prefix('nurse/patient/{patient}/tasks')->group(function () {
+        Route::get('/', [NurseDashboardController::class, 'patientTasks'])->name('nurse.patient.tasks');
+        Route::get('/events', [NurseDashboardController::class, 'getTaskEvents']);
+        Route::get('/{date}', [NurseDashboardController::class, 'getPatientTasks']);
+        Route::post('/', [NurseDashboardController::class, 'storeTask']);
+    });
+    
+    Route::prefix('nurse/tasks')->group(function () {
+        Route::patch('/{task}', [NurseDashboardController::class, 'updateTask']);
+        Route::patch('/{task}/status', [NurseDashboardController::class, 'updateTaskStatus']);
+        Route::delete('/{task}', [NurseDashboardController::class, 'destroyTask']);
+    });
+
+    // Schedule and Patient List routes
+    Route::get('/nurse/schedule', [NurseDashboardController::class, 'schedule'])
+        ->name('nurse.schedule');
+    Route::get('/nurse/patients', [NurseDashboardController::class, 'patients'])
+        ->name('nurse.patients');
+
+    Route::get('/nurse/tasks', [NurseDashboardController::class, 'tasks'])->name('nurse.tasks');
 });
 
 Route::get('/firebase/store', [FirebaseController::class, 'store']);
@@ -308,3 +337,4 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/nurse/calls', [NurseCallController::class, 'index'])->name('nurse.calls');
     Route::post('/nurse/calls/{callId}/update', [NurseCallController::class, 'updateCallStatus']);
 });
+

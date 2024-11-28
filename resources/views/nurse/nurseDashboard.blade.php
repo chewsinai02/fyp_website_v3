@@ -1,12 +1,12 @@
 @extends('nurse.layout')
-@section('title', 'Dashboard')
+@section('title', 'Ward Nurse Dashboard')
 
 @section('content')
 <div class="container-fluid p-4">
     <!-- Header Section -->
     <div class="row mb-4">
         <div class="col-12">
-            <h2 class="text-gradient fs-1 mb-2">Nurse Admin Dashboard</h2>
+            <h2 class="text-gradient fs-1 mb-2">Nurse Dashboard</h2>
             <p class="text-muted">Welcome back, {{ auth()->user()->name }}</p>
         </div>
     </div>
@@ -18,65 +18,71 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Total Nurses</h6>
-                            <h3 class="mb-0">{{ \App\Models\User::where('role', 'nurse')->count() }}</h3>
-                        </div>
-                        <div class="bg-primary-subtle p-3 rounded">
-                            <i class="fa-solid fa-user-nurse fa-lg text-primary"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">On Duty Today</h6>
-                            <h3 class="mb-0">{{ \App\Models\NurseSchedule::whereDate('date', today())->where('status', 'scheduled')->count() }}</h3>
-                        </div>
-                        <div class="bg-success-subtle p-3 rounded">
-                            <i class="bi bi-calendar-check fa-lg text-success"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">Total Patients</h6>
-                            <h3 class="mb-0">{{ \App\Models\Bed::where('status', 'occupied')->count() }}</h3>
-                        </div>
-                        <div class="bg-success-subtle p-3 rounded">
-                            <i class="bi bi-people fa-lg text-success"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">Available Nurses</h6>
+                            <h6 class="text-muted mb-2">Assigned Patients</h6>
                             <h3 class="mb-0">
-                                {{ \App\Models\User::where('role', 'nurse')
-                                    ->whereDoesntHave('schedules', function($query) {
-                                        $query->whereDate('date', today())
-                                            ->where('status', 'scheduled');
-                                    })->count() }}
+                                {{ \App\Models\Bed::whereIn('room_id', 
+                                    \App\Models\NurseSchedule::where('nurse_id', auth()->id())
+                                        ->pluck('room_id'))
+                                    ->where('status', 'occupied')
+                                    ->count() 
+                                }}
                             </h3>
                         </div>
+                        <div class="bg-primary-subtle p-3 rounded">
+                            <i class="fa-solid fa-hospital-user fa-lg text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Active Calls</h6>
+                            <h3 class="mb-0" id="activeCallsCount">0</h3>
+                        </div>
+                        <div class="bg-danger-subtle p-3 rounded">
+                            <i class="bi bi-bell fa-lg text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Today's Tasks</h6>
+                            <h3 class="mb-0 d-flex align-items-center gap-2">
+                                {{ $taskCount }}
+                                <small class="text-muted fs-6">
+                                    ({{ $completedTaskCount }} Completed)
+                                </small>
+                            </h3>
+                        </div>
+                        <div class="bg-success-subtle p-3 rounded">
+                            <i class="bi bi-list-check fa-lg text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Shift Status</h6>
+                            <h3 class="mb-0" id="shiftStatus">On Duty</h3>
+                        </div>
                         <div class="bg-info-subtle p-3 rounded">
-                            <i class="bi bi-person-check fa-lg text-info"></i>
+                            <i class="bi bi-clock-history fa-lg text-info"></i>
                         </div>
                     </div>
                 </div>
@@ -84,65 +90,96 @@
         </div>
     </div>
 
-    <!-- Schedule Table -->
+    <!-- Active Patient Calls Section -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-0 py-3">
+            <h5 class="mb-0">Active Patient Calls</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="activeCalls">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Room</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Will be populated by Firebase -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assigned Patients Section -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 py-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Today's Schedule</h5>
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleModal">
-                    <i class="bi bi-plus-lg me-1"></i> Add Schedule
-                </button>
-            </div>
+            <h5 class="mb-0">My Assigned Patients</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>Nurse</th>
-                            <th>Shift</th>
-                            <th>Room Assignment</th>
-                            <th>Status</th>
+                            <th>Patient Name</th>
+                            <th>Room</th>
+                            <th>Bed</th>
+                            <th>Condition</th>
+                            <th>Last Updated</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach(\App\Models\NurseSchedule::with(['nurse', 'room'])
-                            ->whereDate('date', today())
-                            ->orderBy('shift')
-                            ->get() as $schedule)
+                        @php
+                            $assignedRooms = \App\Models\NurseSchedule::where('nurse_id', auth()->id())
+                                ->pluck('room_id');
+                            
+                            $occupiedBeds = \App\Models\Bed::whereIn('room_id', $assignedRooms)
+                                ->where('status', 'occupied')
+                                ->with(['patient', 'room'])
+                                ->get();
+                        @endphp
+
+                        @foreach($occupiedBeds as $bed)
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ $schedule->nurse->profile_picture ? asset($schedule->nurse->profile_picture) : asset('images/profile.png') }}" 
+                                    <img src="{{ asset('images/profile.png') }}" 
                                          class="rounded-circle me-2" 
                                          width="32" 
                                          height="32">
-                                    {{ $schedule->nurse->name }}
+                                    {{ $bed->patient->name }}
                                 </div>
                             </td>
-                            <td>{{ ucfirst($schedule->shift) }}</td>
+                            <td>Room {{ $bed->room->room_number }}</td>
+                            <td>Bed {{ $bed->bed_number }}</td>
                             <td>
-                                @if($schedule->room)
-                                    Room {{ $schedule->room->room_number }}
+                                @if($bed->condition)
+                                    <span class="badge bg-{{ $bed->condition_color }}">
+                                        {{ $bed->condition }}
+                                    </span>
                                 @else
-                                    <span class="text-muted">No room assigned</span>
+                                    <span class="badge bg-secondary">
+                                        Not Set
+                                    </span>
                                 @endif
                             </td>
                             <td>
-                                <span class="badge bg-{{ $schedule->status_color }}-subtle text-{{ $schedule->status_color }}">
-                                    {{ ucfirst($schedule->status) }}
-                                </span>
+                                @if($bed->patient && ($bed->latest_update ?? null))
+                                    {{ $bed->latest_update->diffForHumans() }}
+                                @else
+                                    <span class="text-muted">No updates</span>
+                                @endif
                             </td>
                             <td>
-                                <a href="{{ route('nurseadmin.editSchedule', ['schedule' => $schedule->id]) }}" 
+                                <a href="{{ route('nurse.patient.view', ['user' => $bed->patient_id]) }}" 
                                    class="btn btn-sm btn-outline-primary me-1">
-                                    <i class="bi bi-pencil"></i>
+                                    <i class="bi bi-eye"></i> View
                                 </a>
-                                <button class="btn btn-sm btn-outline-danger" 
-                                        onclick="deleteSchedule({{ $schedule->id }})">
-                                    <i class="bi bi-trash"></i>
-                                </button>
                             </td>
                         </tr>
                         @endforeach
@@ -152,8 +189,6 @@
         </div>
     </div>
 </div>
-
-@include('nurseAdmin.schedule')
 
 <style>
 /* Modern styling */
@@ -203,6 +238,31 @@
     padding: 0.5em 1em;
 }
 
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.badge.bg-info {
+    background-color: #0dcaf0 !important;
+}
+
+.badge.bg-success {
+    background-color: #198754 !important;
+}
+
+.badge.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
 .btn-sm {
     padding: 0.4rem 0.8rem;
     font-size: 0.875rem;
@@ -219,272 +279,71 @@
 }
 </style>
 
-<script>
-function editSchedule(id) {
-    // Add a console.log to debug
-    console.log('Editing schedule:', id);
-    
-    fetch(`/nurseadmin/schedule/${id}`, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Schedule data:', data); // Debug log
-        
-        // Populate modal fields
-        document.getElementById('schedule_id').value = data.id;
-        document.getElementById('nurse_id').value = data.nurse_id;
-        document.getElementById('room_id').value = data.room_id;
-        document.getElementById('date').value = data.date;
-        document.getElementById('shift').value = data.shift;
-        if (document.getElementById('notes')) {
-            document.getElementById('notes').value = data.notes || '';
-        }
-        
-        // Update form attributes
-        const form = document.getElementById('scheduleForm');
-        form.setAttribute('action', `/nurseadmin/schedule/${id}`);
-        
-        // Add method field for PUT request
-        let methodField = form.querySelector('input[name="_method"]');
-        if (!methodField) {
-            methodField = document.createElement('input');
-            methodField.type = 'hidden';
-            methodField.name = '_method';
-            form.appendChild(methodField);
-        }
-        methodField.value = 'PUT';
-        
-        // Update modal title
-        document.querySelector('#scheduleModal .modal-title').textContent = 'Edit Schedule';
-        
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Error:', error); // Debug log
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to load schedule details'
-        });
-    });
-}
-
-function deleteSchedule(id) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "This schedule will be deleted permanently!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/nurseadmin/schedules/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Deleted!',
-                        text: 'Schedule has been deleted.',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
-                        window.location.reload(); // Reload the page after deletion
-                    });
-                } else {
-                    throw new Error(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Delete error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: error.message || 'Failed to delete schedule'
-                });
-            });
-        }
-    });
-}
-
-// Schedule form validation
-document.addEventListener('DOMContentLoaded', function() {
-    const scheduleForm = document.getElementById('schedule_form');
-    
-    scheduleForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = {
-            nurse_id: this.querySelector('[name="nurse_id"]').value,
-            date: this.querySelector('[name="date"]').value,
-            shift: this.querySelector('[name="shift"]').value,
-            _token: document.querySelector('meta[name="csrf-token"]').content
-        };
-
-        // Check for conflicts first
-        fetch('/nurseadmin/check-schedule-conflict', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify(formData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.conflict) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Schedule Conflict',
-                    text: 'This nurse is already scheduled for this shift!',
-                    showCancelButton: true,
-                    confirmButtonText: 'Schedule Anyway',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        this.submit();
-                    }
-                });
-            } else {
-                this.submit();
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to check schedule conflict. Please try again.'
-            });
-        });
-    });
-});
-
-// Add this to handle form submission success/error messages
-@if(session('success'))
-    Swal.fire({
-        icon: 'success',
-        title: 'Success',
-        text: '{{ session('success') }}'
-    });
-@endif
-
-@if(session('error'))
-    Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: '{{ session('error') }}'
-    });
-@endif
-
-// Initialize tooltips
-document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-});
-
-// Real-time schedule updates
-function initializeScheduleUpdates() {
-    const scheduleTable = document.querySelector('.schedule-table tbody');
-    
-    // Update schedule status
-    setInterval(() => {
-        fetch('/nurseAdmin/current-schedules')
-            .then(response => response.json())
-            .then(schedules => {
-                schedules.forEach(schedule => {
-                    const row = scheduleTable.querySelector(`tr[data-schedule-id="${schedule.id}"]`);
-                    if (row) {
-                        const statusBadge = row.querySelector('.status-badge');
-                        statusBadge.className = `badge bg-${schedule.status_color}-subtle text-${schedule.status_color} status-badge`;
-                        statusBadge.textContent = schedule.status;
-                    }
-                });
-            });
-    }, 30000); // Update every 30 seconds
-}
-
-// Call this when the page loads
-initializeScheduleUpdates();
-</script>
-@endsection
-
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const scheduleForm = document.getElementById('schedule_form');
-    
-    scheduleForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = {
-            nurse_id: this.querySelector('[name="nurse_id"]').value,
-            date: this.querySelector('[name="date"]').value,
-            shift: this.querySelector('[name="shift"]').value,
-            _token: document.querySelector('meta[name="csrf-token"]').content
-        };
+// Firebase Configuration
+const firebaseConfig = {
+    // Your Firebase config here
+};
 
-        // Check for conflicts first
-        fetch('/nurseadmin/check-schedule-conflict', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify(formData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.conflict) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Schedule Conflict',
-                    text: 'This nurse is already scheduled for this shift!',
-                    showCancelButton: true,
-                    confirmButtonText: 'Schedule Anyway',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        this.submit();
-                    }
-                });
-            } else {
-                this.submit();
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Listen for patient calls
+function listenToPatientCalls() {
+    const callsRef = database.ref('nurse_calls');
+    const activeCallsTable = document.querySelector('#activeCalls tbody');
+    const activeCallsCount = document.getElementById('activeCallsCount');
+    
+    callsRef.on('value', (snapshot) => {
+        const calls = snapshot.val();
+        let html = '';
+        let count = 0;
+        
+        for (let callId in calls) {
+            const call = calls[callId];
+            if (call.status === 'pending') {
+                count++;
+                html += `
+                    <tr>
+                        <td>${call.patient_name}</td>
+                        <td>Room ${call.room_number}</td>
+                        <td>${new Date(call.created_at).toLocaleTimeString()}</td>
+                        <td>
+                            <span class="badge bg-danger-subtle text-danger">
+                                Pending
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="attendCall('${callId}')">
+                                Attend
+                            </button>
+                        </td>
+                    </tr>
+                `;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to check schedule conflict. Please try again.'
-            });
-        });
+        }
+        
+        activeCallsTable.innerHTML = html;
+        activeCallsCount.textContent = count;
     });
+}
+
+function attendCall(callId) {
+    const callRef = database.ref(`nurse_calls/${callId}`);
+    callRef.update({
+        status: 'attended',
+        nurse_id: '{{ auth()->id() }}',
+        attended_at: new Date().toISOString()
+    });
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    listenToPatientCalls();
 });
 </script>
 @endpush
+
+@endsection

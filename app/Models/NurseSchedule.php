@@ -33,17 +33,13 @@ class NurseSchedule extends Model
     // Relationship to User model
     public function nurse()
     {
-        return $this->belongsTo(User::class, 'nurse_id')->withDefault([
-            'name' => 'Unassigned Nurse'
-        ]);
+        return $this->belongsTo(User::class, 'nurse_id');
     }
 
     // Relationship to Room model
     public function room()
     {
-        return $this->belongsTo(Room::class)->withDefault([
-            'room_number' => 'No Room'
-        ]);
+        return $this->belongsTo(Room::class);
     }
 
     // Status color helper
