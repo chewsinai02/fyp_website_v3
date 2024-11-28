@@ -17,6 +17,8 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NurseAdminDashboardController;
 use App\Http\Controllers\RoomManagementController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\FirebaseController;
+use App\Http\Controllers\NurseCallController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -291,4 +293,18 @@ Route::middleware(['auth'])->group(function () {
 });
 
 //route access, create middleware, add kernel, web.php
-Route::get('/nurse/dashboard', [NurseDashboardController::class, 'index'])->name('nurseDashboard');
+Route::middleware(['auth', 'role:nurse'])->group(function () {
+    Route::get('/nurse/dashboard', [NurseDashboardController::class, 'index'])->name('nurseDashboard');
+});
+
+Route::get('/firebase/store', [FirebaseController::class, 'store']);
+Route::get('/firebase/show', [FirebaseController::class, 'show']);
+Route::get('/firebase/update', [FirebaseController::class, 'update']);
+Route::get('/firebase/delete', [FirebaseController::class, 'delete']);
+Route::get('/firebase/push', [FirebaseController::class, 'pushToList']);
+Route::get('/firebase/query', [FirebaseController::class, 'query']);
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/nurse/calls', [NurseCallController::class, 'index'])->name('nurse.calls');
+    Route::post('/nurse/calls/{callId}/update', [NurseCallController::class, 'updateCallStatus']);
+});
