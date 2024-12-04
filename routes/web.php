@@ -20,6 +20,9 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\FirebaseController;
 use App\Http\Controllers\NurseCallController;
 use App\Http\Controllers\PatientTaskController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\NurseController;
+use App\Http\Controllers\NurseCalendarController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -336,5 +339,13 @@ Route::get('/firebase/query', [FirebaseController::class, 'query']);
 Route::middleware(['auth'])->group(function () {
     Route::get('/nurse/calls', [NurseCallController::class, 'index'])->name('nurse.calls');
     Route::post('/nurse/calls/{callId}/update', [NurseCallController::class, 'updateCallStatus']);
+});
+
+Route::prefix('nurse/patient/{patientId}')->group(function () {
+    Route::get('/tasks', [NurseCalendarController::class, 'index'])->name('nurse.patient.tasks');
+    Route::post('/tasks', [NurseCalendarController::class, 'store'])->name('nurse.patient.tasks.store');
+    Route::post('/tasks/details', [NurseCalendarController::class, 'getTaskDetails'])->name('nurse.patient.tasks.details');
+    Route::post('/tasks/{taskId}/status', [NurseCalendarController::class, 'updateTaskStatus'])->name('nurse.patient.tasks.status');
+    Route::delete('/tasks/{taskId}', [NurseCalendarController::class, 'destroy'])->name('nurse.patient.tasks.destroy');
 });
 

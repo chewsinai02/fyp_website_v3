@@ -9,6 +9,8 @@ use App\Models\VitalSign;
 
 class Patient extends Model
 {
+    protected $table = 'tasks';
+
     protected $fillable = [
         'user_id',
         'patient_id',

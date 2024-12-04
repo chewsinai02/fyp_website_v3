@@ -10,6 +10,7 @@ use App\Models\VitalSign;
 use App\Models\Bed;
 use App\Models\Task;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class NurseDashboardController extends Controller
 {
@@ -114,34 +115,42 @@ class NurseDashboardController extends Controller
     }
 
     // Task-related methods
-    public function patientTasks(Patient $patient)
+    public function patientTasks(User $patient, Request $request)
     {
-        $tasks = Task::with(['nurse', 'patient'])
-            ->where('patient_id', $patient->id)
-            ->whereDate('due_date', '>=', now()->startOfMonth())
-            ->whereDate('due_date', '<=', now()->endOfMonth())
-            ->get();
-
-        $events = $tasks->map(function($task) {
-            $colors = $this->getTaskPriorityColor($task->priority);
-            return [
-                'title' => $task->title ?? 'Untitled Task',
-                'start' => $task->due_date,
-                'backgroundColor' => $colors['bg'],
-                'borderColor' => $colors['border'],
-                'textColor' => $colors['text'],
-                'extendedProps' => [
-                    'description' => $task->description ?? 'No description',
-                    'priority' => $task->priority ?? 'normal',
-                    'status' => $task->status ?? 'pending',
-                    'nurse' => $task->nurse ? $task->nurse->name : 'Unassigned'
-                ]
-            ];
-        });
-
-        $nurses = User::where('role', 'nurse')->orderBy('name')->get();
+        $year = $request->query('year', now()->year);
+        $month = $request->query('month', now()->month);
         
-        return view('nurse.patientTasks', compact('patient', 'events', 'nurses'));
+        $date = Carbon::createFromDate($year, $month, 1);
+
+        // Get start and end dates for calendar
+        $startDate = $date->copy()->firstOfMonth()->startOfWeek(Carbon::SUNDAY);
+        $endDate = $date->copy()->lastOfMonth()->endOfWeek(Carbon::SATURDAY);
+
+        // Get tasks for this patient
+        $tasks = Task::where('patient_id', $patient->id)
+                     ->whereBetween('due_date', [$startDate, $endDate])
+                     ->orderBy('due_date')
+                     ->get();
+
+        // Define the priority color function
+        $getPriorityColor = function($priority) {
+            return match(strtolower($priority)) {
+                'low' => 'success',
+                'medium' => 'warning',
+                'high' => 'orange',
+                'urgent' => 'danger',
+                default => 'secondary'
+            };
+        };
+
+        return view('nurse.patientTasks', compact(
+            'patient',
+            'tasks',
+            'date',
+            'startDate',
+            'endDate',
+            'getPriorityColor'  // Pass the function to the view
+        ));
     }
 
     public function getTaskEvents(User $patient)
@@ -174,20 +183,43 @@ class NurseDashboardController extends Controller
 
     public function storeTask(Request $request, User $patient)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'priority' => 'required|in:low,medium,high,urgent',
-            'due_date' => 'required|date'
-        ]);
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'priority' => 'required|in:low,medium,high,urgent',
+                'due_date' => 'required|date_format:Y-m-d\TH:i'
+            ]);
 
-        $task = Task::create([
-            'patient_id' => $patient->id,
-            'nurse_id' => auth()->id(),
-            ...$validated
-        ]);
+            // Convert the datetime-local format to database format
+            $dueDateTime = Carbon::createFromFormat(
+                'Y-m-d\TH:i', 
+                $validated['due_date']
+            );
 
-        return response()->json($task);
+            $task = Task::create([
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'priority' => $validated['priority'],
+                'due_date' => $dueDateTime,
+                'patient_id' => $patient->id,
+                'status' => 'pending'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Task created successfully',
+                'task' => $task
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Task creation failed: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function updateTask(Request $request, Task $task)
@@ -223,42 +255,24 @@ class NurseDashboardController extends Controller
 
     private function getTaskPriorityColor($priority)
     {
-        return match($priority ?? 'normal') {
-            'urgent' => [
-                'bg' => '#dc3545',    // Red background
-                'border' => '#bd2130', // Darker red border
-                'text' => '#ffffff'    // White text
-            ],
-            'high' => [
-                'bg' => '#ffc107',    // Yellow background
-                'border' => '#d39e00', // Darker yellow border
-                'text' => '#000000'    // Black text
-            ],
-            'medium' => [
-                'bg' => '#17a2b8',    // Cyan background
-                'border' => '#138496', // Darker cyan border
-                'text' => '#ffffff'    // White text
-            ],
-            'low' => [
-                'bg' => '#28a745',    // Green background
-                'border' => '#1e7e34', // Darker green border
-                'text' => '#ffffff'    // White text
-            ],
-            default => [
-                'bg' => '#6c757d',    // Grey background
-                'border' => '#545b62', // Darker grey border
-                'text' => '#ffffff'    // White text
-            ]
-        };
+        return [
+            'low' => '#0dcaf0',
+            'medium' => '#ffc107',
+            'high' => '#dc3545',
+            'urgent' => '#212529'
+        ][$priority] ?? '#6c757d';
     }
 
     public function schedule()
     {
+        $today = now()->startOfDay();
+        
         $schedules = NurseSchedule::where('nurse_id', auth()->id())
-            ->with(['room'])
-            ->orderBy('date')
+            ->with('room')  // Eager load room relationship
+            ->orderByRaw('CASE WHEN date >= ? THEN 0 ELSE 1 END', [$today])  // Upcoming first
+            ->orderBy('date', 'asc')  // Then by date ascending
             ->get();
-            
+
         return view('nurse.schedule', compact('schedules'));
     }
 
