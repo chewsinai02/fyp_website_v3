@@ -11,6 +11,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use App\Models\Task;
 use App\Models\Patient;
+use Illuminate\Support\Facades\DB;
+use App\Models\Bed;
 
 class NurseCalendarController extends Controller
 {
@@ -67,21 +69,29 @@ class NurseCalendarController extends Controller
         }
     }
 
-    public function updateTaskStatus(Request $request)
+    public function updateTaskStatus(Request $request, $patientId, $taskId)
     {
+        $validatedData = $request->validate([
+            'status' => 'required|string|in:completed,pending,cancelled',
+        ]);
+
         try {
-            $task = Task::findOrFail($request->task_id);
-            $task->status = $request->status ? 'completed' : 'pending';
+            // Find the task and update its status
+            $task = Task::where('id', $taskId)
+                        ->where('patient_id', $patientId)
+                        ->firstOrFail();
+
+            $task->status = $validatedData['status'];
             $task->save();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Task status updated successfully',
-                'task' => $task
+                'message' => 'Task status updated successfully'
             ]);
         } catch (\Exception $e) {
             Log::error('Task Status Update Error:', [
-                'task_id' => $request->task_id,
+                'task_id' => $taskId,
+                'patient_id' => $patientId,
                 'error' => $e->getMessage()
             ]);
 
@@ -91,43 +101,63 @@ class NurseCalendarController extends Controller
             ], 422);
         }
     }
-
     public function store(Request $request, $patientId)
     {
+        $validatedData = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'priority' => 'required|string',
+            'due_date' => 'required|date',
+        ]);
+    
         try {
-            $validated = $request->validate([
-                'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'priority' => 'required|in:low,medium,high,urgent',
-                'due_date' => 'required|date|after_or_equal:today',
-            ]);
-
+            // Fetch room ID associated with the patient
+            $room = Bed::where('patient_id', $patientId)->first();
+    
+            if (!$room) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No bed assigned for this patient, hence no room found.'
+                ], 422);
+            }
+    
+            $roomId = $room->room_id;
+            \Log::info(message: "Retrieved room_id: $roomId for patient_id: $patientId");
+    
+            // Create the task
             $task = Task::create([
+                'title' => $validatedData['title'],
+                'description' => $validatedData['description'],
+                'priority' => $validatedData['priority'],
+                'due_date' => $validatedData['due_date'],
+                'room_id' => $roomId,
                 'patient_id' => $patientId,
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'priority' => $validated['priority'],
-                'due_date' => $validated['due_date'],
                 'status' => 'pending'
             ]);
+    
+            \Log::info("Task created: ", $task->toArray());
 
+            // Call the updateRoomId method to ensure room IDs are updated
+            $this->updateRoomId();
+    
             return response()->json([
                 'success' => true,
                 'message' => 'Task created successfully',
                 'task' => $task
             ]);
         } catch (\Exception $e) {
-            Log::error('Task Creation Error:', [
+            \Log::error('Error saving task:', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'patient_id' => $patientId,
+                'validated_data' => $validatedData
             ]);
-
+    
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create task: ' . $e->getMessage()
-            ], 422);
+                'message' => 'Failed to create task. Please try again.'
+            ], 500);
         }
-    }
+    }      
 
     public function destroy(Request $request, $patientId, $taskId)
     {
@@ -399,5 +429,18 @@ class NurseCalendarController extends Controller
                 'message' => 'Failed to assign monthly schedule: ' . $e->getMessage()
             ], 422);
         }
+    }
+
+    public function updateRoomId()
+    {
+        DB::table('tasks as t')
+            ->join('beds as b', 't.patient_id', '=', 'b.patient_id')
+            //->whereNotNull('b.room_id')
+            ->update(['t.room_id' => DB::raw('b.room_id')]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Room IDs updated successfully'
+        ]);
     }
 }

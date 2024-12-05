@@ -305,6 +305,7 @@ Route::middleware(['auth', 'role:nurse'])->group(function () {
         ->name('nurse.patient.vitals.store');
     Route::post('/nurse/patient/{user}/notes', [NurseDashboardController::class, 'storeNote'])
         ->name('nurse.patient.notes.store');
+    Route::get('/nurse/tasksList', [NurseDashboardController::class, 'showTasksList'])->name('nurse.tasksList');
 
     // Task management
     Route::prefix('nurse/patient/{patient}/tasks')->group(function () {
@@ -325,16 +326,7 @@ Route::middleware(['auth', 'role:nurse'])->group(function () {
         ->name('nurse.schedule');
     Route::get('/nurse/patients', [NurseDashboardController::class, 'patients'])
         ->name('nurse.patients');
-
-    Route::get('/nurse/tasks', [NurseDashboardController::class, 'tasks'])->name('nurse.tasks');
 });
-
-Route::get('/firebase/store', [FirebaseController::class, 'store']);
-Route::get('/firebase/show', [FirebaseController::class, 'show']);
-Route::get('/firebase/update', [FirebaseController::class, 'update']);
-Route::get('/firebase/delete', [FirebaseController::class, 'delete']);
-Route::get('/firebase/push', [FirebaseController::class, 'pushToList']);
-Route::get('/firebase/query', [FirebaseController::class, 'query']);
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/nurse/calls', [NurseCallController::class, 'index'])->name('nurse.calls');
@@ -348,4 +340,16 @@ Route::prefix('nurse/patient/{patientId}')->group(function () {
     Route::post('/tasks/{taskId}/status', [NurseCalendarController::class, 'updateTaskStatus'])->name('nurse.patient.tasks.status');
     Route::delete('/tasks/{taskId}', [NurseCalendarController::class, 'destroy'])->name('nurse.patient.tasks.destroy');
 });
+
+Route::get('/firebase/store', [FirebaseController::class, 'store']);
+Route::get('/firebase/show', [FirebaseController::class, 'show']);
+Route::get('/firebase/update', [FirebaseController::class, 'update']);
+Route::get('/firebase/delete', [FirebaseController::class, 'delete']);
+Route::get('/firebase/push', [FirebaseController::class, 'pushToList']);
+Route::get('/firebase/query', [FirebaseController::class, 'query']);
+
+Route::get('/nurse/tasks/{id}/details', [NurseDashboardController::class, 'getTaskDetails'])->name('nurse.task.details');
+Route::delete('/nurse/tasks/{id}', [NurseDashboardController::class, 'deleteTask'])->name('nurse.tasks.delete');
+
+Route::post('/nurse/tasks/{task}/status', [NurseDashboardController::class, 'updateStatus'])->name('nurse.tasks.status');
 

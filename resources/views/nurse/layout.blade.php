@@ -257,9 +257,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('nurse.tasks') }}" class="nav-link {{ request()->routeIs('nurse.patient.tasks*') ? 'active' : '' }}">
+                <a href="{{ route('nurse.tasksList') }}" class="nav-link {{ request()->routeIs('nurse.tasksList') ? 'active' : '' }}">
                     <i class="bi bi-list-check"></i>
-                    <span>Tasks</span>
+                    <span>Tasks List</span>
                 </a>
             </li>
         </ul>

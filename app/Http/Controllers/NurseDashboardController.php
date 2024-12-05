@@ -28,11 +28,11 @@ class NurseDashboardController extends Controller
         
         // Get task counts
         $taskCount = Task::whereIn('patient_id', $patientIds)
-            ->whereDate('created_at', today())
+            ->whereDate('due_date', Carbon::now())
             ->count();
         
         $completedTaskCount = Task::whereIn('patient_id', $patientIds)
-            ->whereDate('created_at', today())
+            ->whereDate('due_date', Carbon::now())
             ->where('status', 'completed')
             ->count();
         
@@ -372,6 +372,93 @@ class NurseDashboardController extends Controller
             'high' => '#dc3545',   // danger
             'urgent' => '#212529'  // dark
         ][$priority] ?? '#6c757d'; // secondary
+    }
+
+    public function showTasksList(Request $request)
+    {
+        // Get the currently authenticated nurse's ID
+        $nurseId = auth()->id();
+    
+        // Retrieve the room assigned to the nurse for today
+        $roomId = NurseSchedule::where('nurse_id', $nurseId)
+            ->whereDate('date', today())
+            ->pluck('room_id')
+            ->first(); // Get the first room ID assigned for today
+    
+        // Check if a room ID was found
+        if (!$roomId) {
+            return redirect()->back()->with('error', 'No room assigned for today.');
+        }
+    
+        // Fetch tasks associated with the room_id
+        $tasks = Task::where('room_id', $roomId)
+                ->whereDate('due_date', today())
+                ->orderBy('due_date')
+                ->get();
+    
+        // Check if tasks were found
+        if ($tasks->isEmpty()) {
+            return view('nurse.tasks', compact('tasks', 'roomId'))->with('message', 'No tasks found for this room.');
+        }
+    
+        // Pass both tasks and roomId to the view
+        return view('nurse.tasks', compact('tasks', 'roomId'));
+    }
+
+    public function getTaskDetails($id)
+    {
+        // Fetch the task by ID, including the patient and bed relationship
+        $task = Task::with(['patient.bed'])->findOrFail($id);
+
+        // Return the task details as JSON
+        return response()->json($task);
+    }
+
+    public function deleteTask($id)
+    {
+        \Log::info('Attempting to delete task with ID:', ['id' => $id]);
+        $task = Task::find($id);
+
+        if (!$task) {
+            \Log::error('Task not found for ID:', ['id' => $id]);
+            return response()->json(['success' => false, 'message' => 'Task not found'], 404);
+        }
+
+        $task->delete();
+        \Log::info('Task deleted successfully:', ['id' => $id]);
+
+        // Return a response indicating success
+        return response()->json(['success' => true]);
+    }
+
+    public function updateStatus(Task $task, Request $request)
+    {
+        try {
+            // Check if the due date has passed
+            $now = now();
+            $dueDate = \Carbon\Carbon::parse($task->due_date);
+            
+            if ($dueDate->isPast()) {
+                $status = 'passed';
+            } else {
+                $status = $request->status;
+            }
+
+            $task->update([
+                'status' => $status
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Task status updated successfully',
+                'status' => $status // Return the actual status that was set
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update task status'
+            ], 500);
+        }
     }
 }
 

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('patient_id')->constrained('users');
             $table->string('title');
             $table->text('description')->nullable();
-            $table->enum('status', ['pending', 'completed', 'cancelled'])
+            $table->enum('status', ['pending', 'completed', 'passed', 'cancelled'])
                   ->default('pending');
             $table->enum('priority', ['low', 'medium', 'high', 'urgent'])
                   ->default('medium');

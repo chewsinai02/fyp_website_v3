@@ -30,4 +30,14 @@ class Task extends Model
     {
         return $this->belongsTo(User::class, 'patient_id');
     }
+
+    public function bed()
+    {
+        return $this->belongsTo(Bed::class, 'room_id');
+    }  
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class, 'room_id');
+    }
 } 

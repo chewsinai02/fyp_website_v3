@@ -592,8 +592,9 @@ $(document).ready(function() {
                             ${response.priority.charAt(0).toUpperCase() + response.priority.slice(1)}
                         </span>
                     `);
+                    const statusClass = getStatusClass(response.status); // Function to get the class based on status
                     $('#modalTaskStatus').html(`
-                        <span class="badge bg-${response.status === 'completed' ? 'success' : 'warning'}">
+                        <span class="badge ${statusClass}">
                             ${response.status.charAt(0).toUpperCase() + response.status.slice(1)}
                         </span>
                     `);
@@ -620,6 +621,20 @@ $(document).ready(function() {
                 alert('Failed to load task details. Please try again.');
             }
         });
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'pending':
+                    return 'bg-warning'; // Yellow
+                case 'completed':
+                    return 'bg-success'; // Green
+                case 'passed':
+                    return 'bg-danger'; // Red
+                case 'cancelled':
+                    return 'bg-danger'; // Red (or you can create a custom class)
+                default:
+                    return 'bg-secondary'; // Default class for unknown status
+            }
+        }
     });
 });
 </script>
@@ -709,6 +724,90 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<script>
+//update task status in checkbox
+$(document).ready(function() {
+    $(document).on('change', '.task-status-checkbox', function() {
+        const taskId = $(this).data('task-id'); // Get the task ID from the checkbox
+        const isChecked = $(this).is(':checked'); // Check if the checkbox is checked
+        const patientId = '{{ $patient->id }}'; // Get the patient ID from the Blade variable
+
+        // Get the current date
+        const currentDate = new Date();
+        const dueDate = new Date($(this).data('due-date')); // Assuming you have a data attribute for due date
+
+        let status;
+        if (dueDate < currentDate) {
+            status = 'cancelled'; // Set status to cancelled if due date has passed
+        } else {
+            status = isChecked ? 'completed' : 'pending'; // Set status based on checkbox state
+        }
+
+        // AJAX request to update the task status
+        $.ajax({
+            url: `/nurse/patient/${patientId}/tasks/${taskId}/status`, // Update the URL as needed
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') // CSRF Token for security
+            },
+            data: { status: status }, // Send the new status
+            success: function(response) {
+                if (response.success) {
+                    alert('Task status updated successfully.');
+                } else {
+                    alert('Failed to update task status.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', {
+                    status: status,
+                    error: error,
+                    response: xhr.responseText
+                });
+                alert('Failed to update task status. Please try again.');
+            }
+        });
+    });
+});
+
+//Function to create a task
+function createTask(patientId) {
+    // Gather the data from your form or input fields
+    const taskData = {
+        title: $('#taskTitle').val(), // Assuming you have an input with id 'taskTitle'
+        description: $('#taskDescription').val(), // Assuming you have an input with id 'taskDescription'
+        priority: $('#taskPriority').val(), // Assuming you have a select with id 'taskPriority'
+        due_date: $('#taskDueDate').val() // Assuming you have an input with id 'taskDueDate'
+    };
+
+    // Make an AJAX request to create the task
+    $.ajax({
+        url: `nurse/patient/${patientId}/tasks`, // Adjust the URL according to your routing
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(taskData),
+        success: function(response) {
+            if (response.success) {
+                console.log('Task created successfully:', response.task);
+                // Optionally, update the UI or notify the user
+            } else {
+                console.error('Error:', response.message);
+                // Handle the error (e.g., show a message to the user)
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error creating task:', error);
+            // Handle the error (e.g., show a message to the user)
+        }
+    });
+}
+
+// Example usage: Call createTask with the patient ID when a button is clicked
+$('#createTaskButton').on('click', function() {
+    const patientId = $(this).data('patient-id'); // Assuming the button has a data attribute for patient ID
+    createTask(patientId);
+});
+</script>
 @endsection
 
 
