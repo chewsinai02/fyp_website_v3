@@ -11,9 +11,11 @@ use App\Models\Bed;
 use App\Models\Task;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Traits\TaskStatusCheck;
 
 class NurseDashboardController extends Controller
 {
+    use TaskStatusCheck;
     public function index()
     {
         // Get assigned rooms for today
@@ -392,10 +394,12 @@ class NurseDashboardController extends Controller
     
         // Fetch tasks associated with the room_id
         $tasks = Task::where('room_id', $roomId)
-                ->whereDate('due_date', today())
-                ->orderBy('due_date')
-                ->get();
-    
+            ->whereDate('due_date', Carbon::today())
+            ->orderByRaw("FIELD(status, 'pending', 'completed', 'passed')")
+            ->orderBy('due_date')
+            ->orderByRaw("FIELD(priority, 'urgent', 'high', 'medium', 'low')")
+            ->get();
+        
         // Check if tasks were found
         if ($tasks->isEmpty()) {
             return view('nurse.tasks', compact('tasks', 'roomId'))->with('message', 'No tasks found for this room.');

@@ -312,7 +312,6 @@ Route::middleware(['auth', 'role:nurse'])->group(function () {
         Route::get('/', [NurseDashboardController::class, 'patientTasks'])->name('nurse.patient.tasks');
         Route::get('/events', [NurseDashboardController::class, 'getTaskEvents']);
         Route::get('/{date}', [NurseDashboardController::class, 'getPatientTasks']);
-        Route::post('/', [NurseDashboardController::class, 'storeTask']);
     });
     
     Route::prefix('nurse/tasks')->group(function () {

@@ -13,11 +13,16 @@ use App\Models\Task;
 use App\Models\Patient;
 use Illuminate\Support\Facades\DB;
 use App\Models\Bed;
+use App\Traits\TaskStatusCheck;
 
 class NurseCalendarController extends Controller
 {
+    use TaskStatusCheck;
+
     public function index(Request $request, $patientId)
     {
+        $this->updatePassedTasks();
+        
         $today = Carbon::now();
         $month = $request->get('month', $today->month);
         $year = $request->get('year', $today->year);
@@ -48,6 +53,8 @@ class NurseCalendarController extends Controller
 
     public function getTaskDetails(Request $request, $patientId)
     {
+        $this->updatePassedTasks();
+        
         try {
             // Explicitly select all columns from the tasks table
             $task = Task::select('*')
@@ -71,22 +78,30 @@ class NurseCalendarController extends Controller
 
     public function updateTaskStatus(Request $request, $patientId, $taskId)
     {
+        $this->updatePassedTasks();
+        
         $validatedData = $request->validate([
-            'status' => 'required|string|in:completed,pending,cancelled',
+            'status' => 'required|string|in:completed,pending,cancelled,passed',
         ]);
 
         try {
-            // Find the task and update its status
             $task = Task::where('id', $taskId)
-                        ->where('patient_id', $patientId)
-                        ->firstOrFail();
+                       ->where('patient_id', $patientId)
+                       ->firstOrFail();
 
-            $task->status = $validatedData['status'];
+            // Check if the task's due date has passed
+            if (Carbon::parse($task->due_date)->isPast() && $validatedData['status'] === 'pending') {
+                $task->status = 'passed';
+            } else {
+                $task->status = $validatedData['status'];
+            }
+
             $task->save();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Task status updated successfully'
+                'message' => 'Task status updated successfully',
+                'status' => $task->status // Return the actual status that was set
             ]);
         } catch (\Exception $e) {
             Log::error('Task Status Update Error:', [
@@ -103,6 +118,8 @@ class NurseCalendarController extends Controller
     }
     public function store(Request $request, $patientId)
     {
+        $this->updatePassedTasks();
+        
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -112,17 +129,17 @@ class NurseCalendarController extends Controller
     
         try {
             // Fetch room ID associated with the patient
-            $room = Bed::where('patient_id', $patientId)->first();
+            $bed = Bed::where('patient_id', $patientId)->first();
     
-            if (!$room) {
+            if (!$bed) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No bed assigned for this patient, hence no room found.'
                 ], 422);
             }
     
-            $roomId = $room->room_id;
-            \Log::info(message: "Retrieved room_id: $roomId for patient_id: $patientId");
+            $roomId = $bed->room_id;
+            \Log::info("Retrieved room_id: $roomId for patient_id: $patientId");
     
             // Create the task
             $task = Task::create([
@@ -161,6 +178,8 @@ class NurseCalendarController extends Controller
 
     public function destroy(Request $request, $patientId, $taskId)
     {
+        $this->updatePassedTasks();
+        
         try {
             // Ensure the task belongs to the specified patient
             $task = Task::where('id', $taskId)

@@ -27,6 +27,18 @@
                 };
             }
         }
+
+        if (!function_exists('getStatusColor')) {
+            function getStatusColor($status) {
+                return match(strtolower($status)) {
+                    'completed' => 'success',
+                    'pending' => 'warning',
+                    'passed' => 'danger',
+                    'cancelled' => 'secondary',
+                    default => 'secondary',
+                };
+            }
+        }
     @endphp
 
     <div class="calendar-container">
@@ -110,6 +122,7 @@
                                 <th>Status</th>
                                 <th>Task</th>
                                 <th>Priority</th>
+                                <th>Status</th>
                                 <th>Due Date</th>
                                 <th>Due Time</th>
                                 <th>Actions</th>
@@ -128,6 +141,11 @@
                                     <td>
                                         <span class="badge bg-{{ getPriorityColor($task->priority) }}">
                                             {{ ucfirst($task->priority) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ getStatusColor($task->status) }}">
+                                            {{ ucfirst($task->status) }}
                                         </span>
                                     </td>
                                     <td>{{ $task->due_date->format('Y-m-d') }}</td>
@@ -219,9 +237,22 @@
                         </div>
                     </div>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Task</button>
+                    <div class="modal-footer d-flex justify-content-between">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="editTaskButton">
+                            <i class="bi bi-pencil-square"></i> Edit
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="deleteTaskButton">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="repeatWeeklyButton">
+                            <i class="bi bi-arrow-repeat"></i> Weekly
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="repeatMonthlyButton">
+                            <i class="bi bi-arrow-repeat"></i> Monthly
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                            Close
+                        </button>
                     </div>
                 </form>
             </div>
@@ -263,14 +294,56 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer d-flex justify-content-between border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="editTaskButton">
+                    <i class="bi bi-pencil"></i> Edit
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="deleteTaskButton">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-info" id="repeatWeeklyButton">
+                    <i class="bi bi-arrow-repeat"></i> Weekly
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-info" id="repeatMonthlyButton">
+                    <i class="bi bi-arrow-repeat"></i> Monthly
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i>
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
+    .modal-content {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.badge {
+    padding: 0.5em 1em;
+    font-weight: 500;
+}
+
+#modalTaskDescription {
+    border-left: 3px solid #e9ecef;
+    min-height: 50px;
+}
+
+.modal-footer .btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.modal-footer .btn i {
+    font-size: 0.875rem;
+}
+
 /* Calendar Styles */
 .calendar-container {
     background: #fff;
@@ -688,18 +761,15 @@ $(document).ready(function() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const today = new Date().toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
-
+    // Get today's date in YYYY-MM-DD format
+    const today = moment().format('YYYY-MM-DD');
+    
     // Update the task list header with today's date
-    const todayDateString = new Date().toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-    });
+    const todayDateString = moment().format('MMMM D, YYYY');
     document.getElementById('taskListDate').textContent = `Tasks for ${todayDateString}`;
 
     // Filter tasks for today's date
-    const taskRows = document.querySelectorAll('#taskTable tbody tr');
+    const taskRows = document.querySelectorAll('#taskTable tbody tr:not(.no-tasks)');
     let hasVisibleTasks = false;
 
     taskRows.forEach(row => {
@@ -720,6 +790,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             noTasksRow.style.display = 'none';
         }
+    }
+
+    // Highlight today's date in the calendar
+    const todayCell = document.querySelector(`td[data-date="${today}"]`);
+    if (todayCell) {
+        todayCell.classList.add('selected-date');
     }
 });
 </script>
@@ -769,45 +845,6 @@ $(document).ready(function() {
         });
     });
 });
-
-//Function to create a task
-function createTask(patientId) {
-    // Gather the data from your form or input fields
-    const taskData = {
-        title: $('#taskTitle').val(), // Assuming you have an input with id 'taskTitle'
-        description: $('#taskDescription').val(), // Assuming you have an input with id 'taskDescription'
-        priority: $('#taskPriority').val(), // Assuming you have a select with id 'taskPriority'
-        due_date: $('#taskDueDate').val() // Assuming you have an input with id 'taskDueDate'
-    };
-
-    // Make an AJAX request to create the task
-    $.ajax({
-        url: `nurse/patient/${patientId}/tasks`, // Adjust the URL according to your routing
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(taskData),
-        success: function(response) {
-            if (response.success) {
-                console.log('Task created successfully:', response.task);
-                // Optionally, update the UI or notify the user
-            } else {
-                console.error('Error:', response.message);
-                // Handle the error (e.g., show a message to the user)
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error creating task:', error);
-            // Handle the error (e.g., show a message to the user)
-        }
-    });
-}
-
-// Example usage: Call createTask with the patient ID when a button is clicked
-$('#createTaskButton').on('click', function() {
-    const patientId = $(this).data('patient-id'); // Assuming the button has a data attribute for patient ID
-    createTask(patientId);
-});
-</script>
 @endsection
 
 
