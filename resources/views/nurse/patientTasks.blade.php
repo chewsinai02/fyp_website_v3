@@ -237,22 +237,9 @@
                         </div>
                     </div>
 
-                    <div class="modal-footer d-flex justify-content-between">
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="editTaskButton">
-                            <i class="bi bi-pencil-square"></i> Edit
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger" id="deleteTaskButton">
-                            <i class="bi bi-trash"></i> Delete
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="repeatWeeklyButton">
-                            <i class="bi bi-arrow-repeat"></i> Weekly
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="repeatMonthlyButton">
-                            <i class="bi bi-arrow-repeat"></i> Monthly
-                        </button>
-                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
-                            Close
-                        </button>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Task</button>
                     </div>
                 </form>
             </div>
@@ -264,8 +251,8 @@
 <div class="modal fade" id="taskDetailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Task Details</h5>
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="modalTaskTitle"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -298,7 +285,9 @@
                 <button type="button" class="btn btn-sm btn-outline-primary" id="editTaskButton">
                     <i class="bi bi-pencil"></i> Edit
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" id="deleteTaskButton">
+                <button type="button" 
+                        class="btn btn-sm btn-outline-danger delete-task" 
+                        id="deleteTaskButton">
                     <i class="bi bi-trash"></i> Delete
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-info" id="repeatWeeklyButton">
@@ -307,9 +296,57 @@
                 <button type="button" class="btn btn-sm btn-outline-info" id="repeatMonthlyButton">
                     <i class="bi bi-arrow-repeat"></i> Monthly
                 </button>
-                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" onclick="location.reload()">
                     <i class="bi bi-x"></i>
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTaskForm">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" id="edit_task_id" name="task_id">
+                    
+                    <div class="mb-3">
+                        <label for="edit_title" class="form-label">Task Title</label>
+                        <input type="text" class="form-control" id="edit_title" name="title" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_priority" class="form-label">Priority</label>
+                        <select class="form-select" id="edit_priority" name="priority" required>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_due_date" class="form-label">Due Date</label>
+                        <input type="datetime-local" class="form-control" id="edit_due_date" name="due_date" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEditButton">Save Changes</button>
             </div>
         </div>
     </div>
@@ -714,39 +751,59 @@ $(document).ready(function() {
 
 <script>
 $(document).ready(function() {
+    // Use event delegation to handle click events on dynamically added elements
     $(document).on('click', '.delete-task', function() {
         const taskId = $(this).data('task-id'); // Get the task ID from the button
         const patientId = '{{ $patient->id }}'; // Get the patient ID from the Blade variable
 
-        if (confirm('Are you sure you want to delete this task?')) {
-            // Construct the URL for deleting the task
-            const url = `/nurse/patient/${patientId}/tasks/${taskId}`; // Include patientId in the URL
+        // Use SweetAlert2 for better confirmation dialog
+        Swal.fire({
+            title: 'Delete Task?',
+            text: 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Construct the URL for deleting the task
+                const url = `/nurse/patient/${patientId}/tasks/${taskId}`; // Include patientId in the URL
 
-            // Delete task using AJAX
-            $.ajax({
-                url: url,
-                method: 'DELETE', // Use DELETE method
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') // CSRF Token for security
-                },
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.message);
-                        location.reload(); // Refresh the page to update the task list
-                    } else {
-                        alert('Failed to delete task');
+                // Delete task using AJAX
+                $.ajax({
+                    url: url,
+                    method: 'DELETE', // Use DELETE method
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') // CSRF Token for security
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: response.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload(); // Refresh the page to update the task list
+                            });
+                        } else {
+                            Swal.fire('Error!', 'Failed to delete task', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', {
+                            status: status,
+                            error: error,
+                            response: xhr.responseText
+                        });
+                        Swal.fire('Error!', 'Failed to delete task. Please try again.', 'error');
                     }
-                },
-                error: function(xhr, status, error) {
-                    console.error('AJAX Error:', {
-                        status: status,
-                        error: error,
-                        response: xhr.responseText
-                    });
-                    alert('Failed to delete task. Please try again.');
-                }
-            });
-        }
+                });
+            }
+        });
     });
 });
 </script>
@@ -845,6 +902,124 @@ $(document).ready(function() {
         });
     });
 });
+
+    // Function to open the task details modal
+    function openTaskDetailsModal(taskId, taskData) {
+        const modal = $('#taskDetailsModal');
+        
+        // Set the task ID as a data attribute on the delete button
+        modal.find('#deleteTaskButton').data('task-id', taskId);
+        
+        // Set other task details in the modal
+        modal.find('#modalTaskTitle').text(taskData.title);
+        modal.find('#modalTaskDescription').text(taskData.description);
+        // ... set other task details ...
+        
+        modal.modal('show');
+    }
+
+    // Handle delete button click
+    $('#deleteTaskButton').on('click', function() {
+        const taskId = $(this).data('task-id');
+        console.log('Deleting task:', taskId); // Debug log
+        
+        $.ajax({
+            url: `/nurse/tasks/${taskId}/delete`,
+            type: 'DELETE',
+            headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#taskDetailsModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert('Failed to delete task.');
+                    }
+            }
+        }); 
+    });
+
+    // Example usage: Open modal with task details
+    $('.view-task').on('click', function() {
+        const taskId = $(this).data('task-id');
+        const taskData = {
+            title: $(this).data('title'),
+            description: $(this).data('description'),
+            // ... other task data ...
+        };
+        openTaskDetailsModal(taskId, taskData);
+    });
+</script>
+
+<script>
+$(document).ready(function() {
+    // Handle Edit Button Click in Task Details Modal
+    $('#editTaskButton').on('click', function() {
+        const taskId = $(this).closest('.modal').find('.delete-task').data('task-id');
+        
+        // Fetch task details
+        $.ajax({
+            url: `/nurse/tasks/${taskId}/edit`,
+            type: 'GET',
+            success: function(task) {
+                // Populate edit form with task details
+                $('#edit_task_id').val(task.id);
+                $('#edit_title').val(task.title);
+                $('#edit_description').val(task.description);
+                $('#edit_priority').val(task.priority);
+                $('#edit_due_date').val(task.due_date.slice(0, 16)); // Format datetime-local
+
+                // Close task details modal and open edit modal
+                $('#taskDetailsModal').modal('hide');
+                $('#editTaskModal').modal('show');
+            },
+            error: function(xhr) {
+                Swal.fire('Error!', 'Failed to load task details', 'error');
+            }
+        });
+    });
+
+    // Handle Save Changes Button Click
+    $('#saveEditButton').on('click', function() {
+        const taskId = $('#edit_task_id').val();
+        const formData = {
+            title: $('#edit_title').val(),
+            description: $('#edit_description').val(),
+            priority: $('#edit_priority').val(),
+            due_date: $('#edit_due_date').val(),
+            _token: $('meta[name="csrf-token"]').attr('content'),
+            _method: 'PUT'
+        };
+
+        $.ajax({
+            url: `/nurse/tasks/${taskId}`,
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Task updated successfully',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        $('#editTaskModal').modal('hide');
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error!', 'Failed to update task', 'error');
+                }
+            },
+            error: function(xhr) {
+                Swal.fire('Error!', 'Failed to update task', 'error');
+            }
+        });
+    });
+});
+</script>
+
 @endsection
 
 

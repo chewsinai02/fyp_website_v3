@@ -462,4 +462,27 @@ class NurseCalendarController extends Controller
             'message' => 'Room IDs updated successfully'
         ]);
     }
+
+    public function edit(Task $task)
+    {
+        return response()->json($task);
+    }
+
+    public function update(Request $request, Task $task)
+    {
+        $validatedData = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'priority' => 'required|in:low,medium,high,urgent',
+            'due_date' => 'required|date',
+        ]);
+
+        try {
+            $task->update($validatedData);
+            return response()->json(['success' => true, 'message' => 'Task updated successfully']);
+        } catch (\Exception $e) {
+            \Log::error('Error updating task:', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Failed to update task'], 500);
+        }
+    }
 }

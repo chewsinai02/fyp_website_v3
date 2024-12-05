@@ -352,3 +352,6 @@ Route::delete('/nurse/tasks/{id}', [NurseDashboardController::class, 'deleteTask
 
 Route::post('/nurse/tasks/{task}/status', [NurseDashboardController::class, 'updateStatus'])->name('nurse.tasks.status');
 
+Route::get('/nurse/tasks/{task}/edit', [NurseCalendarController::class, 'edit'])->name('tasks.edit');
+Route::put('/nurse/tasks/{task}', [NurseCalendarController::class, 'update'])->name('tasks.update');
+
