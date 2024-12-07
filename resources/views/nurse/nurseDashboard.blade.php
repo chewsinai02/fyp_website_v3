@@ -107,14 +107,25 @@
             <span id="activeCallCount" class="badge bg-danger">0 Active Calls</span>
         </div>
         <div class="card-body">
-            <div id="map-container" style="height: 400px;" class="mb-3">
-                <gmp-map id="myMap" center="1.5347778,103.6825" zoom="17">
-                    <!-- Patient call markers will be added here -->
-                </gmp-map>
+            <div id="map" style="height: 400px;" class="mb-3">
+                <!-- Map will be initialized here -->
             </div>
             <div id="callList" class="mt-3">
                 <!-- Active calls will be listed here -->
             </div>
+        </div>
+    </div>
+
+    <!-- Floating Calls Container -->
+    <div id="floating-calls" class="floating-calls d-none">
+        <div class="calls-wrapper">
+            <div id="active-calls" class="active-calls">
+                <!-- Calls will be populated here dynamically -->
+            </div>
+            <button type="button" class="btn btn-danger calls-toggle" id="calls-toggle">
+                <i class="fas fa-bell"></i>
+                <span class="calls-count">0</span>
+            </button>
         </div>
     </div>
 
@@ -191,19 +202,6 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-
-    <!-- Add this near the top of your content section -->
-    <div id="floating-calls" class="floating-calls d-none">
-        <div class="calls-wrapper">
-            <div id="active-calls" class="active-calls">
-                <!-- Calls will be populated here dynamically -->
-            </div>
-            <button type="button" class="btn btn-danger calls-toggle" id="calls-toggle">
-                <i class="fas fa-bell"></i>
-                <span class="calls-count">0</span>
-            </button>
         </div>
     </div>
 
@@ -328,6 +326,7 @@
 .active-calls.show {
     max-height: 400px;
     overflow-y: auto;
+    padding: 10px;
 }
 
 .calls-toggle {
@@ -335,8 +334,6 @@
     height: 60px;
     border-radius: 50%;
     position: relative;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    animation: pulse 2s infinite;
 }
 
 .calls-count {
@@ -355,41 +352,10 @@
     font-weight: bold;
     border: 2px solid #dc3545;
 }
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-gmp-map {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-#map-container {
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.alert {
-    margin-bottom: 10px;
-    border-radius: 8px;
-}
-
-.btn-success {
-    transition: all 0.3s ease;
-}
-
-.btn-success:hover {
-    transform: scale(1.05);
-}
 </style>
 
-<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUWg6Bqgdcb7Qx3vQ7R1vyYL_PCjlJ2ew&callback=initMap&libraries=maps,marker&v=beta">
-</script>
+<!-- Load Google Maps JavaScript API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUWg6Bqgdcb7Qx3vQ7R1vyYL_PCjlJ2ew&callback=initMap" async defer></script>
 
 <script>
 console.log('Dashboard script starting...');
@@ -558,133 +524,219 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-let callMarkers = {};
+let map, infoWindow;
+let markers = new Map();
+
+// SUC Center coordinates
+const SUC_CENTER = {
+    lat: 1.5347778,  // Your current location
+    lng: 103.6825
+};
+
+// Patient location coordinates
+const PATIENT_LOCATION = {
+    lat: 1.534073454318247,  // Updated patient location
+    lng: 103.68301029425147
+};
 
 function initMap() {
-    console.log('Map initialization started');
-    const db = firebase.database();
-    const mapElement = document.getElementById('myMap');
+    // Initialize map centered between your location and patient location
+    const centerPoint = {
+        lat: (SUC_CENTER.lat + PATIENT_LOCATION.lat) / 2,
+        lng: (SUC_CENTER.lng + PATIENT_LOCATION.lng) / 2
+    };
+
+    map = new google.maps.Map(document.getElementById("map"), {
+        center: centerPoint,
+        zoom: 19, // High zoom for detailed view
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: google.maps.ControlPosition.TOP_RIGHT
+        }
+    });
     
-    if (!mapElement) {
-        console.error('Map element not found!');
-        return;
-    }
-    console.log('Map element found');
+    infoWindow = new google.maps.InfoWindow();
 
-    // Listen for active calls
-    db.ref('nurse_calls').on('value', (snapshot) => {
-        console.log('Received Firebase data:', snapshot.val());
-        const calls = snapshot.val();
-        let activeCount = 0;
-        let activeCallsHtml = '';
+    // Add current location button
+    const locationButton = document.createElement("button");
+    locationButton.textContent = "My Location";
+    locationButton.classList.add("custom-map-control-button");
+    map.controls[google.maps.ControlPosition.TOP_CENTER].push(locationButton);
 
-        // Clear existing markers
-        Object.values(callMarkers).forEach(marker => {
-            if (marker && marker.remove) {
-                marker.remove();
-                console.log('Removed existing marker');
-            }
-        });
-        callMarkers = {};
-
-        if (calls) {
-            Object.entries(calls).forEach(([callId, call]) => {
-                console.log('Processing call:', callId, call);
-                
-                // Check if call is active and assigned to current nurse
-                if (call.call_status && call.assigned_nurse_id === '32') {
-                    activeCount++;
-                    console.log('Active call found:', callId);
-
-                    // Create and add marker
-                    try {
-                        const marker = document.createElement('gmp-advanced-marker');
-                        marker.position = '1.5347778,103.6825'; // Default UTM coordinates
-                        marker.title = `Room ${call.room_number}`;
-
-                        const markerContent = document.createElement('div');
-                        markerContent.innerHTML = `
-                            <div style="background: #dc3545; color: white; padding: 8px; border-radius: 4px; text-align: center;">
-                                <strong>Room ${call.room_number}</strong><br>
-                                Bed ${call.bed_number}
-                            </div>
-                        `;
-                        marker.content = markerContent;
-                        
-                        mapElement.appendChild(marker);
-                        callMarkers[callId] = marker;
-                        console.log('Marker added for call:', callId);
-
-                        // Add to active calls list
-                        activeCallsHtml += `
-                            <div class="alert alert-danger mb-2">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <h6 class="mb-1">Room ${call.room_number} - Bed ${call.bed_number}</h6>
-                                        <div class="small">Patient: ${call.patient_name}</div>
-                                        <div class="small text-muted">
-                                            Location: UTM Campus
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-sm btn-success attend-call" 
-                                            data-call-id="${callId}"
-                                            onclick="attendCall('${callId}')">
-                                        Attend
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    } catch (error) {
-                        console.error('Error creating marker:', error);
-                    }
-                }
-            });
+    // Create a marker for your fixed location
+    const nurseMarker = new google.maps.Marker({
+        position: SUC_CENTER,
+        map: map,
+        title: "Your Location",
+        icon: {
+            url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
         }
+    });
 
-        // Update UI
-        console.log('Updating UI with active count:', activeCount);
-        document.getElementById('activeCallCount').textContent = 
-            `${activeCount} Active Call${activeCount !== 1 ? 's' : ''}`;
-        document.getElementById('callList').innerHTML = 
-            activeCallsHtml || '<div class="alert alert-info">No active calls</div>';
+    // Listen for active calls from Firebase
+    const db = firebase.database();
+    db.ref('nurse_calls').orderByChild('call_status').equalTo(true).on('value', (snapshot) => {
+        updateMarkers(snapshot.val());
+    });
+
+    // Handle location button click
+    locationButton.addEventListener("click", () => {
+        map.setCenter(SUC_CENTER);
+        map.setZoom(19);
+        infoWindow.setContent("You are here");
+        infoWindow.open(map, nurseMarker);
         
-        // Update floating calls
-        const floatingCallsDiv = document.getElementById('floating-calls');
-        const floatingCallsCount = document.querySelector('.calls-count');
-        if (activeCount > 0) {
-            floatingCallsDiv.classList.remove('d-none');
-            floatingCallsCount.textContent = activeCount;
-            document.getElementById('active-calls').innerHTML = activeCallsHtml;
-        } else {
-            floatingCallsDiv.classList.add('d-none');
-        }
+        // Update nurse location in Firebase
+        updateNurseLocation(SUC_CENTER);
     });
 }
 
-// Function to handle attending a call
+function updateMarkers(calls) {
+    // Clear existing markers
+    markers.forEach(marker => marker.setMap(null));
+    markers.clear();
+    
+    let activeCount = 0;
+    let activeCallsHtml = '';
+
+    if (calls) {
+        Object.entries(calls).forEach(([callId, call]) => {
+            if (call.call_status === true) {
+                activeCount++;
+                
+                // Use the correct patient location
+                const position = {
+                    lat: PATIENT_LOCATION.lat,
+                    lng: PATIENT_LOCATION.lng
+                };
+
+                // Create marker for patient call
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: `Room ${call.room_number}`,
+                    icon: {
+                        url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                    }
+                });
+
+                marker.addListener('click', () => {
+                    infoWindow.setContent(`
+                        <div style="padding: 10px;">
+                            <h6>Room ${call.room_number}</h6>
+                            <p>Bed: ${call.bed_number}<br>
+                            Patient: ${call.patient_name}</p>
+                            <button onclick="attendCall('${callId}')" 
+                                    class="btn btn-sm btn-success">
+                                Attend Call
+                            </button>
+                        </div>
+                    `);
+                    infoWindow.open(map, marker);
+                });
+
+                markers.set(callId, marker);
+
+                // Create call card HTML
+                const callCard = `
+                    <div class="alert alert-danger mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">Room ${call.room_number} - Bed ${call.bed_number}</h6>
+                                <div class="small">Patient: ${call.patient_name}</div>
+                                <div class="small text-muted">
+                                    Distance: ${calculateDistance(SUC_CENTER, position)} meters
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-success attend-call" 
+                                    onclick="attendCall('${callId}')">
+                                Attend
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                activeCallsHtml += callCard;
+            }
+        });
+    }
+
+    // Update UI
+    document.getElementById('activeCallCount').textContent = 
+        `${activeCount} Active Call${activeCount !== 1 ? 's' : ''}`;
+    document.getElementById('callList').innerHTML = 
+        activeCallsHtml || '<div class="alert alert-info">No active calls</div>';
+
+    // Update floating container
+    const floatingCallsDiv = document.getElementById('floating-calls');
+    const floatingCallsCount = document.querySelector('.calls-count');
+    if (activeCount > 0) {
+        floatingCallsDiv.classList.remove('d-none');
+        floatingCallsCount.textContent = activeCount;
+        document.getElementById('active-calls').innerHTML = activeCallsHtml;
+    } else {
+        floatingCallsDiv.classList.add('d-none');
+    }
+}
+
+function calculateDistance(point1, point2) {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = point1.lat * Math.PI/180;
+    const φ2 = point2.lat * Math.PI/180;
+    const Δφ = (point2.lat-point1.lat) * Math.PI/180;
+    const Δλ = (point2.lng-point1.lng) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return Math.round(R * c); // Distance in meters, rounded
+}
+
+function updateNurseLocation(position) {
+    const db = firebase.database();
+    db.ref(`nurse_locations/32`).update({
+        latitude: position.lat,
+        longitude: position.lng,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+}
+
 function attendCall(callId) {
-    console.log('Attending call:', callId);
     const db = firebase.database();
     db.ref(`nurse_calls/${callId}`).update({
         call_status: false,
         attended_at: firebase.database.ServerValue.TIMESTAMP,
         attended_by: '32'
     }).then(() => {
-        console.log('Call marked as attended');
-    }).catch((error) => {
-        console.error('Error attending call:', error);
+        const marker = markers.get(callId);
+        if (marker) {
+            marker.setMap(null);
+            markers.delete(callId);
+        }
+        infoWindow.close();
     });
 }
 
-// Initialize map when Google Maps API is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Document ready, waiting for Google Maps...');
-    // Check if Google Maps is loaded
-    if (typeof google !== 'undefined') {
-        initMap();
-    } else {
-        console.log('Waiting for Google Maps to load...');
-    }
+function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+    infoWindow.setPosition(pos);
+    infoWindow.setContent(
+        browserHasGeolocation
+            ? "Error: The Geolocation service failed."
+            : "Error: Your browser doesn't support geolocation."
+    );
+    infoWindow.open(map);
+}
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', initMap);
+
+// Add toggle functionality for floating calls
+document.getElementById('calls-toggle').addEventListener('click', () => {
+    document.getElementById('active-calls').classList.toggle('show');
 });
 </script>
 
