@@ -1,13 +1,19 @@
-@extends('nurse.layout')
-
-@section('content')
-<div class="container">
-    <h2>Active Patient Calls</h2>
-    <div id="calls-container">
-        <!-- Calls will be displayed here -->
+<div class="modal fade" id="callDetailsModal" tabindex="-1" aria-labelledby="callDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="callDetailsModalLabel">Call Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="callDetailsContent">
+                        <!-- Call details will be populated here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="attendCallBtn">Attend Call</button>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-
-@push('scripts')
-
-@endsection 

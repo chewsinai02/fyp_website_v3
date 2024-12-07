@@ -225,6 +225,66 @@
         .text-muted-light {
             color: var(--text-light);
         }
+
+        .floating-calls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+
+        .calls-wrapper {
+            position: relative;
+        }
+
+        .active-calls {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            width: 300px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            margin-bottom: 10px;
+        }
+
+        .active-calls.show {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .calls-toggle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calls-toggle i {
+            font-size: 24px;
+        }
+
+        .calls-list .call-item {
+            padding: 15px;
+            border-radius: 8px;
+            background: #fff;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--danger);
+        }
+
+        .badge {
+            font-size: 0.8rem;
+            padding: 0.35em 0.65em;
+        }
+
+        #callDetailsContent {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database.js"></script>
@@ -459,6 +519,176 @@ callsRef.on('value', (snapshot) => {
             
         } catch (error) {
             console.error('Firebase initialization error:', error);
+        }
+    </script>
+
+    <!-- Floating Calls Container -->
+    <div id="floating-calls" class="floating-calls">
+        <div class="calls-wrapper">
+            <div id="active-calls" class="active-calls">
+                <!-- Calls will be populated here dynamically -->
+            </div>
+            <button type="button" class="btn btn-danger calls-toggle position-relative" id="calls-toggle" 
+                    data-bs-toggle="modal" data-bs-target="#callDetailsModal">
+                <i class="fas fa-bell"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning">
+                    <span id="calls-count">0</span>
+                    <span class="visually-hidden">unread messages</span>
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Call Details Modal -->
+    <div class="modal fade" id="callDetailsModal" tabindex="-1" aria-labelledby="callDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="callDetailsModalLabel">
+                        <i class="fas fa-bell me-2"></i>Active Calls
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="callDetailsContent" class="calls-list">
+                        <!-- Call details will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Reference to Firebase
+            const db = firebase.database();
+            const callsRef = db.ref('nurse_calls');
+            const currentNurseId = "{{ auth()->id() }}";
+
+            // Listen for active calls
+            callsRef.on('value', (snapshot) => {
+                const calls = snapshot.val();
+                let activeCalls = [];
+                let callsHtml = '';
+                
+                if (calls) {
+                    Object.entries(calls).forEach(([callId, call]) => {
+                        if (call.call_status === true && String(call.assigned_nurse_id) === currentNurseId) {
+                            activeCalls.push(call);
+                            
+                            callsHtml += `
+                                <div class="call-item animate__animated animate__fadeIn">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">Room ${call.room_number} - Bed ${call.bed_number}</h6>
+                                            <p class="mb-1 text-muted small">Patient: ${call.patient_name || 'Unknown'}</p>
+                                            <p class="mb-0 text-muted small">Distance: ${calculateDistance(call)} meters</p>
+                                        </div>
+                                        <div class="d-flex flex-column gap-2">
+                                            <button class="btn btn-sm btn-success" onclick="attendCall('${callId}')">
+                                                <i class="fas fa-check me-1"></i>Attend
+                                            </button>
+                                            <button class="btn btn-sm btn-primary" onclick="navigateToPatient('${callId}')">
+                                                <i class="fas fa-directions me-1"></i>Navigate
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+
+                // Update the calls count
+                document.getElementById('calls-count').textContent = activeCalls.length;
+                
+                // Update the modal content
+                document.getElementById('callDetailsContent').innerHTML = 
+                    activeCalls.length ? callsHtml : '<p class="text-center text-muted my-3">No active calls</p>';
+                
+                // Show/hide the floating button
+                document.getElementById('floating-calls').style.display = 
+                    activeCalls.length ? 'block' : 'none';
+            });
+        });
+
+        // Function to handle attending a call
+        function attendCall(callId) {
+            const db = firebase.database();
+            db.ref('nurse_calls/' + callId).update({
+                call_status: false,
+                attended_at: firebase.database.ServerValue.TIMESTAMP,
+                attended_by: "{{ auth()->id() }}"
+            }).then(() => {
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('callDetailsModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Call Attended',
+                    text: 'You have successfully attended to this call',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }).catch((error) => {
+                console.error('Error attending call:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to attend call. Please try again.'
+                });
+            });
+        }
+
+        function calculateDistance(call) {
+            if (!call.locations) return 'N/A';
+
+            const NURSE_LOCATION = {
+                lat: 1.534776633677136,
+                lng: 103.68248968623259
+            };
+
+            const patientLocation = {
+                lat: parseFloat(call.locations.latitude),
+                lng: parseFloat(call.locations.longitude)
+            };
+
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = NURSE_LOCATION.lat * Math.PI/180;
+            const φ2 = patientLocation.lat * Math.PI/180;
+            const Δφ = (patientLocation.lat - NURSE_LOCATION.lat) * Math.PI/180;
+            const Δλ = (patientLocation.lng - NURSE_LOCATION.lng) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+
+            return Math.round(distance);
+        }
+
+        function navigateToPatient(callId) {
+            const db = firebase.database();
+            db.ref('nurse_calls/' + callId).once('value', (snapshot) => {
+                const call = snapshot.val();
+                if (call && call.locations) {
+                    const patientLocation = `${call.locations.latitude},${call.locations.longitude}`;
+                    const nurseLocation = '1.534776633677136,103.68248968623259'; // Fixed nurse location
+                    const navigationUrl = `https://www.google.com/maps/dir/${nurseLocation}/${patientLocation}`;
+                    window.open(navigationUrl, '_blank');
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Navigation Error',
+                        text: 'Patient location not available'
+                    });
+                }
+            });
         }
     </script>
 

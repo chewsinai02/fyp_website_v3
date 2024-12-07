@@ -537,6 +537,7 @@ function listenForCalls() {
         // Update call list
         document.getElementById('callList').innerHTML = 
             activeCallsHtml || '<div class="alert alert-info">No active calls</div>';
+        document.getElementById('activeCallsCount').textContent = activeCount;
         
         // Show/hide floating calls
         const floatingCalls = document.getElementById('floating-calls');
