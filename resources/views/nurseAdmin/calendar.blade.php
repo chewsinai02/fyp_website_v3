@@ -677,8 +677,8 @@
                         <span id="modalNotes"></span>
                     </div>
                     <div class="info-group m-4 text-center">
-                        <button class="btn btn-sm btn-outline-primary" id="assignWeek">Week Assign</button>
-                        <button class="btn btn-sm btn-outline-primary" id="assignMonth">Month Assign</button>
+                        <button class="btn btn-sm btn-outline-primary" id="assignWeek"><i class="fa-solid fa-repeat"></i> Week</button>
+                        <button class="btn btn-sm btn-outline-primary" id="assignMonth"><i class="fa-solid fa-repeat"></i> Month</button>
                     </div>
                 </div>
             </div>

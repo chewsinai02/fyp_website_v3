@@ -393,6 +393,12 @@
                     <span>Reports</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('full-calendar') }}" class="nav-link {{ request()->routeIs('full-calendar*') ? 'active' : '' }}">
+                    <i class="bi bi-calendar2"></i>
+                    <span>Calendar</span>
+                </a>
+            </li>
         </ul>
 
         <div class="profile-section">
