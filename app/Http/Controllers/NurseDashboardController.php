@@ -97,7 +97,7 @@ class NurseDashboardController extends Controller
             $user->save();
 
             // Redirect back with a success message
-            return redirect()->route('adminChangePassword')->with('success', 'Password changed successfully! Please log in again.');
+            return redirect()->route('nurse.changePassword')->with('success', 'Password changed successfully! Please log in again.');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['update_failed' => 'Failed to update password. Please try again.']);
         }

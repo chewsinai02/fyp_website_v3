@@ -528,13 +528,13 @@ class NurseAdminDashboardController extends Controller
     public function nurseAdminManageProfile()
     {
         $user = Auth::user();
-        return view('nurseAdmin.manageProfile', compact('user'));
+        return view('nurseadmin.manageProfile', compact('user'));
     }
 
     public function nurseAdminChangePassword()
     {
         $user = Auth::user();
-        return view('nurseAdmin.changePassword', compact('user'));
+        return view('nurseadmin.changePassword', compact('user'));
     }
 
     public function nurseAdminCheckCurrentPassword(Request $request)
@@ -563,11 +563,11 @@ class NurseAdminDashboardController extends Controller
             $user->save();
 
             // Redirect back with a success message
-            return redirect()->route('adminChangePassword')->with('success', 'Password changed successfully! Please log in again.');
+            return redirect()->route('nurseadmin.changePassword')->with('success', 'Password changed successfully! Please log in again.');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['update_failed' => 'Failed to update password. Please try again.']);
         }
-    }           
+    }          
 
     public function nurseAdminEditProfile()
     {

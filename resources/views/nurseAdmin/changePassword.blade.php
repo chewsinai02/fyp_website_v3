@@ -1,108 +1,153 @@
 @extends('nurseAdmin.layout')
 @section('title', 'Change Password')
 @section('content')
-<div class="container-fluid p-0" style="max-width: 1400px; margin: 0 auto;">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="text-gradient fs-1 mb-2">Change Password</h2>
-            <p class="text-muted-light fs-5 mb-0">
-                <i class="bi bi-shield-lock me-2"></i>
-                Update your account security
-            </p>
+
+<div class="container-fluid p-0" style="max-width: 1200px; margin: 0 auto;">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <div class="page-icon">
+                    <i class="bi bi-shield-lock fs-1 text-primary"></i>
+                </div>
+            </div>
+            <div class="col">
+                <h1 class="page-title mb-0">Security Settings</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="#" class="text-muted">Settings</a></li>
+                        <li class="breadcrumb-item active">Change Password</li>
+                    </ol>
+                </nav>
+            </div>
         </div>
     </div>
 
-    <!-- Error Messages -->
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <div class="row g-4">
-        <!-- Profile Info Card -->
-        <div class="col-md-4">
-            <div class="card h-100 profile-card">
-                <div class="card-body p-4">
-                    <h5 class="mb-3 fw-bold">Profile Information</h5>
-                    <div class="text-center mb-4">
+        <!-- Left Column - Profile Summary -->
+        <div class="col-lg-4">
+            <div class="card profile-card border-0 h-100">
+                <div class="position-relative">
+                    <div class="profile-cover" style="height: 100px; background: linear-gradient(45deg, #3b82f6, #06b6d4);"></div>
+                    <div class="profile-image-wrapper text-center" style="margin-top: -50px;">
                         <img src="{{ asset($user->profile_picture) }}" 
                              alt="Profile Picture" 
-                             class="rounded-circle mb-3 shadow-sm" 
-                             style="width: 150px; height: 150px; object-fit: cover;">
+                             class="profile-image"
+                             style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                     </div>
-                    
-                    <div class="info-group">
-                        <div class="info-item">
-                            <span class="info-label"><i class="bi bi-person me-2"></i>Name</span>
-                            <span class="info-value">{{ $user->name }}</span>
+                </div>
+                
+                <div class="card-body pt-2">
+                    <div class="text-center mb-4">
+                        <h5 class="mb-1">{{ $user->name }}</h5>
+                        <span class="badge bg-primary-subtle text-primary">{{ ucfirst(str_replace('_', ' ', $user->role)) }}</span>
+                    </div>
+
+                    <div class="profile-info">
+                        <div class="info-item d-flex align-items-center p-3 rounded-3 mb-3">
+                            <div class="icon-wrapper me-3">
+                                <i class="bi bi-envelope text-primary"></i>
+                            </div>
+                            <div class="info-content">
+                                <label class="text-muted small mb-1">Email Address</label>
+                                <div class="fw-medium">{{ $user->email }}</div>
+                            </div>
                         </div>
-                        <div class="info-item">
-                            <span class="info-label"><i class="bi bi-envelope me-2"></i>Email</span>
-                            <span class="info-value">{{ $user->email }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label"><i class="bi bi-shield me-2"></i>Role</span>
-                            <span class="info-value">{{ ucfirst(str_replace('_', ' ', $user->role)) }}</span>
+                        
+                        <div class="info-item d-flex align-items-center p-3 rounded-3">
+                            <div class="icon-wrapper me-3">
+                                <i class="bi bi-clock-history text-primary"></i>
+                            </div>
+                            <div class="info-content">
+                                <label class="text-muted small mb-1">Last Password Change</label>
+                                <div class="fw-medium">
+                                    {{ \Carbon\Carbon::parse($user->updated_at)->diffForHumans() }}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Password Change Card -->
-        <div class="col-md-8">
-            <div class="card h-80 p-4 password-card">
+
+        <!-- Right Column - Password Change Form -->
+        <div class="col-lg-8">
+            <div class="card border-0 h-100">
                 <div class="card-body p-4">
-                    <h5 class="mb-3 fw-bold">Change Password</h5>
-                    <form method="POST" action="{{ route('nurseadmin.checkCurrentPassword') }}" class="row g-4">
-                        @csrf
-                        
-                        <!-- Error Messages -->
-                        @if ($errors->any())
-                            <div class="col-12">
-                                <div class="alert alert-danger">
-                                    <ul class="mb-0">
+                    <h4 class="card-title mb-4">Change Password</h4>
+                    
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <div class="d-flex">
+                                <div class="icon me-3">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </div>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Please check the following errors:</h6>
+                                    <ul class="mb-0 ps-3">
                                         @foreach ($errors->all() as $error)
                                             <li>{{ $error }}</li>
                                         @endforeach
                                     </ul>
                                 </div>
                             </div>
-                        @endif
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
 
-                        <!-- Password Fields -->
-                        <div class="col-12">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-key fs-4"></i></span>
-                                <input type="password" class="form-control" name="current_password" 
-                                       placeholder="Current Password" required>
+                    <form method="POST" action="{{ route('nurseadmin.checkCurrentPassword') }}" class="password-form">
+                        @csrf
+                        <div class="mb-4">
+                            <label class="form-label">Current Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="bi bi-key"></i>
+                                </span>
+                                <input type="password" 
+                                       class="form-control" 
+                                       name="current_password"
+                                       placeholder="Enter your current password"
+                                       required>
                             </div>
                         </div>
 
-                        <div class="col-12">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-lock fs-4"></i></span>
-                                <input type="password" class="form-control" name="new_password" 
-                                       placeholder="New Password" required>
+                        <div class="mb-4">
+                            <label class="form-label">New Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input type="password" 
+                                       class="form-control" 
+                                       name="new_password"
+                                       placeholder="Enter new password"
+                                       required>
+                            </div>
+                            <div class="form-text">
+                                Password must be at least 8 characters long and contain letters and numbers
                             </div>
                         </div>
 
-                        <div class="col-12">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-lock-fill fs-4"></i></span>
-                                <input type="password" class="form-control" name="new_password_confirmation" 
-                                       placeholder="Confirm New Password" required>
+                        <div class="mb-4">
+                            <label class="form-label">Confirm New Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="bi bi-lock-fill"></i>
+                                </span>
+                                <input type="password" 
+                                       class="form-control" 
+                                       name="new_password_confirmation"
+                                       placeholder="Confirm new password"
+                                       required>
                             </div>
                         </div>
 
-                        <div class="col-12 d-flex justify-content-end mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg px-5">
-                                <i class="bi bi-check-circle me-2 fs-4"></i>Update Password
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-light" onclick="window.history.back()">
+                                <i class="bi bi-arrow-left me-2"></i>Back
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-shield-check me-2"></i>Update Password
                             </button>
                         </div>
                     </form>
@@ -113,102 +158,96 @@
 </div>
 
 <style>
-.card { 
-    border: none; 
-    border-radius: 20px; 
-    box-shadow: 0 8px 12px -1px rgba(0,0,0,.1);
-    margin-bottom: 2rem;
-}
-.text-gradient { 
-    background: linear-gradient(135deg,var(--primary),var(--secondary)); 
-    -webkit-background-clip: text; 
-    -webkit-text-fill-color: transparent;
-}
-.info-group {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-.info-item {
-    padding: 1rem;
-    background: var(--background);
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.info-label {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-.info-value {
-    color: var(--text);
-    font-size: 1.1rem;
-    font-weight: 500;
-}
-.input-group-text { 
-    background: var(--background); 
-    border-right: none;
-    padding: 0.8rem 1.2rem;
-}
-.input-group .form-control { 
-    border-left: none;
-    padding: 0.8rem 1.2rem;
-    font-size: 1.1rem;
-}
-.input-group:focus-within .input-group-text { 
-    border-color: var(--primary); 
-    color: var(--primary);
-}
-.input-group:focus-within .form-control { 
-    border-color: var(--primary);
-}
+    .page-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(59, 130, 246, 0.1);
+        border-radius: 12px;
+        color: #3b82f6;
+    }
 
-.profile-card {
-    background: linear-gradient(145deg, #f6f8ff 0%, #f1f5ff 100%);
-    border-left: 4px solid var(--primary);
-}
+    .card {
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
 
-.password-card {
-    background: linear-gradient(145deg, #fff5f5 0%, #fff0f0 100%);
-    border-left: 4px solid var(--danger);
-}
+    .profile-card:hover {
+        transform: translateY(-5px);
+    }
 
-.profile-card .info-item {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--primary-rgb), 0.1);
-}
+    .info-item {
+        background: #f8fafc;
+        transition: all 0.3s ease;
+    }
 
-.password-card .input-group-text {
-    background: rgba(255, 255, 255, 0.7);
-    border-color: rgba(var(--danger-rgb), 0.2);
-}
+    .info-item:hover {
+        background: #f1f5f9;
+        transform: translateX(5px);
+    }
 
-.password-card .form-control {
-    border-color: rgba(var(--danger-rgb), 0.2);
-    background: rgba(255, 255, 255, 0.7);
-}
+    .icon-wrapper {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
 
-.password-card .input-group:focus-within .input-group-text {
-    border-color: var(--danger);
-    color: var(--danger);
-}
+    .input-group {
+        border-radius: 10px;
+        overflow: hidden;
+    }
 
-.password-card .input-group:focus-within .form-control {
-    border-color: var(--danger);
-}
+    .input-group-text {
+        border: none;
+        padding: 0.75rem 1rem;
+    }
 
-.password-card .btn-primary {
-    background: var(--danger);
-    border-color: var(--danger);
-}
+    .form-control {
+        border: none;
+        padding: 0.75rem 1rem;
+        background: #f8fafc;
+    }
 
-.password-card .btn-primary:hover {
-    background: var(--danger-dark);
-    border-color: var(--danger-dark);
-}
+    .form-control:focus {
+        background: white;
+        box-shadow: none;
+        border-color: #3b82f6;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background: linear-gradient(45deg, #3b82f6, #06b6d4);
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(45deg, #2563eb, #0891b2);
+        transform: translateY(-2px);
+    }
+
+    .alert {
+        border: none;
+        border-radius: 12px;
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+        border-radius: 6px;
+        font-weight: 500;
+    }
 </style>
 
 <!-- Success Message Handler -->
