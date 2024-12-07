@@ -23,6 +23,7 @@ use App\Http\Controllers\PatientTaskController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\NurseController;
 use App\Http\Controllers\NurseCalendarController;
+use App\Http\Controllers\BedController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -48,7 +49,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/details/{id}', [UserController::class, 'adminupdate'])->name('details.update');
     Route::get('/details/{id}', [UserDataController::class, 'adminshow'])->name('details.show');
     Route::get('/details/{id}/edit', [UserController::class, 'adminedit'])->name('details.edit');
-    Route::put('/admin/users/{id}', [UserController::class, 'adminupdate'])->name('details.update');
+    Route::put('admin/users/{id}', [UserController::class, 'update'])->name('details.update');    
     Route::delete('/admin/users/{id}', [UserController::class, 'admindestroy'])->name('users.destroy'); // Delete route
     Route::get('/details/{id}/detailshow', [AdminDashboardController::class, 'admindetailshow'])->name('admindetailshow');
     // Route to show the form for entering additional user details
@@ -286,7 +287,7 @@ Route::middleware(['auth', 'role:nurse_admin'])->group(function () {
     Route::post('/schedules/action', [CalendarController::class, 'action'])->name('schedules.action');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'role:nurse_admin'])->group(function () {
     Route::prefix('nurseadmin')->name('nurseadmin.')->group(function () {
         // Route for editing a room
         Route::get('/rooms/{id}/edit', [RoomManagementController::class, 'edit'])->name('rooms.edit');
