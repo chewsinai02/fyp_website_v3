@@ -372,6 +372,11 @@ callsRef.on('value', (snapshot) => {
     </script>
 </head>
 <body>
+    <!-- Add this simple audio element at the top of body -->
+    <audio id="callAlert" preload="auto">
+        <source src="{{ asset('audios/nurse_calling_button_sound.mp3') }}" type="audio/mpeg">
+    </audio>
+
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="logo-container">
@@ -558,12 +563,197 @@ callsRef.on('value', (snapshot) => {
         </div>
     </div>
 
+    <!-- Update the test buttons -->
+    <!--
+    <div style="position: fixed; bottom: 100px; right: 20px; z-index: 9999;">
+        <button class="btn btn-warning test-beep-btn">
+            <i class="fas fa-volume-up me-2"></i>Test Beep
+        </button>
+        <button class="btn btn-info test-sound-btn">
+            <i class="fas fa-music me-2"></i>Test MP3
+        </button>
+    </div>
+    -->
+
+    <!-- Move these functions outside of DOMContentLoaded -->
     <script>
+        let audioInterval; // Global variable to store the interval
+
+        function startRepeatingSound() {
+            const audio = document.getElementById('callAlert');
+            if (audio) {
+                // Clear any existing interval
+                clearInterval(audioInterval);
+                
+                // Function to play sound
+                const playAudio = () => {
+                    audio.currentTime = 0;
+                    audio.play().catch(error => console.error('Audio playback failed:', error));
+                };
+
+                // Play immediately
+                playAudio();
+
+                // Add ended event listener to replay after each completion
+                audio.addEventListener('ended', () => {
+                    setTimeout(playAudio, 1000); // Wait 1 second before replaying
+                });
+            }
+        }
+
+        function stopRepeatingSound() {
+            const audio = document.getElementById('callAlert');
+            if (audio) {
+                // Remove the ended event listener
+                audio.removeEventListener('ended', () => {});
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        }
+
+        // Global function to handle attending a call
+        function attendCall(callId) {
+            const db = firebase.database();
+            db.ref('nurse_calls/' + callId).update({
+                call_status: false,
+                attended_at: firebase.database.ServerValue.TIMESTAMP,
+                attended_by: "{{ auth()->id() }}"
+            }).then(() => {
+                // Stop the repeating sound
+                stopRepeatingSound();
+                
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('callDetailsModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Call Attended',
+                    text: 'You have successfully attended to this call',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }).catch((error) => {
+                console.error('Error attending call:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to attend call. Please try again.'
+                });
+            });
+        }
+
+        // Global function to navigate to patient
+        function navigateToPatient(callId) {
+            const db = firebase.database();
+            db.ref('nurse_calls/' + callId).once('value', (snapshot) => {
+                const call = snapshot.val();
+                if (call && call.locations) {
+                    const patientLocation = `${call.locations.latitude},${call.locations.longitude}`;
+                    const nurseLocation = '1.534776633677136,103.68248968623259'; // Fixed nurse location
+                    const navigationUrl = `https://www.google.com/maps/dir/${nurseLocation}/${patientLocation}`;
+                    window.open(navigationUrl, '_blank');
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Navigation Error',
+                        text: 'Patient location not available'
+                    });
+                }
+            });
+        }
+
+        // Global function to calculate distance
+        function calculateDistance(call) {
+            if (!call.locations) return 'N/A';
+
+            const NURSE_LOCATION = {
+                lat: 1.534776633677136,
+                lng: 103.68248968623259
+            };
+
+            const patientLocation = {
+                lat: parseFloat(call.locations.latitude),
+                lng: parseFloat(call.locations.longitude)
+            };
+
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = NURSE_LOCATION.lat * Math.PI/180;
+            const φ2 = patientLocation.lat * Math.PI/180;
+            const Δφ = (patientLocation.lat - NURSE_LOCATION.lat) * Math.PI/180;
+            const Δλ = (patientLocation.lng - NURSE_LOCATION.lng) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+
+            return Math.round(distance);
+        }
+
+        // Keep your DOMContentLoaded event listener, but remove these functions from inside it
         document.addEventListener('DOMContentLoaded', function() {
-            // Reference to Firebase
             const db = firebase.database();
             const callsRef = db.ref('nurse_calls');
             const currentNurseId = "{{ auth()->id() }}";
+            let previousCallCount = 0;
+
+            // Simple function to play sound
+            function playSound() {
+                const audio = document.getElementById('callAlert');
+                if (audio) {
+                    audio.currentTime = 0; // Reset to start
+                    audio.volume = 1.0; // Set volume to maximum
+                    
+                    // Play with promise handling
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .then(() => {
+                                console.log('Audio played successfully');
+                            })
+                            .catch(error => {
+                                console.error('Audio playback failed:', error);
+                            });
+                    }
+                }
+            }
+
+            // Test beep function
+            function testBeep() {
+                const context = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = context.createOscillator();
+                const gainNode = context.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(context.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 440;
+                gainNode.gain.value = 0.5;
+
+                oscillator.start();
+                setTimeout(() => oscillator.stop(), 200);
+            }
+
+            // Add click event listeners to test buttons
+            document.querySelectorAll('.test-sound-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    console.log('Test button clicked');
+                    playSound();
+                });
+            });
+
+            document.querySelectorAll('.test-beep-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    console.log('Beep button clicked');
+                    testBeep();
+                });
+            });
 
             // Listen for active calls
             callsRef.on('value', (snapshot) => {
@@ -599,6 +789,15 @@ callsRef.on('value', (snapshot) => {
                     });
                 }
 
+                // Start or stop repeating sound based on active calls
+                if (activeCalls.length > 0) {
+                    startRepeatingSound();
+                } else {
+                    stopRepeatingSound();
+                }
+
+                previousCallCount = activeCalls.length;
+
                 // Update the calls count
                 document.getElementById('calls-count').textContent = activeCalls.length;
                 
@@ -611,85 +810,6 @@ callsRef.on('value', (snapshot) => {
                     activeCalls.length ? 'block' : 'none';
             });
         });
-
-        // Function to handle attending a call
-        function attendCall(callId) {
-            const db = firebase.database();
-            db.ref('nurse_calls/' + callId).update({
-                call_status: false,
-                attended_at: firebase.database.ServerValue.TIMESTAMP,
-                attended_by: "{{ auth()->id() }}"
-            }).then(() => {
-                // Close the modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('callDetailsModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                
-                // Show success message
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Call Attended',
-                    text: 'You have successfully attended to this call',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }).catch((error) => {
-                console.error('Error attending call:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to attend call. Please try again.'
-                });
-            });
-        }
-
-        function calculateDistance(call) {
-            if (!call.locations) return 'N/A';
-
-            const NURSE_LOCATION = {
-                lat: 1.534776633677136,
-                lng: 103.68248968623259
-            };
-
-            const patientLocation = {
-                lat: parseFloat(call.locations.latitude),
-                lng: parseFloat(call.locations.longitude)
-            };
-
-            const R = 6371e3; // Earth's radius in meters
-            const φ1 = NURSE_LOCATION.lat * Math.PI/180;
-            const φ2 = patientLocation.lat * Math.PI/180;
-            const Δφ = (patientLocation.lat - NURSE_LOCATION.lat) * Math.PI/180;
-            const Δλ = (patientLocation.lng - NURSE_LOCATION.lng) * Math.PI/180;
-
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                    Math.cos(φ1) * Math.cos(φ2) *
-                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distance = R * c;
-
-            return Math.round(distance);
-        }
-
-        function navigateToPatient(callId) {
-            const db = firebase.database();
-            db.ref('nurse_calls/' + callId).once('value', (snapshot) => {
-                const call = snapshot.val();
-                if (call && call.locations) {
-                    const patientLocation = `${call.locations.latitude},${call.locations.longitude}`;
-                    const nurseLocation = '1.534776633677136,103.68248968623259'; // Fixed nurse location
-                    const navigationUrl = `https://www.google.com/maps/dir/${nurseLocation}/${patientLocation}`;
-                    window.open(navigationUrl, '_blank');
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Navigation Error',
-                        text: 'Patient location not available'
-                    });
-                }
-            });
-        }
     </script>
 
     @stack('scripts')
