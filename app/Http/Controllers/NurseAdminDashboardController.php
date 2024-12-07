@@ -128,6 +128,10 @@ class NurseAdminDashboardController extends Controller
                 'notes' => 'nullable|string|max:255'
             ]);
 
+            // Get nurse and room details for the response
+            $nurse = User::find($validatedData['nurse_id']);
+            $room = Room::find($validatedData['room_id']);
+
             // Check if nurse already has ANY shift for this date
             $nurseConflict = NurseSchedule::where('nurse_id', $validatedData['nurse_id'])
                 ->whereDate('date', $validatedData['date'])
@@ -140,10 +144,12 @@ class NurseAdminDashboardController extends Controller
                     'date' => $validatedData['date']
                 ]);
                 
-                // Return JSON response for conflict
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Nurse is already assigned to a shift on the selected date.'
+                    'title' => 'Schedule Conflict',
+                    'message' => "Nurse {$nurse->name} is already assigned to a shift on " . 
+                                Carbon::parse($validatedData['date'])->format('M d, Y') . ".",
+                    'icon' => 'error'
                 ], 422);
             }
 
@@ -152,10 +158,22 @@ class NurseAdminDashboardController extends Controller
             
             DB::commit();
 
-            // Return success response
+            // Format the date for display
+            $formattedDate = Carbon::parse($validatedData['date'])->format('M d, Y');
+            $formattedShift = ucfirst($validatedData['shift']);
+
+            // Return success response with formatted data for SweetAlert2
             return response()->json([
                 'status' => 'success',
-                'message' => 'Schedule created successfully',
+                'title' => 'Schedule Created!',
+                'message' => 'Schedule has been created successfully',
+                'icon' => 'success',
+                'details' => [
+                    'nurse' => $nurse->name,
+                    'date' => $formattedDate,
+                    'shift' => $formattedShift,
+                    'room' => "Room {$room->room_number}"
+                ],
                 'data' => [
                     'schedule' => $schedule->load('nurse', 'room'),
                     'redirect' => route('nurseadmin.scheduleList')
@@ -166,10 +184,12 @@ class NurseAdminDashboardController extends Controller
             DB::rollback();
             \Log::error('Schedule creation failed: ' . $e->getMessage());
 
-            // Return error response
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to create schedule: ' . $e->getMessage()
+                'title' => 'Error!',
+                'message' => 'Failed to create schedule. Please try again.',
+                'icon' => 'error',
+                'technical_error' => $e->getMessage()  // For debugging
             ], 500);
         }
     }

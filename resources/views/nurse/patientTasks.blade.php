@@ -43,6 +43,13 @@
 
     <div class="calendar-container">
         <div class="calendar-header mb-4">
+            <div>
+                <h6 class="header-title">Description Status</h6>
+                <span class="badge bg-success">Low</span>
+                <span class="badge bg-warning">Medium</span>
+                <span class="badge bg-orange">High</span>
+                <span class="badge bg-danger">Urgent</span>
+            </div>
             <div class="d-flex justify-content-between align-items-center">
                 <h4 class="header-title">{{ $date->format('F Y') }}</h4>
                 <div class="nav-buttons">
@@ -680,76 +687,107 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
+    // View Task Details
     $(document).on('click', '.view-task', function() {
-        const taskId = $(this).data('task-id'); // Get the task ID from the data attribute
-        const patientId = '{{ $patient->id }}'; // Get the patient ID from the Blade variable
+        const taskId = $(this).data('task-id');
+        const patientId = '{{ $patient->id }}';
+        
+        console.log('Loading task details:', { taskId, patientId }); // Debug log
 
-        // Construct the URL for fetching task details
-        const url = `/nurse/patient/${patientId}/tasks/details`; // Include patientId in the URL
-
-        // Get task details using AJAX
+        // Show loading state
+        $('#taskDetailsModal').modal('hide');
+        
         $.ajax({
-            url: url,
-            method: 'POST', // Use POST to send data securely
+            url: `/nurse/tasks/${taskId}/details`,
+            method: 'GET',
             headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'), // CSRF Token for security
-                'Accept': 'application/json'
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
-            data: { task_id: taskId }, // Send the task ID to the backend
             success: function(response) {
-                if (response && !response.error) {
-                    // Update modal content with fetched data
-                    $('#modalTaskTitle').text(response.title || 'No title');
-                    $('#modalTaskDescription').text(response.description || 'No description provided');
+                console.log('Task details response:', response); // Debug log
+                
+                if (response.success && response.task) {
+                    const task = response.task; // Get the task object from response
+                    
+                    // Update modal content
+                    $('.modal-title').text(task.title);
+                    $('#modalTaskTitle').text(task.title);
+                    $('#modalTaskDescription').text(task.description || 'No description provided');
+                    
+                    // Update Priority with badge
+                    const priorityClass = getPriorityBadgeClass(task.priority);
                     $('#modalTaskPriority').html(`
-                        <span class="badge bg-${response.priority.toLowerCase()}">
-                            ${response.priority.charAt(0).toUpperCase() + response.priority.slice(1)}
+                        <span class="badge bg-${priorityClass}">
+                            ${capitalizeFirst(task.priority)}
                         </span>
                     `);
-                    const statusClass = getStatusClass(response.status); // Function to get the class based on status
+                    
+                    // Update Status with badge
+                    const statusClass = getStatusBadgeClass(task.status);
                     $('#modalTaskStatus').html(`
-                        <span class="badge ${statusClass}">
-                            ${response.status.charAt(0).toUpperCase() + response.status.slice(1)}
+                        <span class="badge bg-${statusClass}">
+                            ${capitalizeFirst(task.status)}
                         </span>
                     `);
-                    $('#modalTaskDueDate').text(moment(response.due_date).format('MMMM D, YYYY h:mm A'));
+                    
+                    // Format and set due date using moment.js
+                    const dueDate = moment(task.due_date).format('MMMM D, YYYY h:mm A');
+                    $('#modalTaskDueDate').text(dueDate);
+
+                    // Store task ID for other operations
+                    $('#deleteTaskButton').data('task-id', task.id);
+                    $('#editTaskButton').data('task-id', task.id);
+                    $('#repeatWeeklyButton').data('task-id', task.id);
+                    $('#repeatMonthlyButton').data('task-id', task.id);
 
                     // Show the modal
-                    const modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
-                    modal.show();
+                    $('#taskDetailsModal').modal('show');
                 } else {
-                    // Handle error, e.g., display an error message
-                    $('.schedule-info').html(`
-                        <div class="alert alert-danger">
-                            ${response.error || 'Task not found'}
-                        </div>
-                    `);
+                    Swal.fire('Error', 'Invalid task data received', 'error');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('AJAX Error:', {
-                    status: status,
-                    error: error,
-                    response: xhr.responseText
+                console.error('Error loading task details:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
                 });
-                alert('Failed to load task details. Please try again.');
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load task details. Please try again.'
+                });
             }
         });
-        function getStatusClass(status) {
-            switch (status.toLowerCase()) {
-                case 'pending':
-                    return 'bg-warning'; // Yellow
-                case 'completed':
-                    return 'bg-success'; // Green
-                case 'passed':
-                    return 'bg-danger'; // Red
-                case 'cancelled':
-                    return 'bg-danger'; // Red (or you can create a custom class)
-                default:
-                    return 'bg-secondary'; // Default class for unknown status
-            }
-        }
     });
+
+    // Helper functions
+    function getPriorityBadgeClass(priority) {
+        const classes = {
+            'low': 'success',
+            'medium': 'warning',
+            'high': 'orange',
+            'urgent': 'danger'
+        };
+        return classes[priority?.toLowerCase()] || 'secondary';
+    }
+
+    function getStatusBadgeClass(status) {
+        const classes = {
+            'completed': 'success',
+            'pending': 'warning',
+            'passed': 'danger',
+            'cancelled': 'secondary'
+        };
+        return classes[status?.toLowerCase()] || 'secondary';
+    }
+
+    function capitalizeFirst(string) {
+        if (!string) return '';
+        return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+    }
 });
 </script>
 
@@ -1170,5 +1208,4 @@ $(document).ready(function() {
 </script>
 
 @endsection
-
 

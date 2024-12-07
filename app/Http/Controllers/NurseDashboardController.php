@@ -511,11 +511,50 @@ class NurseDashboardController extends Controller
 
     public function getTaskDetails($id)
     {
-        // Fetch the task by ID, including the patient and bed relationship
-        $task = Task::with(['patient.bed'])->findOrFail($id);
+        try {
+            \Log::info('Fetching task details for ID: ' . $id);
+            
+            $task = Task::with(['patient.bed'])
+                ->where('id', $id)
+                ->first();
 
-        // Return the task details as JSON
-        return response()->json($task);
+            if (!$task) {
+                \Log::error('Task not found with ID: ' . $id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Task not found'
+                ], 404);
+            }
+
+            \Log::info('Task details found:', $task->toArray());
+
+            return response()->json([
+                'success' => true,
+                'task' => [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'priority' => $task->priority,
+                    'status' => $task->status,
+                    'due_date' => $task->due_date,
+                    'patient' => [
+                        'id' => $task->patient->id,
+                        'name' => $task->patient->name
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching task details:', [
+                'task_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching task details'
+            ], 500);
+        }
     }
 
     public function deleteTask($id)

@@ -411,44 +411,56 @@ class RoomManagementController extends Controller
     public function manageBed(Request $request)
     {
         try {
-            // Log the incoming request data
-            \Log::info('Manage Bed Request:', $request->all());
-
             // Validate the incoming request
             $validated = $request->validate([
                 'id' => 'required|exists:beds,id',
                 'patient_id' => 'required|exists:users,id'
             ]);
 
-            // Find the bed
-            $bed = Bed::findOrFail($request->id);
-            
-            // Check if the patient is already assigned to any bed
-            $isAssigned = Bed::where('patient_id', $request->patient_id)
-                ->where('status', 'occupied')
-                ->exists();
+            // Check if patient is already assigned to any bed
+            $existingAssignment = DB::table('beds')
+                ->join('rooms', 'beds.room_id', '=', 'rooms.id')
+                ->where('beds.patient_id', $request->patient_id)
+                ->where('beds.status', 'occupied')
+                ->select('beds.bed_number', 'rooms.room_number')
+                ->first();
 
-            if ($isAssigned) {
+            if ($existingAssignment) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'This patient is already assigned to another bed.'
+                    'status' => 'error',
+                    'title' => 'Patient Already Assigned',
+                    'message' => "This patient is already assigned to Room {$existingAssignment->room_number}, Bed {$existingAssignment->bed_number}.",
+                    'currentAssignment' => [
+                        'room' => $existingAssignment->room_number,
+                        'bed' => $existingAssignment->bed_number
+                    ]
                 ], 422);
             }
 
-            // Update the bed
+            // Find and update the bed
+            $bed = Bed::findOrFail($request->id);
             $bed->patient_id = $request->patient_id;
             $bed->status = 'occupied';
             $bed->save();
 
+            // Get room details for the response
+            $room = $bed->room;
+
             return response()->json([
-                'success' => true,
-                'message' => 'Bed updated successfully'
+                'status' => 'success',
+                'title' => 'Success!',
+                'message' => 'Patient has been successfully assigned to the bed.',
+                'data' => [
+                    'bed_number' => $bed->bed_number,
+                    'room_number' => $room->room_number
+                ]
             ]);
 
         } catch (ValidationException $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
+                'status' => 'error',
+                'title' => 'Validation Error',
+                'message' => 'Please check your input.',
                 'errors' => $e->errors()
             ], 422);
         } catch (Exception $e) {
@@ -458,8 +470,9 @@ class RoomManagementController extends Controller
             ]);
 
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to update bed: ' . $e->getMessage()
+                'status' => 'error',
+                'title' => 'Error',
+                'message' => 'An error occurred while managing the bed assignment.',
             ], 500);
         }
     }

@@ -33,7 +33,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add Schedule</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="refreshPage()"></button>
             </div>
             <form id="scheduleForm" action="{{ route('nurseadmin.addSchedule') }}" method="POST">
                 @csrf
@@ -89,6 +89,13 @@
 </div> 
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Include Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Include Moment.js (if used for date formatting) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
     // Initialize Select2
@@ -97,223 +104,142 @@ $(document).ready(function() {
         width: '100%',
         placeholder: 'Search for a room...',
         allowClear: true,
-        dropdownParent: $('#scheduleModal'),
-        templateResult: formatRoom,
-        templateSelection: formatRoom
+        dropdownParent: $('#scheduleModal')
     });
 
-    // Form submission handling
+    // Form submission handling with SweetAlert2
     $('#scheduleForm').on('submit', function(e) {
         e.preventDefault();
         
-        // Get the button and spinner
-        const saveButton = $('#saveButton');
-        const saveSpinner = $('#saveSpinner');
-        
-        // Validate form fields
-        const nurse_id = $('#nurse_id').val();
+        // Get form data
+        const nurse = $('#nurse_id option:selected').text();
         const date = $('#date').val();
         const shift = $('#shift').val();
-        const room_id = $('#room_id').val();
+        const room = $('#room_id option:selected').text();
 
-        if (!nurse_id || !date || !shift || !room_id) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Validation Error',
-                text: 'Please fill in all required fields',
-                confirmButtonColor: '#dc3545'
-            });
-            return;
-        }
-        
-        // Disable button and show spinner
-        saveButton.prop('disabled', true);
-        saveSpinner.removeClass('d-none');
-        
-        const formData = new FormData(this);
-
-        // Show processing alert
+        // Show confirmation dialog
         Swal.fire({
-            title: 'Processing...',
-            text: 'Please wait while we save your changes.',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            allowEnterKey: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
+            title: 'Confirm Schedule Assignment',
+            html: `
+                <div class="text-start">
+                    <p>Are you sure you want to assign:</p>
+                    <ul>
+                        <li><strong>Nurse:</strong> ${nurse}</li>
+                        <li><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</li>
+                        <li><strong>Shift:</strong> ${shift.charAt(0).toUpperCase() + shift.slice(1)}</li>
+                        <li><strong>Room:</strong> ${room}</li>
+                    </ul>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545',
+            confirmButtonText: 'Yes, assign!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state
+                Swal.fire({
+                    title: 'Assigning Schedule...',
+                    html: 'Please wait while we process your request.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Submit form data via AJAX
+                const formData = new FormData(this);
+                $.ajax({
+                    url: $(this).attr('action'),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            Swal.fire({
+                                title: response.title,
+                                html: `
+                                    <div class="text-start">
+                                        <p>${response.message}</p>
+                                        <p><strong>Schedule Details:</strong></p>
+                                        <ul>
+                                            <li>Nurse: ${response.details.nurse}</li>
+                                            <li>Date: ${response.details.date}</li>
+                                            <li>Shift: ${response.details.shift}</li>
+                                            <li>Room: ${response.details.room}</li>
+                                        </ul>
+                                    </div>
+                                `,
+                                icon: response.icon,
+                                confirmButtonColor: '#28a745'
+                            }).then(() => {
+                                $('#scheduleModal').modal('hide');
+                                window.location.href = response.data.redirect;
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        const response = xhr.responseJSON;
+                        Swal.fire({
+                            title: response.title || 'Error!',
+                            text: response.message || 'An error occurred while creating the schedule.',
+                            icon: response.icon || 'error',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    }
+                });
             }
         });
 
-        $.ajax({
-            url: $(this).attr('action'),
-            method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                'Accept': 'application/json'
-            }
-        })
-        .done(function(response) {
-            // Close the processing alert
-            Swal.close();
+        // Delete schedule confirmation
+        $('.delete-schedule').on('click', function(e) {
+            e.preventDefault();
+            const deleteUrl = $(this).data('url');
             
-            if (response.success) {
-                // Show success message with details
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Schedule Updated Successfully!',
-                    html: `
-                        <div class="text-start">
-                            <p>${response.message}</p>
-                            <p><strong>Details:</strong></p>
-                            <ul>
-                                <li>Nurse: ${$('#nurse_id option:selected').text()}</li>
-                                <li>Date: ${new Date(date).toLocaleDateString()}</li>
-                                <li>Shift: ${shift.charAt(0).toUpperCase() + shift.slice(1)}</li>
-                                <li>Room: ${$('#room_id option:selected').text()}</li>
-                            </ul>
-                        </div>
-                    `,
-                    showConfirmButton: true,
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#28a745'
-                }).then((result) => {
-                    // Reset form and close modal
-                    $('#scheduleForm')[0].reset();
-                    $('#scheduleModal').modal('hide');
-                    // Reload page or update schedule display
-                    window.location.reload();
-                });
-            } else {
-                // Show error message
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Failed to Update Schedule',
-                    text: response.message || 'An error occurred while saving changes.',
-                    confirmButtonColor: '#dc3545'
-                });
-            }
-        })
-        .fail(function(xhr) {
-            // Close the processing alert
-            Swal.close();
-            
-            let errorMessage = 'Failed to save changes. Please try again.';
-            let errorDetails = [];
-            
-            // Handle validation errors
-            if (xhr.status === 422 && xhr.responseJSON) {
-                if (xhr.responseJSON.errors) {
-                    errorDetails = Object.values(xhr.responseJSON.errors).flat();
-                    errorMessage = errorDetails.join('<br>');
-                } else if (xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-            }
-            
-            // Show detailed error message
             Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                html: `
-                    <div class="text-start">
-                        <p>${errorMessage}</p>
-                        ${errorDetails.length ? `
-                            <p><strong>Please check the following:</strong></p>
-                            <ul>
-                                ${errorDetails.map(error => `<li>${error}</li>`).join('')}
-                            </ul>
-                        ` : ''}
-                    </div>
-                `,
-                confirmButtonColor: '#dc3545'
+                title: 'Are you sure?',
+                text: "This schedule will be permanently deleted!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: deleteUrl,
+                        type: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deleted!',
+                                    text: 'Schedule has been deleted.',
+                                    confirmButtonColor: '#28a745'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'Failed to delete schedule.',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
+                    });
+                }
             });
-        })
-        .always(function() {
-            // Re-enable button and hide spinner
-            saveButton.prop('disabled', false);
-            saveSpinner.addClass('d-none');
         });
-    });
-
-    // Reset form when modal is closed
-    $('#scheduleModal').on('hidden.bs.modal', function() {
-        $('#scheduleForm')[0].reset();
-        $('#saveButton').prop('disabled', false);
-        $('#saveSpinner').addClass('d-none');
-        $('.is-invalid').removeClass('is-invalid');
-        $('.invalid-feedback').remove();
     });
 });
-
-// Custom formatting for room options
-function formatRoom(room) {
-    if (!room.id) return room.text;
-    
-    let roomData = $(room.element).data();
-    let html = `<div class="d-flex justify-content-between align-items-center">
-        <div>
-            <strong>Room ${room.text.split(' - ')[0]}</strong>
-            <small class="text-muted ms-2">${room.text.split(' - ')[1]}</small>
-        </div>
-        <span class="badge bg-${roomData.availableSlots > 0 ? 'success' : 'warning'} ms-2">
-            ${roomData.currentNurses}/${roomData.maxNurses} nurses
-        </span>
-    </div>`;
-    
-    return $(html);
-}
-
-// Check existing assignment function
-function checkExistingAssignment(nurseId) {
-    if (!nurseId) return;
-
-    // Clear and disable room selection while checking
-    const roomSelect = $('#room_id');
-    roomSelect.empty().append('<option value="">Loading rooms...</option>').prop('disabled', true);
-
-    // Show current assignment if any
-    fetch(`/nurseadmin/nurses/${nurseId}/current-assignment`)
-        .then(response => response.json())
-        .then(data => {
-            const assignmentDiv = document.getElementById('current_assignment');
-            if (data.current_assignment) {
-                assignmentDiv.innerHTML = `Current Assignment: Room ${data.current_assignment.room_number}`;
-            } else {
-                assignmentDiv.innerHTML = '';
-            }
-        });
-
-    // Get available rooms
-    fetch('/nurseadmin/available-rooms')
-        .then(response => response.json())
-        .then(rooms => {
-            roomSelect.empty().append('<option value="">Search for a room...</option>');
-            rooms.forEach(room => {
-                let option = new Option(
-                    `Room ${room.room_number} - ${room.type.charAt(0).toUpperCase() + room.type.slice(1)}`,
-                    room.id,
-                    false,
-                    false
-                );
-                $(option).data('status', room.status);
-                $(option).data('availableBeds', room.available_beds);
-                roomSelect.append(option);
-            });
-            roomSelect.prop('disabled', false).trigger('change');
-        });
-}
-
-// Test function to check if SweetAlert2 is working
-function testSweetAlert() {
-    Swal.fire({
-        title: 'Test Alert',
-        text: 'SweetAlert2 is working!',
-        icon: 'success'
-    });
-}
 </script>
 @endpush 

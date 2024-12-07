@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'mongodb'),
+    'default' => env('DB_CONNECTION', null),
 
     /*
     |--------------------------------------------------------------------------
@@ -89,22 +89,6 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
-        ],
-
-        'mongodb' => [
-            'driver' => 'mongodb',
-            'dsn' => env('MONGODB_URI'),
-            'database' => env('MONGO_DB_DATABASE', 'nurse_tasks'),
-            'options' => [
-                'retryWrites' => true,
-                'w' => 'majority',
-                'ssl' => true,
-                'tls' => true,
-                'tlsAllowInvalidCertificates' => true,
-                'authSource' => 'admin',
-                'replicaSet' => 'atlas-xnaps0-shard-0',
-                'readPreference' => 'primary'
-            ],
         ],
 
     ],

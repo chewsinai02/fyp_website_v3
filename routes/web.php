@@ -354,7 +354,7 @@ Route::middleware(['auth', 'role:nurse'])->group(function () {
     });
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'role:nurse'])->group(function () {
     Route::get('/nurse/calls', [NurseCallController::class, 'index'])->name('nurse.calls');
     Route::post('/nurse/calls/{callId}/update', [NurseCallController::class, 'updateCallStatus']);
 });

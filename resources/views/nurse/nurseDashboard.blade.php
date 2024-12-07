@@ -2,6 +2,7 @@
 @section('title', 'Ward Nurse Dashboard')
 
 @section('content')
+<!--
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
@@ -16,6 +17,7 @@
         </div>
     </div>
 </div>
+-->
 
 <div class="container-fluid p-4">
     <!-- Header Section -->
@@ -89,7 +91,9 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-muted mb-2">Shift Status</h6>
-                            <h3 class="mb-0" id="shiftStatus">On Duty</h3>
+                            <h3 class="mb-0" id="shiftStatus">
+                                {{ auth()->user()->getTodayScheduleStatus() }}
+                            </h3>
                         </div>
                         <div class="bg-info-subtle p-3 rounded">
                             <i class="bi bi-clock-history fa-lg text-info"></i>
@@ -206,9 +210,11 @@
     </div>
 
     <!-- Add this temporarily to see your ID -->
+    <!--
     <div class="alert alert-info">
         Your Nurse ID: {{ auth()->id() }}
     </div>
+    -->
 </div>
 
 <style>
@@ -439,93 +445,166 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 5000);
 });
 
+// Firebase nurse call structure
+const createNurseCall =(roomNumber, bedNumber, patientId, patientName) => {
+    const db = firebase.database();
+    const callsRef = db.ref('nurse_calls');
+    
+    return callsRef.push({
+        room_number: roomNumber,
+        bed_number: bedNumber,
+        patient_id: patientId,
+        patient_name: patientName,
+        assigned_nurse_id: "{{ auth()->id() }}", // Current nurse ID
+        call_status: true,
+        created_at: firebase.database.ServerValue.TIMESTAMP,
+        locations: {
+            latitude: "1.534081527989047",  // Default location for room 101
+            longitude: "103.68303193559673"
+        }
+    });
+};
+
+// Listen for nurse calls
 function listenForCalls() {
     const db = firebase.database();
     const callsRef = db.ref('nurse_calls');
-    const floatingCalls = document.getElementById('floating-calls');
-    const activeCalls = document.getElementById('active-calls');
-    const callsToggle = document.getElementById('calls-toggle');
-    const callsCount = document.querySelector('.calls-count');
+    const currentNurseId = String("{{ auth()->id() }}");
+    
+    console.log('Listening for calls - Nurse ID:', currentNurseId);
 
-    console.log('Starting call listener...');
-
-    callsRef.on('value', (snapshot) => {
+    callsRef.orderByChild('call_status').equalTo(true).on('value', (snapshot) => {
         const calls = snapshot.val();
-        console.log('Received calls:', calls);
+        let activeCount = 0;
+        let activeCallsHtml = '';
 
-        if (!calls) {
-            floatingCalls.classList.add('d-none');
-            return;
-        }
+        if (calls) {
+            Object.entries(calls).forEach(([callId, call]) => {
+                // Check if call is active and assigned to current nurse
+                if (call.call_status === true && 
+                    String(call.assigned_nurse_id) === currentNurseId) {
+                    
+                    // Increment active count
+                    activeCount++;
+                    console.log('Active call found:', callId, 'Total count:', activeCount);
+                    
+                    // Calculate distance
+                    let distance = 0;
+                    if (call.locations) {
+                        const patientLocation = {
+                            lat: parseFloat(call.locations.latitude),
+                            lng: parseFloat(call.locations.longitude)
+                        };
+                        distance = calculateDistance(NURSE_LOCATION, patientLocation);
+                    }
 
-        const pendingCalls = Object.entries(calls).filter(([_, call]) => 
-            call.call_status === true && 
-            call.assigned_nurse_id === {{ auth()->id() }}
-        );
-
-        console.log('Pending calls:', pendingCalls);
-
-        if (pendingCalls.length === 0) {
-            floatingCalls.classList.add('d-none');
-            return;
-        }
-
-        floatingCalls.classList.remove('d-none');
-        callsCount.textContent = pendingCalls.length;
-
-        activeCalls.innerHTML = pendingCalls.map(([id, call]) => `
-            <div class="call-item p-3 border-bottom">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <h6 class="mb-1">Room ${call.room_number}</h6>
-                        <small class="text-muted">Bed ${call.bed_number}</small>
-                        <div class="text-muted">${call.patient_name}</div>
-                    </div>
-                    <span class="badge bg-danger">New Call</span>
-                </div>
-                <div class="d-flex justify-content-end gap-2 mt-2">
-                    <button class="btn btn-sm btn-success attend-call" data-call-id="${id}">
-                        Attend
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    });
-
-    // Toggle calls list
-    callsToggle.addEventListener('click', () => {
-        activeCalls.classList.toggle('show');
-    });
-
-    // Handle attend button clicks
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('attend-call')) {
-            const callId = e.target.dataset.callId;
-            callsRef.child(callId).update({
-                call_status: false,
-                attended_at: firebase.database.ServerValue.TIMESTAMP,
-                attended_by: {{ auth()->id() }}
+                    const callCard = `
+                        <div class="alert alert-danger mb-2">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">Room ${call.room_number} - Bed ${call.bed_number}</h6>
+                                    <div class="small">Patient: ${call.patient_name || 'Unknown'}</div>
+                                    <p class="small">Distance: ${distance} meters</p>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-success" 
+                                            onclick="attendCall('${callId}')">
+                                        Attend
+                                    </button>
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick="navigateToCall('${callId}')"
+                                            title="Navigate to patient">
+                                        <i class="fas fa-directions"></i> Navigate
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    activeCallsHtml += callCard;
+                }
             });
+        }
+
+        console.log('Final active count:', activeCount); // Debug log
+
+        // Update all UI elements with the count
+        document.getElementById('activeCallCount').textContent = 
+            `${activeCount} Active Call${activeCount !== 1 ? 's' : ''}`;
+        document.getElementById('activeCallsCount').textContent = activeCount;
+        document.querySelector('.calls-count').textContent = activeCount;
+        
+        // Update call list
+        document.getElementById('callList').innerHTML = 
+            activeCallsHtml || '<div class="alert alert-info">No active calls</div>';
+        
+        // Show/hide floating calls
+        const floatingCalls = document.getElementById('floating-calls');
+        floatingCalls.classList.toggle('d-none', activeCount === 0);
+    });
+}
+
+function navigateToCall(callId) {
+    const db = firebase.database();
+    const callRef = db.ref(`nurse_calls/${callId}`);
+    
+    callRef.once('value', (snapshot) => {
+        const call = snapshot.val();
+        if (call && call.locations) {
+            const patientLocation = {
+                lat: parseFloat(call.locations.latitude),
+                lng: parseFloat(call.locations.longitude)
+            };
+            
+            // Open Google Maps in new tab
+            const navigationUrl = `https://www.google.com/maps/dir/?api=1&destination=${patientLocation.lat},${patientLocation.lng}`;
+            window.open(navigationUrl, '_blank');
+        } else {
+            console.error('No location data for call:', callId);
         }
     });
 }
 
-// Start listening for calls after connection is confirmed
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.querySelector('.alert-success')) {
-        listenForCalls();
-    } else {
-        const checkInterval = setInterval(() => {
-            if (document.querySelector('.alert-success')) {
-                listenForCalls();
-                clearInterval(checkInterval);
-            }
-        }, 1000);
-    }
-});
+// Handle attending to a call
+function attendCall(callId) {
+    const db = firebase.database();
+    db.ref(`nurse_calls/${callId}`).update({
+        call_status: false,
+        attended_at: firebase.database.ServerValue.TIMESTAMP,
+        attended_by: "{{ auth()->id() }}"
+    }).then(() => {
+        console.log('Call attended successfully');
+        // Remove marker if it exists
+        const marker = markers.get(callId);
+        if (marker) {
+            marker.setMap(null);
+            markers.delete(callId);
+        }
+        // Close any open info windows
+        if (infoWindow) {
+            infoWindow.close();
+        }
+    }).catch((error) => {
+        console.error('Error attending call:', error);
+    });
+}
 
-let map, infoWindow;
-let markers = new Map();
+// Test function to create a sample call
+function createTestCall() {
+    createNurseCall(
+        "101",  // Room number
+        "A",    // Bed number
+        "P123", // Patient ID
+        "Test Patient" // Patient name
+    ).then(() => {
+        console.log('Test call created successfully');
+    }).catch((error) => {
+        console.error('Error creating test call:', error);
+    });
+}
+
+let map, infoWindow, nurseMarker;
+const markers = new Map();
 
 // SUC Center coordinates
 const SUC_CENTER = {
@@ -539,161 +618,133 @@ const PATIENT_LOCATION = {
     lng: 103.68301029425147
 };
 
-function initMap() {
-    // Initialize map centered between your location and patient location
-    const centerPoint = {
-        lat: (SUC_CENTER.lat + PATIENT_LOCATION.lat) / 2,
-        lng: (SUC_CENTER.lng + PATIENT_LOCATION.lng) / 2
-    };
+// Fixed nurse location
+const NURSE_LOCATION = {
+    lat: 1.534776633677136,
+    lng: 103.68248968623259
+};
 
+// Haversine formula for accurate distance calculation
+function calculateDistance(point1, point2) {
+    // Convert coordinates from degrees to radians
+    const lat1 = point1.lat * Math.PI / 180;
+    const lon1 = point1.lng * Math.PI / 180;
+    const lat2 = point2.lat * Math.PI / 180;
+    const lon2 = point2.lng * Math.PI / 180;
+
+    // Radius of the Earth in meters
+    const R = 6371e3;
+
+    // Haversine formula
+    const dLat = lat2 - lat1;
+    const dLon = lon2 - lon1;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+
+    // Return distance rounded to nearest meter
+    return Math.round(distance);
+}
+
+function initMap() {
+    // Initialize map
     map = new google.maps.Map(document.getElementById("map"), {
-        center: centerPoint,
-        zoom: 19, // High zoom for detailed view
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
-        mapTypeControl: true,
-        mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-            position: google.maps.ControlPosition.TOP_RIGHT
-        }
+        center: NURSE_LOCATION,
+        zoom: 18,
+        mapTypeId: google.maps.MapTypeId.ROADMAP
     });
     
     infoWindow = new google.maps.InfoWindow();
 
-    // Add current location button
-    const locationButton = document.createElement("button");
-    locationButton.textContent = "My Location";
-    locationButton.classList.add("custom-map-control-button");
-    map.controls[google.maps.ControlPosition.TOP_CENTER].push(locationButton);
-
-    // Create a marker for your fixed location
-    const nurseMarker = new google.maps.Marker({
-        position: SUC_CENTER,
+    // Create fixed nurse marker (blue pin)
+    nurseMarker = new google.maps.Marker({
+        position: NURSE_LOCATION,
         map: map,
-        title: "Your Location",
+        title: "Nurse Station",
         icon: {
             url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
         }
     });
 
-    // Listen for active calls from Firebase
-    const db = firebase.database();
-    db.ref('nurse_calls').orderByChild('call_status').equalTo(true).on('value', (snapshot) => {
-        updateMarkers(snapshot.val());
-    });
-
-    // Handle location button click
-    locationButton.addEventListener("click", () => {
-        map.setCenter(SUC_CENTER);
-        map.setZoom(19);
-        infoWindow.setContent("You are here");
+    // Add info window for nurse marker
+    nurseMarker.addListener('click', () => {
+        infoWindow.setContent(`
+            <div style="padding: 10px;">
+                <h6>Nurse Station</h6>
+                <p>Nurse: {{ auth()->user()->name }}</p>
+            </div>
+        `);
         infoWindow.open(map, nurseMarker);
-        
-        // Update nurse location in Firebase
-        updateNurseLocation(SUC_CENTER);
     });
-}
 
-function updateMarkers(calls) {
-    // Clear existing markers
-    markers.forEach(marker => marker.setMap(null));
-    markers.clear();
-    
-    let activeCount = 0;
-    let activeCallsHtml = '';
+    // Listen for patient calls
+    const db = firebase.database();
+    const callsRef = db.ref('nurse_calls');
+    const currentNurseId = String("{{ auth()->id() }}");
 
-    if (calls) {
-        Object.entries(calls).forEach(([callId, call]) => {
-            if (call.call_status === true) {
-                activeCount++;
-                
-                // Use the correct patient location
-                const position = {
-                    lat: PATIENT_LOCATION.lat,
-                    lng: PATIENT_LOCATION.lng
-                };
+    callsRef.on('value', (snapshot) => {
+        // Clear existing patient markers
+        markers.forEach(marker => marker.setMap(null));
+        markers.clear();
 
-                // Create marker for patient call
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: map,
-                    title: `Room ${call.room_number}`,
-                    icon: {
-                        url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-                    }
-                });
+        const calls = snapshot.val();
+        if (calls) {
+            Object.entries(calls).forEach(([callId, call]) => {
+                if (call.call_status === true && 
+                    String(call.assigned_nurse_id) === currentNurseId &&
+                    call.locations) {  // Check if locations exist
+                    
+                    // Get patient location from database
+                    const patientLocation = {
+                        lat: parseFloat(call.locations.latitude),
+                        lng: parseFloat(call.locations.longitude)
+                    };
+                    
+                    // Create patient marker (red pin)
+                    const patientMarker = new google.maps.Marker({
+                        position: patientLocation,
+                        map: map,
+                        title: `Patient Call - Room ${call.room_number}`,
+                        icon: {
+                            url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                        },
+                        animation: google.maps.Animation.BOUNCE
+                    });
 
-                marker.addListener('click', () => {
-                    infoWindow.setContent(`
-                        <div style="padding: 10px;">
-                            <h6>Room ${call.room_number}</h6>
-                            <p>Bed: ${call.bed_number}<br>
-                            Patient: ${call.patient_name}</p>
-                            <button onclick="attendCall('${callId}')" 
-                                    class="btn btn-sm btn-success">
-                                Attend Call
-                            </button>
-                        </div>
-                    `);
-                    infoWindow.open(map, marker);
-                });
-
-                markers.set(callId, marker);
-
-                // Create call card HTML
-                const callCard = `
-                    <div class="alert alert-danger mb-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="mb-1">Room ${call.room_number} - Bed ${call.bed_number}</h6>
-                                <div class="small">Patient: ${call.patient_name}</div>
-                                <div class="small text-muted">
-                                    Distance: ${calculateDistance(SUC_CENTER, position)} meters
+                    // Add info window for patient marker
+                    patientMarker.addListener('click', () => {
+                        const distance = calculateDistance(NURSE_LOCATION, patientLocation);
+                        infoWindow.setContent(`
+                            <div style="padding: 10px;">
+                                <h6>Patient Call</h6>
+                                <p>Room: ${call.room_number}<br>
+                                Bed: ${call.bed_number}<br>
+                                Patient: ${call.patient_name || 'Unknown'}<br>
+                                Distance: ${distance} meters</p>
+                                <div class="d-flex gap-2 mt-2">
+                                    <button onclick="attendCall('${callId}')" 
+                                            class="btn btn-sm btn-success">
+                                        Attend Call
+                                    </button>
+                                    <a href="https://www.google.com/maps/dir/?api=1&destination=${patientLocation.lat},${patientLocation.lng}"
+                                       class="btn btn-sm btn-primary"
+                                       target="_blank">
+                                        <i class="fas fa-directions"></i> Navigate
+                                    </a>
                                 </div>
                             </div>
-                            <button class="btn btn-sm btn-success attend-call" 
-                                    onclick="attendCall('${callId}')">
-                                Attend
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                activeCallsHtml += callCard;
-            }
-        });
-    }
+                        `);
+                        infoWindow.open(map, patientMarker);
+                    });
 
-    // Update UI
-    document.getElementById('activeCallCount').textContent = 
-        `${activeCount} Active Call${activeCount !== 1 ? 's' : ''}`;
-    document.getElementById('callList').innerHTML = 
-        activeCallsHtml || '<div class="alert alert-info">No active calls</div>';
-
-    // Update floating container
-    const floatingCallsDiv = document.getElementById('floating-calls');
-    const floatingCallsCount = document.querySelector('.calls-count');
-    if (activeCount > 0) {
-        floatingCallsDiv.classList.remove('d-none');
-        floatingCallsCount.textContent = activeCount;
-        document.getElementById('active-calls').innerHTML = activeCallsHtml;
-    } else {
-        floatingCallsDiv.classList.add('d-none');
-    }
-}
-
-function calculateDistance(point1, point2) {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = point1.lat * Math.PI/180;
-    const φ2 = point2.lat * Math.PI/180;
-    const Δφ = (point2.lat-point1.lat) * Math.PI/180;
-    const Δλ = (point2.lng-point1.lng) * Math.PI/180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return Math.round(R * c); // Distance in meters, rounded
+                    // Store marker reference
+                    markers.set(callId, patientMarker);
+                }
+            });
+        }
+    });
 }
 
 function updateNurseLocation(position) {
@@ -702,22 +753,6 @@ function updateNurseLocation(position) {
         latitude: position.lat,
         longitude: position.lng,
         timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
-}
-
-function attendCall(callId) {
-    const db = firebase.database();
-    db.ref(`nurse_calls/${callId}`).update({
-        call_status: false,
-        attended_at: firebase.database.ServerValue.TIMESTAMP,
-        attended_by: '32'
-    }).then(() => {
-        const marker = markers.get(callId);
-        if (marker) {
-            marker.setMap(null);
-            markers.delete(callId);
-        }
-        infoWindow.close();
     });
 }
 
@@ -737,6 +772,12 @@ document.addEventListener('DOMContentLoaded', initMap);
 // Add toggle functionality for floating calls
 document.getElementById('calls-toggle').addEventListener('click', () => {
     document.getElementById('active-calls').classList.toggle('show');
+});
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Document ready, initializing calls listener');
+    listenForCalls();
 });
 </script>
 

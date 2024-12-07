@@ -39,3 +39,13 @@ Route::get('/nurseadmin/rooms/{roomId}/beds', [RoomManagementController::class, 
 // Route to change the status of a bed
 Route::post('/beds/change-status', [RoomManagementController::class, 'changeStatus'])->name('changeStatus');
 Route::post('/patients/transfer', [RoomManagementController::class, 'transferPatient']);
+
+Route::get('/get-room-nurse/{room_number}', function ($roomNumber) {
+    $nurseSchedule = \App\Models\NurseSchedule::where('room_id', $roomNumber)
+        ->whereDate('date', today())
+        ->first();
+    
+    return response()->json([
+        'nurse_id' => $nurseSchedule ? $nurseSchedule->nurse_id : null
+    ]);
+});

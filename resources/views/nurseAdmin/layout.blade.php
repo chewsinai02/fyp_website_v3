@@ -293,6 +293,63 @@
             color: var(--text-light);
             margin-top: 1rem;
         }
+
+        /* Dropdown Styles */
+        .header .dropdown {
+            position: relative;
+        }
+
+        .header .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            z-index: 1500;  /* Higher than sidebar */
+            min-width: 200px;
+            padding: 0.5rem 0;
+            margin-top: 0.5rem;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .header .dropdown-item {
+            padding: 0.75rem 1.5rem;
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+
+        .header .dropdown-item:hover {
+            background-color: var(--background);
+            color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .header .dropdown-item i {
+            width: 20px;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        .header .dropdown-divider {
+            margin: 0.5rem 0;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Profile */
     </style>
 </head>
 <body>
@@ -300,56 +357,40 @@
     <div class="sidebar">
         <div class="logo-container">
             <a href="{{ route('nurseadminDashboard') }}" class="text-decoration-none text-white">
-                <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid">
+                <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid mb-2">
                 <h6 class="mb-0">SUC Hospital</h6>
             </a>
         </div>
 
-        <ul class="nav flex-column">
+        <ul class="nav flex-column mt-3">
             <li class="nav-item">
-                <a href="{{ route('nurseadminDashboard') }}" class="nav-link {{ Request::routeIs('nurseadminDashboard') ? 'active' : '' }}">
+                <a href="{{ route('nurseadminDashboard') }}" class="nav-link {{ request()->routeIs('nurseadminDashboard') ? 'active' : '' }}">
                     <i class="bi bi-speedometer2"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
-            
-            <!-- Nurse Management -->
             <li class="nav-item">
-                <a href="{{ route('nurseadmin.nurseList') }}" class="nav-link {{ Request::routeIs('nurseadmin.nurseList') ? 'active' : '' }}">
+                <a href="{{ route('nurseadmin.nurseList') }}" class="nav-link {{ request()->routeIs('nurseadmin.nurseList*') ? 'active' : '' }}">
                     <i class="fa-solid fa-user-nurse"></i>
                     <span>Nurse Management</span>
                 </a>
             </li>
-            
-            <!-- Room Management -->
             <li class="nav-item">
-                <a href="{{ route('nurseadmin.roomList') }}" class="nav-link {{ Request::routeIs('nurseadmin.roomList') ? 'active' : '' }}">
+                <a href="{{ route('nurseadmin.roomList') }}" class="nav-link {{ request()->routeIs('nurseadmin.roomList*') ? 'active' : '' }}">
                     <i class="bi bi-door-open"></i>
                     <span>Room Management</span>
                 </a>
             </li>
-            
-            <!-- Nurse Schedules -->
             <li class="nav-item">
-                <a href="{{ route('nurseadmin.scheduleList') }}" class="nav-link {{ Request::routeIs('nurseadmin.scheduleList') ? 'active' : '' }}">
+                <a href="{{ route('nurseadmin.scheduleList') }}" class="nav-link {{ request()->routeIs('nurseadmin.scheduleList*') ? 'active' : '' }}">
                     <i class="bi bi-calendar2-check"></i>
                     <span>Nurse Schedules</span>
                 </a>
             </li>
-            
-            <!-- Reports -->
             <li class="nav-item">
-                <a href="{{ route('nurseadmin.reports') }}" class="nav-link {{ Request::routeIs('nurseadmin.reports') ? 'active' : '' }}">
+                <a href="{{ route('nurseadmin.reports') }}" class="nav-link {{ request()->routeIs('nurseadmin.reports*') ? 'active' : '' }}">
                     <i class="bi bi-file-earmark-text"></i>
                     <span>Reports</span>
-                </a>
-            </li>
-
-            <!-- Calander -->
-            <li class="nav-item">
-                <a href="{{ route('full-calendar') }}" class="nav-link {{ Request::routeIs('full-calendar') ? 'active' : '' }}">
-                    <i class="bi bi-calendar"></i>
-                    <span>Calendar</span>
                 </a>
             </li>
         </ul>
@@ -364,7 +405,7 @@
                     <small class="text-muted-light">Nurse Administrator</small>
                 </div>
             </div>
-            <a href="{{ route('logout') }}" onclick="confirmLogout(event)" class="btn logout-btn">
+            <a href="#" onclick="confirmLogout(event)" class="btn logout-btn">
                 <i class="bi bi-box-arrow-left"></i>
                 <span>Logout</span>
             </a>
@@ -389,12 +430,16 @@
                 <span>Home</span>
             </a>
             <div class="dropdown">
-                <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                <button type="button" 
+                        class="btn p-0 border-0" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false"
+                        id="profileDropdown">
                     <img src="{{ auth()->user()->profile_picture ? asset(auth()->user()->profile_picture) : asset('images/profile.png') }}"
                          alt="Profile" 
                          class="profile-img">
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                     <li>
                         <a class="dropdown-item" href="{{ route('nurseadmin.manageProfile') }}">
                             <i class="bi bi-person me-2"></i>Profile
@@ -402,7 +447,7 @@
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
-                        <a class="dropdown-item text-danger" href="{{ route('logout') }}" onclick="confirmLogout(event)">
+                        <a class="dropdown-item text-danger" href="#" onclick="confirmLogout(event)">
                             <i class="bi bi-box-arrow-left me-2"></i>Logout
                         </a>
                     </li>
@@ -424,8 +469,8 @@
     @stack('scripts')
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
@@ -435,6 +480,35 @@
                 document.getElementById('logout-form').submit();
             }
         }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all dropdowns
+            var dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'))
+            var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+                return new bootstrap.Dropdown(dropdownToggleEl)
+            });
+        });
+    </script>
+    <script>
+        // Debug Bootstrap availability
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Bootstrap version:', typeof bootstrap !== 'undefined' ? bootstrap.Dropdown.VERSION : 'not loaded');
+            
+            // Manual initialization of dropdown
+            const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
+            const dropdownList = [...dropdownElementList].map(dropdownToggleEl => {
+                return new bootstrap.Dropdown(dropdownToggleEl, {
+                    autoClose: true
+                });
+            });
+
+            // Add click event listener
+            document.getElementById('profileDropdown').addEventListener('click', function(e) {
+                e.preventDefault();
+                bootstrap.Dropdown.getOrCreateInstance(this).toggle();
+            });
+        });
     </script>
 </body>
 </html>

@@ -310,100 +310,93 @@
   }
   function addPatientToBed() {
     console.log('Button was clicked');
-    console.log('saveBedChanges function called');
-
-    // Get the selected patient ID and bed ID
+    
     const patientId = $('#patientSelect').val();
     const bedId = currentBedId;
 
-    console.log('Selected Patient ID:', patientId);
-    console.log('Current Bed ID:', bedId);
-
-    // Validate selections
     if (!patientId || !bedId) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Validation Error',
-        text: 'Please select both a patient and a bed.',
-        confirmButtonColor: '#3085d6'
-      });
-      return;
+        Swal.fire({
+            icon: 'warning',
+            title: 'Validation Error',
+            text: 'Please select both a patient and a bed.',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
     }
 
     // Show loading state
     Swal.fire({
-      title: 'Processing...',
-      text: 'Please wait while we update the bed assignment.',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
+        title: 'Processing...',
+        text: 'Please wait while we update the bed assignment.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
     });
 
-    // Make the AJAX call
     $.ajax({
-      url: "{{ route('manageBed') }}",
-      type: 'POST',
-      data: {
-        id: bedId,
-        patient_id: patientId,
-        _token: "{{ csrf_token() }}"
-      },
-      success: function (response) {
-        console.log('Success:', response);
-        if (response.success) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Success!',
-            text: 'Bed updated successfully!',
-            confirmButtonColor: '#28a745',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              $('#editBedModal').modal('hide');
-              window.location.reload();
+        url: "{{ route('manageBed') }}",
+        type: 'POST',
+        data: {
+            id: bedId,
+            patient_id: patientId,
+            _token: "{{ csrf_token() }}"
+        },
+        success: function(response) {
+            if (response.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: response.title,
+                    text: response.message,
+                    confirmButtonColor: '#28a745'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#editBedModal').modal('hide');
+                        window.location.reload();
+                    }
+                });
+            } else if (response.status === 'error') {
+                // Handle error response
+                Swal.fire({
+                    icon: 'error',
+                    title: response.title,
+                    html: response.message,
+                    confirmButtonColor: '#dc3545'
+                });
             }
-          });
-        } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Operation Failed',
-            text: response.message,
-            confirmButtonColor: '#dc3545'
-          });
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            
+            if (response && response.currentAssignment) {
+                // Show existing assignment error
+                Swal.fire({
+                    icon: 'error',
+                    title: response.title,
+                    html: `
+                        <div class="text-start">
+                            <p>${response.message}</p>
+                            <p><strong>Current Assignment:</strong></p>
+                            <ul>
+                                <li>Room: ${response.currentAssignment.room}</li>
+                                <li>Bed: ${response.currentAssignment.bed}</li>
+                            </ul>
+                        </div>
+                    `,
+                    confirmButtonColor: '#dc3545'
+                });
+            } else {
+                // Show generic error
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response?.message || 'An error occurred while updating the bed assignment.',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
         }
-      },
-      error: function (xhr, status, error) {
-        console.log('Error details:', {
-          status: xhr.status,
-          responseText: xhr.responseText,
-          error: error
-        });
-
-        try {
-          const errorResponse = JSON.parse(xhr.responseText);
-          const errorMessage = errorResponse.errors ?
-            Object.values(errorResponse.errors).flat().join('\n') :
-            (errorResponse.message || 'Unknown error occurred');
-
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: errorMessage,
-            confirmButtonColor: '#dc3545',
-            confirmButtonText: 'OK'
-          });
-        } catch (e) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to update bed: ' + error,
-            confirmButtonColor: '#dc3545',
-            confirmButtonText: 'OK'
-          });
-        }
-      }
     });
   }
 
@@ -543,6 +536,68 @@
           });
         }
       }
+    });
+  }
+
+  function assignPatient(bedId, patientId) {
+    Swal.fire({
+        title: 'Confirm Assignment',
+        text: 'Are you sure you want to assign this patient to this bed?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, assign patient'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/nurseadmin/manage-bed',
+                method: 'POST',
+                data: {
+                    id: bedId,
+                    patient_id: patientId,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    Swal.fire({
+                        title: response.title,
+                        text: response.message,
+                        icon: response.icon
+                    }).then(() => {
+                        if (response.status === 'success') {
+                            location.reload();
+                        }
+                    });
+                },
+                error: function(xhr) {
+                    const response = xhr.responseJSON;
+                    if (response.currentAssignment) {
+                        Swal.fire({
+                            title: response.title,
+                            html: `
+                                <div class="text-start">
+                                    <p>${response.message}</p>
+                                    <p><strong>Current Assignment:</strong></p>
+                                    <ul>
+                                        <li>Room: ${response.currentAssignment.room}</li>
+                                        <li>Bed: ${response.currentAssignment.bed}</li>
+                                    </ul>
+                                </div>
+                            `,
+                            icon: response.icon,
+                            confirmButtonColor: '#d33'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: response.title || 'Error',
+                            text: response.message || 'An error occurred',
+                            icon: response.icon || 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                }
+            });
+        }
     });
   }
 </script>

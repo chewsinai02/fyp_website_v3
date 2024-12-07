@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class User extends Authenticatable
 {
@@ -202,5 +203,21 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Room::class, 'nurse_schedules', 'nurse_id', 'room_id')
                     ->whereDate('date', today());
+    }
+
+    public function nurseSchedule()
+    {
+        return $this->hasMany(NurseSchedule::class, 'nurse_id');
+    }
+
+    public function getTodayScheduleStatus()
+    {
+        // Check if nurse has a schedule for today
+        $hasSchedule = $this->nurseSchedule()
+            ->whereDate('date', today())
+            ->exists();
+        
+        // If schedule exists for today = On Duty, otherwise = Off Duty
+        return $hasSchedule ? 'On Duty' : 'Off Duty';
     }
 }
