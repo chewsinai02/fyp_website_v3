@@ -226,6 +226,90 @@
             color: var(--text-light);
         }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <!-- Initialize Firebase (add this before closing </body>) -->
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAiElkmNSl0K-N0Rz4kuqKAXrr6Eg7oo64",
+            authDomain: "fyptestv2-37c45.firebaseapp.com",
+            databaseURL: "https://fyptestv2-37c45-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "fyptestv2-37c45",
+            storageBucket: "fyptestv2-37c45.firebasestorage.app",
+            messagingSenderId: "500961952253",
+            appId: "1:500961952253:web:a846193490974d3667d994"
+        };
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+
+        // Get database reference
+        const db = firebase.database();
+
+        // Test connection
+        console.log('Testing initial Firebase connection...');
+        db.ref('.info/connected').on('value', (snapshot) => {
+            const connected = snapshot.val();
+            console.log('Initial Firebase connection status:', connected ? 'Connected' : 'Disconnected');
+        });
+
+        // Test database write/read
+const testRef = db.ref('test');
+testRef.set({
+    message: 'Hello Firebase!',
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+})
+.then(() => {
+    console.log('Test write successful');
+})
+.catch((error) => {
+    console.error('Test write failed:', error);
+});
+
+// Listen for changes
+testRef.on('value', (snapshot) => {
+    console.log('Test data:', snapshot.val());
+});
+
+// Add this after your Firebase initialization
+function createTestCall() {
+    const db = firebase.database();
+    const callsRef = db.ref('nurse_calls');
+    
+    callsRef.push({
+        room_number: "101",
+        bed_number: "A",
+        patient_id: "TEST123",
+        assigned_nurse_id: "{{ auth()->id() }}", // Current logged in nurse
+        status: "active",
+        created_at: firebase.database.ServerValue.TIMESTAMP
+    })
+    .then(() => {
+        console.log('Test call created successfully');
+    })
+    .catch((error) => {
+        console.error('Error creating test call:', error);
+    });
+}
+
+// Listen for all nurse calls
+const callsRef = db.ref('nurse_calls');
+callsRef.on('value', (snapshot) => {
+    const calls = snapshot.val();
+    console.log('All nurse calls:', calls);
+});
+    </script>
 </head>
 <body>
     <!-- Sidebar -->
@@ -306,7 +390,7 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                        <a class="dropdown-item" href="#">
+                        <a class="dropdown-item" href="{{ route('nurse.manageProfile') }}">
                             <i class="bi bi-person me-2"></i>Profile
                         </a>
                     </li>
@@ -344,5 +428,40 @@
             }
         }
     </script>
+    <script>
+        // Debug log
+        console.log('Starting Firebase initialization...');
+
+        // Initialize Firebase immediately
+        const firebaseConfig = {
+            apiKey: "AIzaSyAiElkmNSl0K-N0Rz4kuqKAXrr6Eg7oo64",
+            authDomain: "fyptestv2-37c45.firebaseapp.com",
+            databaseURL: "https://fyptestv2-37c45-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "fyptestv2-37c45",
+            storageBucket: "fyptestv2-37c45.firebasestorage.app",
+            messagingSenderId: "500961952253",
+            appId: "1:500961952253:web:a846193490974d3667d994"
+        };
+
+        // Initialize Firebase with error handling
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('Firebase initialized successfully');
+            
+            // Test database reference
+            const db = firebase.database();
+            console.log('Database reference created');
+            
+            // Test immediate connection
+            db.ref('.info/connected').on('value', (snapshot) => {
+                console.log('Initial connection check:', snapshot.val() ? 'Connected' : 'Waiting...');
+            });
+            
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+    </script>
+
+    @stack('scripts')
 </body>
 </html>

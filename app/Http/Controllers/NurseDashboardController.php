@@ -12,37 +12,137 @@ use App\Models\Task;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Traits\TaskStatusCheck;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class NurseDashboardController extends Controller
 {
     use TaskStatusCheck;
     public function index()
     {
-        // Get assigned rooms for today
+        // Get assigned rooms for today with proper date filtering
         $assignedRoomIds = NurseSchedule::where('nurse_id', auth()->id())
             ->whereDate('date', today())
             ->pluck('room_id');
         
-        // Get patients in assigned rooms
-        $patientIds = Bed::whereIn('room_id', $assignedRoomIds)
+        // Get patients in assigned rooms with proper relationship loading
+        $patients = Bed::whereIn('room_id', $assignedRoomIds)
             ->where('status', 'occupied')
-            ->pluck('patient_id');
+            ->whereNotNull('patient_id')
+            ->with(['patient', 'room'])
+            ->get();
         
-        // Get task counts
-        $taskCount = Task::whereIn('patient_id', $patientIds)
-            ->whereDate('due_date', Carbon::now())
+        // Debug information
+        \Log::info('Nurse Dashboard Debug:', [
+            'nurse_id' => auth()->id(),
+            'date' => today(),
+            'assigned_rooms' => $assignedRoomIds,
+            'patient_count' => $patients->count(),
+            'room_details' => $patients->pluck('room_id'),
+            'patient_ids' => $patients->pluck('patient_id')
+        ]);
+        
+        // Get task counts for these patients
+        $taskCount = Task::whereIn('patient_id', $patients->pluck('patient_id'))
+            ->whereDate('due_date', today())
             ->count();
         
-        $completedTaskCount = Task::whereIn('patient_id', $patientIds)
-            ->whereDate('due_date', Carbon::now())
+        $completedTaskCount = Task::whereIn('patient_id', $patients->pluck('patient_id'))
+            ->whereDate('due_date', today())
             ->where('status', 'completed')
             ->count();
         
         return view('nurse.nurseDashboard', compact(
             'taskCount',
-            'completedTaskCount'
+            'completedTaskCount',
+            'patients'
         ));
     }
+
+    public function nurseManageProfile()
+    {
+        $user = Auth::user();
+        return view('nurse.manageProfile', compact('user'));
+    }
+
+    public function nurseChangePassword()
+    {
+        $user = Auth::user();
+        return view('nurse.changePassword', compact('user'));
+    }
+
+    public function nurseCheckCurrentPassword(Request $request)
+    {
+        // Validate the input
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:6|confirmed',
+        ]);
+
+        $user = Auth::user();
+
+        // Check if the current password matches
+        if (!Hash::check($request->current_password, $user->password)) {
+            return redirect()->back()->withErrors(['current_password' => 'The current password is incorrect.']);
+        }
+
+        // Check if the new password is the same as the current password
+        if (Hash::check($request->new_password, $user->password)) {
+            return redirect()->back()->withErrors(['new_password' => 'The new password cannot be the same as the current password.']);
+        }
+
+        // Update the password
+        try {
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+
+            // Redirect back with a success message
+            return redirect()->route('adminChangePassword')->with('success', 'Password changed successfully! Please log in again.');
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['update_failed' => 'Failed to update password. Please try again.']);
+        }
+    }           
+
+    public function nurseEditProfile()
+    {
+        $user = Auth::user();
+        return view('nurse.editProfile', compact('user'));
+    }
+
+    public function nurseUpdateProfilePicture(Request $request)
+    {
+        // Validate the uploaded file
+        $request->validate([
+            'profile_picture' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+    
+        // Get the currently authenticated user
+        $user = Auth::user();
+    
+        // Handle profile image upload
+        if ($request->hasFile('profile_picture')) {
+            $image = $request->file('profile_picture');
+            $originalName = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
+            $extension = $image->getClientOriginalExtension();
+            $imageName = $originalName . '.' . $extension;
+    
+            // Check if file already exists and add a unique suffix if necessary
+            $counter = 1;
+            while (file_exists(public_path('images/' . $imageName))) {
+                $imageName = $originalName . "($counter)." . $extension;
+                $counter++;
+            }
+    
+            // Move the image to 'public/images' directory
+            $image->move(public_path('images'), $imageName);
+    
+            // Update with new image path
+            $user->profile_picture = 'images/' . $imageName;
+            $user->save(); // Save the user record
+        }
+    
+        return redirect()->back()->with('success', 'Profile picture updated successfully!');
+    } 
 
     public function show(User $user)
     {

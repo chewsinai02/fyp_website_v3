@@ -1,4 +1,4 @@
-@extends('nurseAdmin.layout')
+@extends('nurse.layout')
 @section('title', 'Change Password')
 @section('content')
 <div class="container-fluid p-0" style="max-width: 1400px; margin: 0 auto;">

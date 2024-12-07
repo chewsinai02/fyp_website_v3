@@ -134,12 +134,11 @@ class NurseCalendarController extends Controller
             if (!$bed) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No bed assigned for this patient, hence no room found.'
+                    'message' => 'No bed assigned for this patient.'
                 ], 422);
             }
     
             $roomId = $bed->room_id;
-            \Log::info("Retrieved room_id: $roomId for patient_id: $patientId");
     
             // Create the task
             $task = Task::create([
@@ -152,26 +151,24 @@ class NurseCalendarController extends Controller
                 'status' => 'pending'
             ]);
     
-            \Log::info("Task created: ", $task->toArray());
-
-            // Call the updateRoomId method to ensure room IDs are updated
+            // Call the updateRoomId method
             $this->updateRoomId();
     
+            // Return simple success response
             return response()->json([
                 'success' => true,
-                'message' => 'Task created successfully',
-                'task' => $task
+                'message' => 'Task created successfully'
             ]);
+    
         } catch (\Exception $e) {
             \Log::error('Error saving task:', [
                 'error' => $e->getMessage(),
-                'patient_id' => $patientId,
-                'validated_data' => $validatedData
+                'patient_id' => $patientId
             ]);
     
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create task. Please try again.'
+                'message' => 'Failed to create task'
             ], 500);
         }
     }      
@@ -483,6 +480,90 @@ class NurseCalendarController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error updating task:', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'Failed to update task'], 500);
+        }
+    }
+
+    public function repeatWeekly(Task $task)
+    {
+        try {
+            $startDate = Carbon::parse($task->due_date);
+            $createdTasks = [];
+
+            // Create 7 tasks, one for each day
+            for ($i = 0; $i < 7; $i++) {
+                // Skip creating duplicate task for the first day since it already exists
+                if ($i > 0) {
+                    $newTask = $task->replicate();
+                    $newTask->due_date = $startDate->copy()->addDays($i);
+                    $newTask->save();
+                    
+                    $createdTasks[] = $newTask;
+                }
+            }
+
+            \Log::info('Weekly tasks created:', [
+                'original_task_id' => $task->id,
+                'new_tasks' => $createdTasks,
+                'start_date' => $startDate->format('Y-m-d H:i:s')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tasks created for the next 7 days',
+                'tasks_created' => count($createdTasks)
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating weekly tasks:', [
+                'error' => $e->getMessage(),
+                'task_id' => $task->id
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create weekly tasks'
+            ], 500);
+        }
+    }
+
+    public function repeatMonthly(Task $task)
+    {
+        try {
+            $startDate = Carbon::parse($task->due_date);
+            $createdTasks = [];
+
+            // Create 31 tasks, one for each day
+            for ($i = 0; $i < 31; $i++) {
+                // Skip creating duplicate task for the first day since it already exists
+                if ($i > 0) {
+                    $newTask = $task->replicate();
+                    $newTask->due_date = $startDate->copy()->addDays($i);
+                    $newTask->save();
+                    
+                    $createdTasks[] = $newTask;
+                }
+            }
+
+            \Log::info('Monthly tasks created:', [
+                'original_task_id' => $task->id,
+                'new_tasks' => $createdTasks,
+                'start_date' => $startDate->format('Y-m-d H:i:s')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tasks created for the next 31 days',
+                'tasks_created' => count($createdTasks)
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating monthly tasks:', [
+                'error' => $e->getMessage(),
+                'task_id' => $task->id
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create monthly tasks'
+            ], 500);
         }
     }
 }

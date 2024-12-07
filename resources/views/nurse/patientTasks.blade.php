@@ -182,65 +182,37 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add New Task</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="location.reload()"></button>
             </div>
             <div class="modal-body">
-                <form id="addTaskForm" action="{{ route('nurse.patient.tasks.store', $patient->id) }}" method="POST">
+                <form id="addTaskForm">
                     @csrf
                     <div class="mb-3">
-                        <label for="title" class="form-label">Task Title <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('title') is-invalid @enderror" 
-                               id="title" name="title" required>
-                        @error('title')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <label for="title" class="form-label">Task Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control @error('description') is-invalid @enderror" 
-                                  id="description" name="description" rows="3"></textarea>
-                        @error('description')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label for="priority" class="form-label">Priority <span class="text-danger">*</span></label>
-                        <select class="form-select @error('priority') is-invalid @enderror" 
-                                id="priority" name="priority" required>
-                            <option value="">Select Priority</option>
+                        <label for="priority" class="form-label">Priority</label>
+                        <select class="form-select" id="priority" name="priority" required>
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
                             <option value="high">High</option>
                             <option value="urgent">Urgent</option>
                         </select>
-                        @error('priority')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
                     </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="due_date" class="form-label">Date and Time <span class="text-danger">*</span></label>
-                            <input type="datetime-local" 
-                                   class="form-control @error('due_date') is-invalid @enderror" 
-                                   id="due_date" 
-                                   name="due_date" 
-                                   required
-                                   min="{{ now()->format('Y-m-d\TH:i') }}"
-                                   value="{{ now()->format('Y-m-d\TH:i') }}"
-                                   step="1800">
-                            @error('due_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
+                    <div class="mb-3">
+                        <label for="due_date" class="form-label">Due Date</label>
+                        <input type="datetime-local" class="form-control" id="due_date" name="due_date" required>
                     </div>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Task</button>
-                    </div>
+                    <button type="submit" class="btn btn-primary" id="addTaskButton">Create Task</button>
                 </form>
             </div>
         </div>
@@ -253,7 +225,7 @@
         <div class="modal-content">
             <div class="modal-header bg-light">
                 <h5 class="modal-title" id="modalTaskTitle"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="location.reload()"></button>
             </div>
             <div class="modal-body">
                 <div class="schedule-info">
@@ -291,10 +263,10 @@
                     <i class="bi bi-trash"></i> Delete
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-info" id="repeatWeeklyButton">
-                    <i class="bi bi-arrow-repeat"></i> Weekly
+                    <i class="bi bi-arrow-repeat"></i> Week
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-info" id="repeatMonthlyButton">
-                    <i class="bi bi-arrow-repeat"></i> Monthly
+                    <i class="bi bi-arrow-repeat"></i> Month
                 </button>
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" onclick="location.reload()">
                     <i class="bi bi-x"></i>
@@ -310,7 +282,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Edit Task</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="location.reload()"></button>
             </div>
             <div class="modal-body">
                 <form id="editTaskForm">
@@ -345,13 +317,12 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="location.reload()">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveEditButton">Save Changes</button>
             </div>
         </div>
     </div>
 </div>
-
 <style>
     .modal-content {
     border: none;
@@ -584,6 +555,39 @@
 
 .bg-orange {
     background-color: #fd7e14 !important; /* Bootstrap's orange color */
+}
+
+.animated {
+    animation-duration: 0.5s;
+    animation-fill-mode: both;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translate3d(0, -20px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.fadeInDown {
+    animation-name: fadeInDown;
+}
+
+.swal2-popup {
+    border-radius: 15px !important;
+}
+
+.swal2-title {
+    font-weight: 600 !important;
+}
+
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: 500;
 }
 </style>
 
@@ -858,98 +862,137 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
-//update task status in checkbox
 $(document).ready(function() {
-    $(document).on('change', '.task-status-checkbox', function() {
-        const taskId = $(this).data('task-id'); // Get the task ID from the checkbox
-        const isChecked = $(this).is(':checked'); // Check if the checkbox is checked
-        const patientId = '{{ $patient->id }}'; // Get the patient ID from the Blade variable
+    $('#addTaskForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const patientId = '{{ $patient->id }}';
+        const formData = {
+            title: $('#title').val(),
+            description: $('#description').val(),
+            priority: $('#priority').val(),
+            due_date: $('#due_date').val(),
+            _token: $('meta[name="csrf-token"]').attr('content')
+        };
 
-        // Get the current date
-        const currentDate = new Date();
-        const dueDate = new Date($(this).data('due-date')); // Assuming you have a data attribute for due date
-
-        let status;
-        if (dueDate < currentDate) {
-            status = 'cancelled'; // Set status to cancelled if due date has passed
-        } else {
-            status = isChecked ? 'completed' : 'pending'; // Set status based on checkbox state
-        }
-
-        // AJAX request to update the task status
         $.ajax({
-            url: `/nurse/patient/${patientId}/tasks/${taskId}/status`, // Update the URL as needed
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') // CSRF Token for security
-            },
-            data: { status: status }, // Send the new status
+            url: `/nurse/patient/${patientId}/tasks`,
+            type: 'POST',
+            data: formData,
             success: function(response) {
                 if (response.success) {
-                    alert('Task status updated successfully.');
+                    // Close the modal
+                    $('#addTaskModal').modal('hide');
+                    
+                    // Show success alert
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Task created successfully',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        customClass: {
+                            popup: 'animated fadeInDown'
+                        }
+                    }).then(() => {
+                        // Clear the form
+                        $('#addTaskForm')[0].reset();
+                        // Reload the page
+                        location.reload();
+                    });
                 } else {
-                    alert('Failed to update task status.');
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message || 'Failed to create task',
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
             },
             error: function(xhr, status, error) {
-                console.error('AJAX Error:', {
+                console.error('Error details:', {
                     status: status,
                     error: error,
                     response: xhr.responseText
                 });
-                alert('Failed to update task status. Please try again.');
+
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to create task. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
             }
         });
     });
 });
+</script>
 
-    // Function to open the task details modal
-    function openTaskDetailsModal(taskId, taskData) {
-        const modal = $('#taskDetailsModal');
-        
-        // Set the task ID as a data attribute on the delete button
-        modal.find('#deleteTaskButton').data('task-id', taskId);
-        
-        // Set other task details in the modal
-        modal.find('#modalTaskTitle').text(taskData.title);
-        modal.find('#modalTaskDescription').text(taskData.description);
-        // ... set other task details ...
-        
-        modal.modal('show');
-    }
-
-    // Handle delete button click
-    $('#deleteTaskButton').on('click', function() {
+<script>
+$(document).ready(function() {
+    // Handle checkbox status change
+    $(document).on('change', '.task-status-checkbox', function() {
         const taskId = $(this).data('task-id');
-        console.log('Deleting task:', taskId); // Debug log
-        
+        const isChecked = $(this).is(':checked');
+        const status = isChecked ? 'completed' : 'pending';
+
         $.ajax({
-            url: `/nurse/tasks/${taskId}/delete`,
-            type: 'DELETE',
+            url: `/nurse/tasks/${taskId}/status`,
+            type: 'POST',
             headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#taskDetailsModal').modal('hide');
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            data: { status: status },
+            success: function(response) {
+                if (response.success) {
+                    // Show success alert
+                    Swal.fire({
+                        title: 'Success!',
+                        text: `Task ${status === 'completed' ? 'completed' : 'marked as pending'}`,
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        customClass: {
+                            popup: 'animated fadeInDown'
+                        }
+                    }).then(() => {
+                        // Reload the page to update the UI
                         location.reload();
-                    } else {
-                        alert('Failed to delete task.');
-                    }
-            }
-        }); 
-    });
+                    });
+                } else {
+                    // Show error alert
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message || 'Failed to update task status',
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    }).then(() => {
+                        // Revert checkbox state if there was an error
+                        $(this).prop('checked', !isChecked);
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error details:', {
+                    status: status,
+                    error: error,
+                    response: xhr.responseText
+                });
 
-    // Example usage: Open modal with task details
-    $('.view-task').on('click', function() {
-        const taskId = $(this).data('task-id');
-        const taskData = {
-            title: $(this).data('title'),
-            description: $(this).data('description'),
-            // ... other task data ...
-        };
-        openTaskDetailsModal(taskId, taskData);
+                // Show error alert
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to update task status. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                }).then(() => {
+                    // Revert checkbox state if there was an error
+                    $(this).prop('checked', !isChecked);
+                });
+            }
+        });
     });
+});
 </script>
 
 <script>
@@ -962,19 +1005,29 @@ $(document).ready(function() {
         $.ajax({
             url: `/nurse/tasks/${taskId}/edit`,
             type: 'GET',
-            success: function(task) {
-                // Populate edit form with task details
-                $('#edit_task_id').val(task.id);
-                $('#edit_title').val(task.title);
-                $('#edit_description').val(task.description);
-                $('#edit_priority').val(task.priority);
-                $('#edit_due_date').val(task.due_date.slice(0, 16)); // Format datetime-local
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                // Populate edit form
+                $('#edit_task_id').val(response.id);
+                $('#edit_title').val(response.title);
+                $('#edit_description').val(response.description);
+                $('#edit_priority').val(response.priority);
+                
+                // Adjust the due_date for local timezone
+                const dueDate = new Date(response.due_date);
+                const offset = dueDate.getTimezoneOffset();
+                dueDate.setMinutes(dueDate.getMinutes() - offset);
+                const formattedDate = dueDate.toISOString().slice(0, 16);
+                $('#edit_due_date').val(formattedDate);
 
-                // Close task details modal and open edit modal
+                // Close details modal and open edit modal
                 $('#taskDetailsModal').modal('hide');
                 $('#editTaskModal').modal('show');
             },
-            error: function(xhr) {
+            error: function(xhr, status, error) {
+                console.error('Error fetching task:', error);
                 Swal.fire('Error!', 'Failed to load task details', 'error');
             }
         });
@@ -1014,6 +1067,102 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 Swal.fire('Error!', 'Failed to update task', 'error');
+            }
+        });
+    });
+});
+</script>
+
+<script>
+$(document).ready(function() {
+    // Handle Repeat Weekly Button Click
+    $('#repeatWeeklyButton').on('click', function() {
+        const taskId = $(this).closest('.modal').find('.delete-task').data('task-id');
+
+        Swal.fire({
+            title: 'Schedule Task',
+            text: 'Create the same task for the next 6 days(7 days total)?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#17a2b8',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, schedule it',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/nurse/tasks/${taskId}/repeat-weekly`,
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Scheduled!',
+                                text: response.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error!', 'Failed to schedule task', 'error');
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+
+<script>
+$(document).ready(function() {
+    // Handle Repeat Monthly Button Click
+    $('#repeatMonthlyButton').on('click', function() {
+        const taskId = $(this).closest('.modal').find('.delete-task').data('task-id');
+
+        Swal.fire({
+            title: 'Create Monthly Tasks?',
+            text: 'This will create the same task for each day over the next 30 days(31 days total)',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#17a2b8',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, create them',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/nurse/tasks/${taskId}/repeat-monthly`,
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: response.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire('Error!', 'Failed to create monthly tasks', 'error');
+                    }
+                });
             }
         });
     });

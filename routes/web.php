@@ -307,6 +307,17 @@ Route::middleware(['auth', 'role:nurse'])->group(function () {
         ->name('nurse.patient.notes.store');
     Route::get('/nurse/tasksList', [NurseDashboardController::class, 'showTasksList'])->name('nurse.tasksList');
 
+    Route::get('/nurse/manageProfile', [NurseDashboardController::class, 'nurseManageProfile'])
+        ->name('nurse.manageProfile');
+    Route::get('/nurse/changePassword', [NurseDashboardController::class, 'nurseChangePassword'])
+        ->name('nurse.changePassword');
+    Route::post('/nurse/changePassword', [NurseDashboardController::class, 'nurseCheckCurrentPassword'])
+        ->name('nurse.checkCurrentPassword');
+    Route::get('/nurse/editProfile', [NurseDashboardController::class, 'nurseEditProfile'])
+        ->name('nurse.editProfile');
+    Route::post('/nurse/updateProfile', [NurseDashboardController::class, 'nurseUpdateProfilePicture'])
+        ->name('nurse.updateProfilePicture');
+
     // Task management
     Route::prefix('nurse/patient/{patient}/tasks')->group(function () {
         Route::get('/', [NurseDashboardController::class, 'patientTasks'])->name('nurse.patient.tasks');
@@ -325,33 +336,31 @@ Route::middleware(['auth', 'role:nurse'])->group(function () {
         ->name('nurse.schedule');
     Route::get('/nurse/patients', [NurseDashboardController::class, 'patients'])
         ->name('nurse.patients');
+
+    Route::get('/nurse/tasks/{id}/details', [NurseDashboardController::class, 'getTaskDetails'])->name('nurse.task.details');
+    Route::delete('/nurse/tasks/{id}', [NurseDashboardController::class, 'deleteTask'])->name('nurse.tasks.delete');
+    Route::post('/nurse/tasks/{task}/status', [NurseDashboardController::class, 'updateStatus'])->name('nurse.tasks.status');
+    Route::post('/nurse/tasks/{task}/repeat-weekly', [NurseCalendarController::class, 'repeatWeekly'])->name('tasks.repeatWeekly');
+    Route::post('/nurse/tasks/{task}/repeat-monthly', [NurseCalendarController::class, 'repeatMonthly'])->name('tasks.repeatMonthly');  
+    Route::get('/nurse/tasks/{task}/edit', [NurseCalendarController::class, 'edit'])->name('tasks.edit');
+    Route::put('/nurse/tasks/{task}', [NurseCalendarController::class, 'update'])->name('tasks.update');
+
+    Route::prefix('nurse/patient/{patientId}')->group(function () {
+        Route::get('/tasks', [NurseCalendarController::class, 'index'])->name('nurse.patient.tasks');
+        Route::post('/tasks', [NurseCalendarController::class, 'store'])->name('nurse.patient.tasks.store');
+        Route::post('/tasks/details', [NurseCalendarController::class, 'getTaskDetails'])->name('nurse.patient.tasks.details');
+        Route::post('/tasks/{taskId}/status', [NurseCalendarController::class, 'updateTaskStatus'])->name('nurse.patient.tasks.status');
+        Route::delete('/tasks/{taskId}', [NurseCalendarController::class, 'destroy'])->name('nurse.patient.tasks.destroy');
+    });
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/nurse/calls', [NurseCallController::class, 'index'])->name('nurse.calls');
     Route::post('/nurse/calls/{callId}/update', [NurseCallController::class, 'updateCallStatus']);
 });
-
-Route::prefix('nurse/patient/{patientId}')->group(function () {
-    Route::get('/tasks', [NurseCalendarController::class, 'index'])->name('nurse.patient.tasks');
-    Route::post('/tasks', [NurseCalendarController::class, 'store'])->name('nurse.patient.tasks.store');
-    Route::post('/tasks/details', [NurseCalendarController::class, 'getTaskDetails'])->name('nurse.patient.tasks.details');
-    Route::post('/tasks/{taskId}/status', [NurseCalendarController::class, 'updateTaskStatus'])->name('nurse.patient.tasks.status');
-    Route::delete('/tasks/{taskId}', [NurseCalendarController::class, 'destroy'])->name('nurse.patient.tasks.destroy');
-});
-
 Route::get('/firebase/store', [FirebaseController::class, 'store']);
 Route::get('/firebase/show', [FirebaseController::class, 'show']);
 Route::get('/firebase/update', [FirebaseController::class, 'update']);
 Route::get('/firebase/delete', [FirebaseController::class, 'delete']);
 Route::get('/firebase/push', [FirebaseController::class, 'pushToList']);
 Route::get('/firebase/query', [FirebaseController::class, 'query']);
-
-Route::get('/nurse/tasks/{id}/details', [NurseDashboardController::class, 'getTaskDetails'])->name('nurse.task.details');
-Route::delete('/nurse/tasks/{id}', [NurseDashboardController::class, 'deleteTask'])->name('nurse.tasks.delete');
-
-Route::post('/nurse/tasks/{task}/status', [NurseDashboardController::class, 'updateStatus'])->name('nurse.tasks.status');
-
-Route::get('/nurse/tasks/{task}/edit', [NurseCalendarController::class, 'edit'])->name('tasks.edit');
-Route::put('/nurse/tasks/{task}', [NurseCalendarController::class, 'update'])->name('tasks.update');
-
