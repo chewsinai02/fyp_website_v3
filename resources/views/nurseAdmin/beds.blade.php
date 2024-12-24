@@ -168,7 +168,7 @@ function updateBedsTable(beds) {
         row.innerHTML = `
             <td>Bed ${bed.bed_number}</td>
             <td>
-                <span class="badge ${getStatusBadgeClass(bed.status)} text-white">
+                <span class="badge ${getStatusBadgeClass(bed.status)} text-white" style="font-size: 0.75rem;">
                     ${capitalizeFirst(bed.status)}
                 </span>
             </td>
@@ -187,21 +187,25 @@ function updateBedsTable(beds) {
                      </div>` : 
                     '-'}
             </td>
-            <td>
-                <button class="btn btn-sm btn-outline-primary me-1" 
-                        onclick="editBedStatus(${bed.id}, '${bed.status}')"
-                        title="Edit bed status"
-                        aria-label="Edit bed status">
-                    <i class="bi bi-pencil" aria-hidden="true"></i>
-                </button>
-                ${bed.status === 'occupied' ? `
-                    <button class="btn btn-sm btn-outline-danger"
-                            onclick="dischargeBed(${bed.id})"
-                            title="Discharge patient"
-                            aria-label="Discharge patient">
-                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+            <td class="actions-cell">
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary me-1" 
+                            onclick="editBedStatus(${bed.id}, '${bed.status}')"
+                            title="Edit bed status"
+                            aria-label="Edit bed status"
+                            style="min-width: 38px;">
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
                     </button>
-                ` : ''}
+                    ${bed.status === 'occupied' ? `
+                        <button class="btn btn-sm btn-outline-danger"
+                                onclick="dischargeBed(${bed.id})"
+                                title="Discharge patient"
+                                aria-label="Discharge patient"
+                                style="min-width: 38px;">
+                            <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                        </button>
+                    ` : ''}
+                </div>
             </td>
         `;
         
@@ -360,25 +364,77 @@ function editBedStatus(bedId, status) {
 
 <style>
 .badge {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     padding: 0.4em 0.8em;
+    font-weight: 500;
 }
 
 .patient-name-cell {
-    min-width: 200px;
+    min-width: 150px;
+    max-width: 200px;
 }
 
 .patient-details-cell {
-    min-width: 250px;
+    min-width: 150px;
+    max-width: 200px;
+}
+
+.actions-cell {
+    width: 100px;
+}
+
+.actions-cell .d-flex {
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.actions-cell .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.actions-cell .btn i {
+    font-size: 1.25rem;
+}
+
+/* Button hover effects */
+.actions-cell .btn:hover {
+    transform: translateY(-1px);
+    transition: all 0.2s;
+}
+
+.actions-cell .btn-outline-primary:hover {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.actions-cell .btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: white;
 }
 
 .table > :not(caption) > * > * {
     padding: 1rem 0.75rem;
+    vertical-align: middle;
 }
 
 .spinner-border-sm {
     width: 1rem;
     height: 1rem;
     border-width: 0.15em;
+}
+
+/* Status badge colors */
+.bg-success {
+    background-color: #198754 !important;
+}
+
+.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
 }
 </style>
