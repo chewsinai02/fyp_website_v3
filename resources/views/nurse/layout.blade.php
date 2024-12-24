@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Nurse task management system">
 
     <!-- Modern CSS Dependencies -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -433,8 +435,12 @@ callsRef.on('value', (snapshot) => {
     <!-- Header -->
     <header class="header">
         <div class="d-flex align-items-center">
-            <button class="btn" onclick="window.history.back()">
-                <i class="bi bi-arrow-left"></i>
+            <button class="btn" 
+                    onclick="window.history.back()" 
+                    title="Go back"
+                    aria-label="Go back">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                <span class="visually-hidden">Go back</span>
             </button>
             <a href="{{ route('nurseDashboard') }}" class="text-decoration-none text-black">
                 <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid ms-3 rounded-circle" style="width: 5%; height: 5%; border-black">

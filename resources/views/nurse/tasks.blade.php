@@ -17,6 +17,10 @@
     text-overflow: ellipsis;
     display: block;
     text-align: left;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .task-item:hover {
@@ -158,6 +162,46 @@
         font-size: 0.9rem; /* Smaller font size on mobile */
     }
 }
+
+/* Add this class for screen readers */
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Update modal close button */
+.btn-close {
+    opacity: 0.5;
+    padding: 1rem;
+    margin: -0.5rem -0.5rem -0.5rem auto;
+}
+
+/* Update all user-select properties */
+.task-item,
+.swal2-icon,
+.btn,
+.badge,
+.modal-content {
+    -webkit-user-select: none;  /* Safari 3+ */
+    -moz-user-select: none;     /* Firefox */
+    -ms-user-select: none;      /* IE 10+ */
+    user-select: none;          /* Standard syntax */
+}
+
+/* Add this to override SweetAlert2 styles */
+div:where(.swal2-icon) {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
 </style>
 
 
@@ -165,11 +209,25 @@
     <div class="row mb-4">
         <div class="col-12">
             <h2 class="text-gradient">Tasks List Today: {{ Carbon\Carbon::now()->format('F jS, Y') }}</h2>
-            <div class="btn-group align-items-center float-end mb-3">
-                <button class="btn btn-outline-primary" onclick="filterTasks('all')">All</button>
-                <button class="btn btn-outline-primary" onclick="filterTasks('pending')">Pending</button>
-                <button class="btn btn-outline-primary" onclick="filterTasks('completed')">Completed</button>
-                <button class="btn btn-outline-primary" onclick="filterTasks('passed')">Passed</button>
+            <div class="btn-group align-items-center float-end mb-3" role="group" aria-label="Task filters">
+                <button class="btn btn-outline-primary" 
+                        onclick="filterTasks('all')" 
+                        title="Show all tasks"
+                        aria-label="Show all tasks">
+                    <span>All</span>
+                </button>
+                <button class="btn btn-outline-primary" 
+                        onclick="filterTasks('pending')" 
+                        aria-label="Show pending tasks"
+                        title="Show pending tasks">Pending</button>
+                <button class="btn btn-outline-primary" 
+                        onclick="filterTasks('completed')" 
+                        aria-label="Show completed tasks"
+                        title="Show completed tasks">Completed</button>
+                <button class="btn btn-outline-primary" 
+                        onclick="filterTasks('passed')" 
+                        aria-label="Show passed tasks"
+                        title="Show passed tasks">Passed</button>
             </div>
         </div>
     </div>
@@ -201,27 +259,34 @@
         }
     @endphp
 
-    <table class="table table-bordered">
+    <table class="table table-bordered" role="grid" aria-label="Tasks list">
         <thead>
             <tr>
-                <th>Status</th>
-                <th>Patient</th>
-                <th>Bed Number</th>
-                <th>Task</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Due Date</th>
-                <th>Actions</th>
+                <th scope="col">Status</th>
+                <th scope="col">Patient</th>
+                <th scope="col">Bed Number</th>
+                <th scope="col">Task</th>
+                <th scope="col">Priority</th>
+                <th scope="col">Status</th>
+                <th scope="col">Due Date</th>
+                <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody>
             @forelse($tasks as $task)
                 <tr data-task-id="{{ $task->id }}" data-status="{{ $task->status }}" data-date="{{ $task->due_date->format('Y-m-d') }}">
                     <td>
-                        <input type="checkbox" 
-                               class="form-check-input task-status-checkbox" 
-                               data-task-id="{{ $task->id }}"
-                               {{ $task->status === 'completed' ? 'checked' : '' }}>
+                        <div class="form-check">
+                            <input type="checkbox" 
+                                   id="task-checkbox-{{ $task->id }}"
+                                   class="form-check-input task-status-checkbox" 
+                                   data-task-id="{{ $task->id }}"
+                                   {{ $task->status === 'completed' ? 'checked' : '' }}
+                                   aria-label="Mark task as complete">
+                            <label class="form-check-label visually-hidden" for="task-checkbox-{{ $task->id }}">
+                                Mark task as complete
+                            </label>
+                        </div>
                     </td>
                     <td>{{ $task->patient->name }}</td>
                     <td>{{ $task->patient->bed->bed_number }}</td>
@@ -238,11 +303,21 @@
                     </td>
                     <td>{{ $task->due_date->format('Y-m-d') }}</td>
                     <td>
-                        <button type="button" class="btn btn-sm btn-info view-task" data-task-id="{{ $task->id }}">
-                            <i class="fas fa-eye"></i>
+                        <button type="button" 
+                                class="btn btn-sm btn-info view-task" 
+                                data-task-id="{{ $task->id }}"
+                                aria-label="View task details"
+                                title="View task details">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                            <span class="visually-hidden">View</span>
                         </button>
-                        <button type="button" class="btn btn-sm btn-danger delete-task" data-task-id="{{ $task->id }}">
-                            <i class="fas fa-trash"></i>
+                        <button type="button" 
+                                class="btn btn-sm btn-danger delete-task" 
+                                data-task-id="{{ $task->id }}"
+                                aria-label="Delete task"
+                                title="Delete task">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            <span class="visually-hidden">Delete</span>
                         </button>
                     </td>
                 </tr>
@@ -256,12 +331,22 @@
 </div>
 
 <!-- Task Details Modal -->
-<div class="modal fade" id="taskDetailsModal" tabindex="-1" aria-labelledby="taskDetailsModalLabel" aria-hidden="true">
+<div class="modal fade" 
+     id="taskDetailsModal" 
+     tabindex="-1" 
+     aria-labelledby="taskDetailsModalLabel" 
+     aria-hidden="true"
+     role="dialog">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="taskDetailsModalLabel">Task Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" 
+                        class="btn-close" 
+                        data-bs-dismiss="modal" 
+                        aria-label="Close modal"
+                        title="Close modal">
+                </button>
             </div>
             <div class="modal-body">
                 <div class="schedule-info">
@@ -305,12 +390,23 @@
 </div>
 
 <!-- Modal HTML -->
-<div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="alertModalLabel" aria-hidden="true">
+<div class="modal fade" 
+     id="alertModal" 
+     tabindex="-1" 
+     role="dialog" 
+     aria-labelledby="alertModalLabel" 
+     aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="alertModalLabel"></h5>
-        <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close" onclick="location.reload()"></button>
+        <button type="button" 
+                class="btn-close" 
+                data-bs-dismiss="modal" 
+                aria-label="Close alert"
+                title="Close alert"
+                onclick="location.reload()">
+        </button>
       </div>
       <div class="modal-body" id="alertModalBody"></div>
       <div class="modal-footer">
@@ -360,40 +456,66 @@ $(document).ready(function() {
 
     // Handle view task button click
     $(document).on('click', '.view-task', function() {
-        const taskId = $(this).data('task-id'); // Get the task ID from the button
+        const taskId = $(this).data('task-id');
+        console.log('Viewing task with ID:', taskId);
+
+        // Show loading state
+        $(this).prop('disabled', true);
+        const button = $(this);
 
         // AJAX request to fetch task details
         $.ajax({
-            url: `/nurse/tasks/${taskId}/details`, // URL to fetch task details
+            url: `/nurse/tasks/${taskId}/details`,
             method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
             success: function(data) {
-                console.log('Task details:', data); // Log the entire response
+                console.log('Task details received:', data);
+                if (!data) {
+                    showModal('Error', 'No task details found');
+                    return;
+                }
+
                 // Populate the modal with task details
-                $('#taskTitle').text(data.title);
-                $('#taskDescription').text(data.description);
+                $('#taskTitle').text(data.title || 'N/A');
+                $('#taskDescription').text(data.description || 'N/A');
                 $('#taskPatient').text(data.patient ? data.patient.name : 'N/A');
                 $('#taskBedNumber').text(data.patient && data.patient.bed ? data.patient.bed.bed_number : 'N/A');
 
                 // Set the priority with color
-                const priorityClass = getPriorityClass(data.priority); // Function to get the class based on priority
-                $('#taskPriority').html(`<span class="badge ${priorityClass}">${data.priority}</span>`); // Use HTML to include the badge
+                const priorityClass = getPriorityClass(data.priority);
+                $('#taskPriority').html(`<span class="badge ${priorityClass}">${data.priority || 'N/A'}</span>`);
                 
-                const statusClass = getStatusClass(data.status); // Function to get the class based on status
-                $('#taskStatus').html(`<span class="badge ${statusClass}">${data.status}</span>`); // Use HTML to include the badge
+                const statusClass = getStatusClass(data.status);
+                $('#taskStatus').html(`<span class="badge ${statusClass}">${data.status || 'N/A'}</span>`);
                 
                 // Format the due date
-                const dueDate = new Date(data.due_date); // Parse the date
-                const formattedDueDate = dueDate.toISOString().slice(0, 10) + ' ' + dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); // Format to YYYY-MM-DD and time
-
-                // Set the formatted due date
-                $('#taskDueDate').text(formattedDueDate); 
+                if (data.due_date) {
+                    const dueDate = new Date(data.due_date);
+                    const formattedDueDate = dueDate.toISOString().slice(0, 10) + ' ' + 
+                        dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    $('#taskDueDate').text(formattedDueDate);
+                } else {
+                    $('#taskDueDate').text('N/A');
+                }
                 
                 // Show the modal
                 $('#taskDetailsModal').modal('show');
             },
             error: function(xhr, status, error) {
-                console.error('Error fetching task details:', error);
-                alert('Failed to fetch task details. Please try again.');
+                console.error('Error details:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
+                });
+                showModal('Error', 'Failed to fetch task details. Please try again.');
+            },
+            complete: function() {
+                // Re-enable the button
+                button.prop('disabled', false);
             }
         });
     });

@@ -90,6 +90,23 @@ class PatientTaskController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function getTaskDetails($taskId)
+    {
+        try {
+            $task = Task::findOrFail($taskId);
+            
+            return response()->json([
+                'success' => true,
+                'task' => $task
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task not found'
+            ], 404);
+        }
+    }
+
     private function getPriorityColor($priority)
     {
         return [

@@ -577,38 +577,80 @@ class NurseAdminDashboardController extends Controller
 
     public function nurseAdminUpdateProfilePicture(Request $request)
     {
-        // Validate the uploaded file
-        $request->validate([
-            'profile_picture' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
-    
         // Get the currently authenticated user
         $user = Auth::user();
-    
+
+        // Validate all fields
+        $request->validate([
+            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+            'contact_number' => 'nullable|string',
+            'address' => 'nullable|string',
+            'blood_type' => 'nullable|string',
+            'gender' => 'nullable|string',
+            'medical_history' => 'nullable|array',
+            'medical_history.*' => 'string',
+            'description' => 'nullable|string',
+            'emergency_contact' => 'nullable|string',
+            'relation' => 'nullable|string',
+        ]);
+
         // Handle profile image upload
         if ($request->hasFile('profile_picture')) {
             $image = $request->file('profile_picture');
             $originalName = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
             $extension = $image->getClientOriginalExtension();
             $imageName = $originalName . '.' . $extension;
-    
+
             // Check if file already exists and add a unique suffix if necessary
             $counter = 1;
             while (file_exists(public_path('images/' . $imageName))) {
-                $imageName = $originalName . "($counter)." . $extension;
+                $imageName = $originalName . '_' . $counter . '.' . $extension; // Append counter to filename
                 $counter++;
             }
-    
+
             // Move the image to 'public/images' directory
             $image->move(public_path('images'), $imageName);
-    
-            // Update with new image path
+            
+            // Update the profile picture path in the database
             $user->profile_picture = 'images/' . $imageName;
-            $user->save(); // Save the user record
         }
-    
-        return redirect()->back()->with('success', 'Profile picture updated successfully!');
-    } 
+
+        // Handle medical history
+        if ($request->has('medical_history')) {
+            $medicalHistory = $request->medical_history;
+            if (count($medicalHistory) === 1 && in_array('none', $medicalHistory)) {
+                $user->medical_history = null;
+            } else {
+                // Filter out 'none' if other options are selected
+                $medicalHistory = array_filter($medicalHistory, function($value) {
+                    return $value !== 'none';
+                });
+                $user->medical_history = implode(',', $medicalHistory);
+            }
+        }
+
+        // Update other fields if they are present in the request
+        $fields = [
+            'contact_number',
+            'address',
+            'blood_type',
+            'gender',
+            'description',
+            'emergency_contact',
+            'relation'
+        ];
+
+        foreach ($fields as $field) {
+            if ($request->has($field)) {
+                $user->$field = $request->$field;
+            }
+        }
+
+        // Save all changes
+        $user->save();
+
+        return redirect()->back()->with('success', 'Profile updated successfully!');
+    }   
 
     public function getRoomBeds($roomId)
     {

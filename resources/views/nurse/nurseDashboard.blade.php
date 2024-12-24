@@ -480,23 +480,13 @@ function listenForCalls() {
 
         if (calls) {
             Object.entries(calls).forEach(([callId, call]) => {
-                // Check if call is active and assigned to current nurse
                 if (call.call_status === true && 
                     String(call.assigned_nurse_id) === currentNurseId) {
                     
-                    // Increment active count
                     activeCount++;
-                    console.log('Active call found:', callId, 'Total count:', activeCount);
                     
-                    // Calculate distance
-                    let distance = 0;
-                    if (call.locations) {
-                        const patientLocation = {
-                            lat: parseFloat(call.locations.latitude),
-                            lng: parseFloat(call.locations.longitude)
-                        };
-                        distance = calculateDistance(NURSE_LOCATION, patientLocation);
-                    }
+                    // Calculate distance using the global function from layout.blade.php
+                    const distance = calculateDistance(call);
 
                     const callCard = `
                         <div class="alert alert-danger mb-2">
@@ -504,7 +494,7 @@ function listenForCalls() {
                                 <div>
                                     <h6 class="mb-1">Room ${call.room_number} - Bed ${call.bed_number}</h6>
                                     <div class="small">Patient: ${call.patient_name || 'Unknown'}</div>
-                                    <p class="small">Distance: ${distance} meters</p>
+                                    <p class="small mb-0">Distance: ${distance} meters</p>
                                 </div>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-sm btn-success" 
@@ -512,7 +502,7 @@ function listenForCalls() {
                                         Attend
                                     </button>
                                     <button class="btn btn-sm btn-primary" 
-                                            onclick="navigateToCall('${callId}')"
+                                            onclick="navigateToPatient('${callId}')"
                                             title="Navigate to patient">
                                         <i class="fas fa-directions"></i> Navigate
                                     </button>
@@ -526,20 +516,15 @@ function listenForCalls() {
             });
         }
 
-        console.log('Final active count:', activeCount); // Debug log
-
-        // Update all UI elements with the count
+        // Update UI elements
         document.getElementById('activeCallCount').textContent = 
             `${activeCount} Active Call${activeCount !== 1 ? 's' : ''}`;
         document.getElementById('activeCallsCount').textContent = activeCount;
         document.querySelector('.calls-count').textContent = activeCount;
         
-        // Update call list
         document.getElementById('callList').innerHTML = 
             activeCallsHtml || '<div class="alert alert-info">No active calls</div>';
-        document.getElementById('activeCallsCount').textContent = activeCount;
         
-        // Show/hide floating calls
         const floatingCalls = document.getElementById('floating-calls');
         floatingCalls.classList.toggle('d-none', activeCount === 0);
     });
@@ -686,7 +671,6 @@ function initMap() {
     const currentNurseId = String("{{ auth()->id() }}");
 
     callsRef.on('value', (snapshot) => {
-        // Clear existing patient markers
         markers.forEach(marker => marker.setMap(null));
         markers.clear();
 
@@ -695,15 +679,13 @@ function initMap() {
             Object.entries(calls).forEach(([callId, call]) => {
                 if (call.call_status === true && 
                     String(call.assigned_nurse_id) === currentNurseId &&
-                    call.locations) {  // Check if locations exist
+                    call.locations) {
                     
-                    // Get patient location from database
                     const patientLocation = {
                         lat: parseFloat(call.locations.latitude),
                         lng: parseFloat(call.locations.longitude)
                     };
                     
-                    // Create patient marker (red pin)
                     const patientMarker = new google.maps.Marker({
                         position: patientLocation,
                         map: map,
@@ -714,9 +696,9 @@ function initMap() {
                         animation: google.maps.Animation.BOUNCE
                     });
 
-                    // Add info window for patient marker
                     patientMarker.addListener('click', () => {
-                        const distance = calculateDistance(NURSE_LOCATION, patientLocation);
+                        // Use the global calculateDistance function
+                        const distance = calculateDistance(call);
                         infoWindow.setContent(`
                             <div style="padding: 10px;">
                                 <h6>Patient Call</h6>
@@ -740,7 +722,6 @@ function initMap() {
                         infoWindow.open(map, patientMarker);
                     });
 
-                    // Store marker reference
                     markers.set(callId, patientMarker);
                 }
             });

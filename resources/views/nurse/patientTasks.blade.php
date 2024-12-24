@@ -7,8 +7,8 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <h2 class="text-gradient">Tasks for {{ $patient->name }}</h2>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-                    <i class="bi bi-plus-lg"></i> Add Task
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal" aria-label="Add new task">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i> Add Task
                 </button>
             </div>
         </div>
@@ -53,12 +53,12 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h4 class="header-title">{{ $date->format('F Y') }}</h4>
                 <div class="nav-buttons">
-                    <button class="btn btn-sm btn-outline-primary" id="prev">
-                        <i class="fas fa-chevron-left"></i>
+                    <button class="btn btn-sm btn-outline-primary" id="prev" aria-label="Previous month">
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-primary mx-2" id="today">Today</button>
-                    <button class="btn btn-sm btn-outline-primary" id="next">
-                        <i class="fas fa-chevron-right"></i>
+                    <button class="btn btn-sm btn-outline-primary mx-2" id="today" aria-label="Go to today">Today</button>
+                    <button class="btn btn-sm btn-outline-primary" id="next" aria-label="Next month">
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -84,7 +84,10 @@
 
                     <td class="{{ $currentDate->month !== $date->month ? 'other-month' : '' }} 
                                {{ $currentDate->isToday() ? 'current-day' : '' }}"
-                        data-date="{{ $currentDate->format('Y-m-d') }}">
+                        data-date="{{ $currentDate->format('Y-m-d') }}"
+                        role="button"
+                        tabindex="0"
+                        aria-label="{{ $currentDate->format('F j, Y') }}">
                         <div class="calendar-date">
                             <span>{{ $currentDate->day }}</span>
                         </div>
@@ -93,7 +96,9 @@
                                 @if($task->due_date->format('Y-m-d') === $currentDate->format('Y-m-d'))
                                     <div class="task-item badge bg-{{ getPriorityColor($task->priority) }} w-100 mb-1 view-task" 
                                          data-task-id="{{ $task->id }}"
-                                         title="{{ $task->description }}">
+                                         role="button"
+                                         tabindex="0"
+                                         aria-label="View task: {{ $task->title }}">
                                         {{ Str::limit($task->title, 20) }}
                                     </div>
                                 @endif
@@ -142,6 +147,7 @@
                                         <input type="checkbox" 
                                                class="form-check-input task-status-checkbox" 
                                                data-task-id="{{ $task->id }}"
+                                               aria-label="Mark task as {{ $task->status === 'completed' ? 'incomplete' : 'complete' }}"
                                                {{ $task->status === 'completed' ? 'checked' : '' }}>
                                     </td>
                                     <td>{{ $task->title }}</td>
@@ -160,13 +166,15 @@
                                     <td>
                                         <button type="button" 
                                                 class="btn btn-sm btn-info view-task" 
-                                                data-task-id="{{ $task->id }}">
-                                            <i class="fas fa-eye"></i>
+                                                data-task-id="{{ $task->id }}"
+                                                aria-label="View task details">
+                                            <i class="fas fa-eye" aria-hidden="true"></i>
                                         </button>
                                         <button type="button" 
                                                 class="btn btn-sm btn-danger delete-task" 
-                                                data-task-id="{{ $task->id }}">
-                                            <i class="fas fa-trash"></i>
+                                                data-task-id="{{ $task->id }}"
+                                                aria-label="Delete task">
+                                            <i class="fas fa-trash" aria-hidden="true"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -196,12 +204,23 @@
                     @csrf
                     <div class="mb-3">
                         <label for="title" class="form-label">Task Title</label>
-                        <input type="text" class="form-control" id="title" name="title" required>
+                        <input type="text" 
+                               class="form-control" 
+                               id="title" 
+                               name="title" 
+                               required 
+                               aria-label="Task title"
+                               placeholder="Enter task title">
                     </div>
 
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        <textarea class="form-control" 
+                                  id="description" 
+                                  name="description" 
+                                  rows="3"
+                                  aria-label="Task description"
+                                  placeholder="Enter task description"></textarea>
                     </div>
 
                     <div class="mb-3">
@@ -236,10 +255,6 @@
             </div>
             <div class="modal-body">
                 <div class="schedule-info">
-                    <div class="info-group">
-                        <label class="form-label fw-bold">Title:</label>
-                        <p id="modalTaskTitle" class="mb-2"></p>
-                    </div>
                     <div class="info-group">
                         <label class="form-label fw-bold">Description:</label>
                         <p id="modalTaskDescription" class="mb-2"></p>
@@ -596,6 +611,53 @@
     padding: 0.5em 0.8em;
     font-weight: 500;
 }
+
+.task-container {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Add focus styles for better accessibility */
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+/* Accessibility focus styles */
+.calendar-table td:focus,
+.task-item:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: -2px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Interactive elements */
+.calendar-table td,
+.task-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-table td:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.task-item:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+}
+
+/* Selected state */
+.selected-date {
+    background-color: rgba(13, 110, 253, 0.1);
+    font-weight: 500;
+}
 </style>
 
 <!--calendar navigation-->
@@ -633,54 +695,229 @@
 <!--calendar-->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Add click handlers for calendar cells
+    // Add click and keyboard handlers for calendar cells
     document.querySelectorAll('.calendar-table td').forEach(cell => {
-        cell.addEventListener('click', function() {
-            const selectedDate = this.dataset.date;
-            if (!selectedDate) return; // Skip if no date (empty cell)
-
-            // Visual feedback for selected date
-            document.querySelectorAll('.calendar-table td').forEach(td => {
-                td.classList.remove('selected-date');
-            });
-            this.classList.add('selected-date');
-
-            // Format the selected date for display
-            const formattedDate = new Date(selectedDate);
-            const dateString = formattedDate.toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric'
-            });
-
-            // Update the task list header with selected date
-            document.getElementById('taskListDate').textContent = `Tasks for ${dateString}`;
-
-            // Filter tasks for the selected date
-            const taskRows = document.querySelectorAll('#taskTable tbody tr:not(.no-tasks)');
-            let hasVisibleTasks = false;
-
-            taskRows.forEach(row => {
-                if (row.dataset.date === selectedDate) {
-                    row.style.display = '';
-                    hasVisibleTasks = true;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            // Show/hide "No tasks" message
-            const noTasksRow = document.querySelector('.no-tasks');
-            if (noTasksRow) {
-                if (!hasVisibleTasks) {
-                    noTasksRow.style.display = '';
-                    noTasksRow.querySelector('td').textContent = `No tasks for ${dateString}`;
-                } else {
-                    noTasksRow.style.display = 'none';
-                }
+        // Handle click events
+        cell.addEventListener('click', handleDateSelection);
+        
+        // Handle keyboard events for accessibility
+        cell.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleDateSelection.call(this);
             }
         });
     });
+
+    // Handle task item events
+    document.querySelectorAll('.task-item').forEach(task => {
+        // Handle click events
+        task.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const taskId = $(this).data('task-id');
+            if (!taskId) return;
+            
+            // Show loading state on the clicked element
+            $(this).css('opacity', '0.7');
+            
+            viewTaskDetails(taskId, () => {
+                // Reset opacity after loading
+                $(this).css('opacity', '1');
+            });
+        });
+
+        // Handle keyboard events
+        task.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleTaskClick(this);
+            }
+        });
+    });
+
+    function handleDateSelection() {
+        const selectedDate = this.dataset.date;
+        if (!selectedDate) return;
+
+        // Remove previous selection
+        document.querySelectorAll('.calendar-table td').forEach(td => {
+            td.classList.remove('selected-date');
+            td.setAttribute('aria-selected', 'false');
+        });
+
+        // Add new selection
+        this.classList.add('selected-date');
+        this.setAttribute('aria-selected', 'true');
+
+        // Format date for display
+        const formattedDate = new Date(selectedDate).toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        // Update task list
+        updateTaskList(selectedDate, formattedDate);
+    }
+
+    function handleTaskClick(taskElement) {
+        const taskId = taskElement.dataset.taskId;
+        if (!taskId) return;
+
+        // Show loading state
+        taskElement.style.opacity = '0.7';
+
+        // Trigger view task modal
+        viewTaskDetails(taskId, () => {
+            taskElement.style.opacity = '1';
+        });
+    }
+
+    function updateTaskList(selectedDate, formattedDate) {
+        // Update header
+        document.getElementById('taskListDate').textContent = `Tasks for ${formattedDate}`;
+
+        // Update task visibility
+        const taskRows = document.querySelectorAll('#taskTable tbody tr:not(.no-tasks)');
+        let hasVisibleTasks = false;
+
+        taskRows.forEach(row => {
+            if (row.dataset.date === selectedDate) {
+                row.style.display = '';
+                hasVisibleTasks = true;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Update "No tasks" message
+        const noTasksRow = document.querySelector('.no-tasks');
+        if (noTasksRow) {
+            if (!hasVisibleTasks) {
+                noTasksRow.style.display = '';
+                noTasksRow.querySelector('td').textContent = `No tasks for ${formattedDate}`;
+            } else {
+                noTasksRow.style.display = 'none';
+            }
+        }
+    }
+
+    function viewTaskDetails(taskId, callback) {
+        $.ajax({
+            url: `/nurse/tasks/${taskId}/details`,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            beforeSend: function() {
+                // Show loading state
+                Swal.fire({
+                    title: 'Loading...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            },
+            success: function(response) {
+                Swal.close();
+                
+                if (response && response.task) {
+                    const task = response.task;
+                    
+                    // Update modal content
+                    $('#taskDetailsModal .modal-title').text(task.title);
+                    $('#modalTaskTitle').text(task.title);
+                    $('#modalTaskDescription').text(task.description || 'No description provided');
+                    
+                    // Update Priority with badge
+                    const priorityClass = getPriorityBadgeClass(task.priority);
+                    $('#modalTaskPriority').html(`
+                        <span class="badge bg-${priorityClass}">
+                            ${capitalizeFirst(task.priority)}
+                        </span>
+                    `);
+                    
+                    // Update Status with badge
+                    const statusClass = getStatusBadgeClass(task.status);
+                    $('#modalTaskStatus').html(`
+                        <span class="badge bg-${statusClass}">
+                            ${capitalizeFirst(task.status)}
+                        </span>
+                    `);
+                    
+                    // Format and set due date
+                    const dueDate = moment(task.due_date).format('MMMM D, YYYY h:mm A');
+                    $('#modalTaskDueDate').text(dueDate);
+
+                    // Store task ID for other operations
+                    $('#deleteTaskButton').data('task-id', task.id);
+                    $('#editTaskButton').data('task-id', task.id);
+                    $('#repeatWeeklyButton').data('task-id', task.id);
+                    $('#repeatMonthlyButton').data('task-id', task.id);
+
+                    // Show the modal
+                    $('#taskDetailsModal').modal('show');
+                } else {
+                    throw new Error('Invalid response format');
+                }
+                
+                // Call the callback function if provided
+                if (typeof callback === 'function') {
+                    callback();
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                console.error('Error loading task details:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
+                });
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load task details. Please try again.',
+                    confirmButtonColor: '#dc3545'
+                });
+                
+                if (typeof callback === 'function') {
+                    callback();
+                }
+            }
+        });
+    }
+
+    // Add these helper functions if not already present
+    function getPriorityBadgeClass(priority) {
+        const classes = {
+            'low': 'success',
+            'medium': 'warning',
+            'high': 'orange',
+            'urgent': 'danger'
+        };
+        return classes[priority?.toLowerCase()] || 'secondary';
+    }
+
+    function getStatusBadgeClass(status) {
+        const classes = {
+            'completed': 'success',
+            'pending': 'warning',
+            'passed': 'danger',
+            'cancelled': 'secondary'
+        };
+        return classes[status?.toLowerCase()] || 'secondary';
+    }
+
+    function capitalizeFirst(string) {
+        if (!string) return '';
+        return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+    }
 });
 </script>
 

@@ -57,35 +57,35 @@
                         </div>
                     </div>
 
-                    <div class="info-container">
-                        <div class="info-item m-2">
+                    <div class="info-grid">
+                        <div class="info-item">
                             <i class="bi bi-person-circle text-primary"></i>
-                            <div class="info-content">
+                            <div>
                                 <small>Name</small>
                                 <h6 class="mb-0">{{ $user->name }}</h6>
                             </div>
                         </div>
                         
-                        <div class="info-item m-2">
+                        <div class="info-item">
                             <i class="bi bi-envelope-fill text-primary"></i>
-                            <div class="info-content">
+                            <div>
                                 <small>Email</small>
                                 <h6 class="mb-0">{{ $user->email }}</h6>
                             </div>
                         </div>
                         
-                        <div class="info-item m-2">
+                        <div class="info-item">
                             <i class="bi bi-shield-fill text-primary"></i>
-                            <div class="info-content">
+                            <div>
                                 <small>Role</small>
                                 <h6 class="mb-0">{{ ucfirst($user->role) }}</h6>
                             </div>
                         </div>
                         
                         @if($user->staff_id)
-                        <div class="info-item m-2">
+                        <div class="info-item">
                             <i class="bi bi-person-badge-fill text-primary"></i>
-                            <div class="info-content">
+                            <div>
                                 <small>Staff ID</small>
                                 <h6 class="mb-0">{{ $user->staff_id }}</h6>
                             </div>
@@ -116,7 +116,7 @@
                                 <span class="input-group-text"><i class="bi bi-telephone fs-4"></i></span>
                                 <input type="text" class="form-control" name="contact_number" 
                                        value="{{ old('contact_number', $user->contact_number) }}" 
-                                       placeholder="Contact Number" readonly>
+                                       placeholder="Contact Number" required>
                             </div>
                         </div>
 
@@ -125,20 +125,22 @@
                                 <span class="input-group-text"><i class="bi bi-geo-alt fs-4"></i></span>
                                 <input type="text" class="form-control" name="address" 
                                        value="{{ old('address', $user->address) }}" 
-                                       placeholder="Address" readonly>
+                                       placeholder="Address" required>
                             </div>
                         </div>
 
                         <div class="col-md-6">
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text"><i class="bi bi-droplet fs-4"></i></span>
-                                <select class="form-select" name="blood_type" readonly>
-                                    <option value="" disabled {{ !$user->blood_type ? 'selected' : '' }}>Select Blood Type</option>
-                                    @foreach(['RH+ A', 'RH-A', 'RH+B', 'RH-B', 'RH+AB', 'RH-AB', 'RH+O', 'RH-O'] as $type)
-                                        <option value="{{ $type }}" {{ $user->blood_type == $type ? 'selected' : '' }}>
-                                            {{ $type }}
-                                        </option>
-                                    @endforeach
+                                <select class="form-select" name="blood_type" required>
+                                    <option value="rh+ a" {{ $user->blood_type == 'rh+ a' ? 'selected' : '' }}>A+</option>
+                                    <option value="rh- a" {{ $user->blood_type == 'rh- a' ? 'selected' : '' }}>A-</option>
+                                    <option value="rh+ b" {{ $user->blood_type == 'rh+ b' ? 'selected' : '' }}>B+</option>
+                                    <option value="rh- b" {{ $user->blood_type == 'rh- b' ? 'selected' : '' }}>B-</option>
+                                    <option value="rh+ o" {{ $user->blood_type == 'rh+ o' ? 'selected' : '' }}>O+</option>
+                                    <option value="rh- o" {{ $user->blood_type == 'rh- o' ? 'selected' : '' }}>O-</option>
+                                    <option value="rh+ ab" {{ $user->blood_type == 'rh+ ab' ? 'selected' : '' }}>AB+</option>
+                                    <option value="rh- ab" {{ $user->blood_type == 'rh- ab' ? 'selected' : '' }}>AB-</option>
                                 </select>
                             </div>
                         </div>
@@ -146,7 +148,7 @@
                         <div class="col-md-6">
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text"><i class="bi bi-gender-ambiguous fs-4"></i></span>
-                                <select class="form-select" name="gender" readonly>
+                                <select class="form-select" name="gender" required>
                                     <option value="male" {{ $user->gender == 'male' ? 'selected' : '' }}>Male</option>
                                     <option value="female" {{ $user->gender == 'female' ? 'selected' : '' }}>Female</option>
                                 </select>
@@ -224,7 +226,7 @@
                                 <span class="input-group-text"><i class="bi bi-telephone-plus fs-4"></i></span>
                                 <input type="text" class="form-control" name="emergency_contact" 
                                        value="{{ old('emergency_contact', $user->emergency_contact) }}" 
-                                       placeholder="Emergency Contact" readonly>
+                                       placeholder="Emergency Contact" required>
                             </div>
                         </div>
 

@@ -338,7 +338,8 @@ Route::middleware(['auth', 'role:nurse'])->group(function () {
     Route::get('/nurse/patients', [NurseDashboardController::class, 'patients'])
         ->name('nurse.patients');
 
-    Route::get('/nurse/tasks/{id}/details', [NurseDashboardController::class, 'getTaskDetails'])->name('nurse.task.details');
+    Route::get('/nurse/tasks/{id}/details', [PatientTaskController::class, 'getTaskDetails'])
+        ->name('nurse.task.details');
     Route::delete('/nurse/tasks/{id}', [NurseDashboardController::class, 'deleteTask'])->name('nurse.tasks.delete');
     Route::post('/nurse/tasks/{task}/status', [NurseDashboardController::class, 'updateStatus'])->name('nurse.tasks.status');
     Route::post('/nurse/tasks/{task}/repeat-weekly', [NurseCalendarController::class, 'repeatWeekly'])->name('tasks.repeatWeekly');
