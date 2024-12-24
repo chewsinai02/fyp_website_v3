@@ -85,12 +85,14 @@
                                                 <i class="bi bi-eye"></i>
                                             </a>
 
-                                            <!-- Edit button -->
-                                            <a href="{{ route('details.edit', $user->id) }}" 
-                                               class="btn btn-sm btn-primary" 
-                                               title="Edit User">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
+                                            @if($user->role !== 'admin')
+                                                <!-- Edit button -->
+                                                <a href="{{ route('details.edit', $user->id) }}" 
+                                                class="btn btn-sm btn-primary" 
+                                                title="Edit User">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                            @endif
                                             
                                             <!-- Delete button -->
                                             <form action="{{ route('users.destroy', $user->id) }}" 

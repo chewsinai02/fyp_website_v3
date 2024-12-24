@@ -90,13 +90,6 @@
                                                    title="View Details">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
-
-                                                <!-- Edit button -->
-                                                <a href="{{ route('details.edit', $user->id) }}" 
-                                                   class="btn btn-sm btn-primary" 
-                                                   title="Edit Admin">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
                                                 
                                                 <!-- Delete button -->
                                                 <form action="{{ route('users.destroy', $user->id) }}" 

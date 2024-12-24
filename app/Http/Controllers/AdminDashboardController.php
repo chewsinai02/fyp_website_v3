@@ -103,17 +103,14 @@ class AdminDashboardController extends Controller
             // Check if file already exists and add a unique suffix if necessary
             $counter = 1;
             while (file_exists(public_path('images/' . $imageName))) {
-                $imageName = $originalName . "($counter)." . $extension;
+                $imageName = $originalName . '_' . $counter . '.' . $extension; // Append counter to filename
                 $counter++;
-            }
-
-            // Delete old profile picture if it exists
-            if ($user->profile_picture && file_exists(public_path($user->profile_picture))) {
-                unlink(public_path($user->profile_picture));
             }
 
             // Move the image to 'public/images' directory
             $image->move(public_path('images'), $imageName);
+            
+            // Update the profile picture path in the database
             $user->profile_picture = 'images/' . $imageName;
         }
 
