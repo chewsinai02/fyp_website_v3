@@ -144,9 +144,9 @@
         border: 1px solid var(--primary);
     }
 
-    .badge-nurse_admin {
+    .badge-nurseadmin {
         background-color: #FDA4AF !important;   /* Rose */
-        color: #9D174D !important; 
+        color: #9D174D !important;
         padding: 0.5em 1em;
         border-radius: 6px;
         font-weight: 500;

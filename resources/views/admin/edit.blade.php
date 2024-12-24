@@ -151,12 +151,14 @@
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text"><i class="bi bi-droplet fs-4"></i></span>
                                 <select class="form-select" name="blood_type" required>
-                                    <option value="" disabled>Select Blood Type</option>
-                                    @foreach(['rh+a', 'rh-a', 'rh+b', 'rh-b', 'rh+ab', 'rh-ab', 'rh+o', 'rh-o'] as $type)
-                                        <option value="{{ $type }}" {{ $user->blood_type == $type ? 'selected' : '' }}>
-                                            {{ strtoupper($type) }}
-                                        </option>
-                                    @endforeach
+                                    <option value="rh+ a" {{ $user->blood_type == 'rh+ a' ? 'selected' : '' }}>A+</option>
+                                    <option value="rh- a" {{ $user->blood_type == 'rh- a' ? 'selected' : '' }}>A-</option>
+                                    <option value="rh+ b" {{ $user->blood_type == 'rh+ b' ? 'selected' : '' }}>B+</option>
+                                    <option value="rh- b" {{ $user->blood_type == 'rh- b' ? 'selected' : '' }}>B-</option>
+                                    <option value="rh+ o" {{ $user->blood_type == 'rh+ o' ? 'selected' : '' }}>O+</option>
+                                    <option value="rh- o" {{ $user->blood_type == 'rh- o' ? 'selected' : '' }}>O-</option>
+                                    <option value="rh+ ab" {{ $user->blood_type == 'rh+ ab' ? 'selected' : '' }}>AB+</option>
+                                    <option value="rh- ab" {{ $user->blood_type == 'rh- ab' ? 'selected' : '' }}>AB-</option>
                                 </select>
                             </div>
                         </div>

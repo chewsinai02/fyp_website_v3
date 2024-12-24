@@ -57,7 +57,6 @@
                         <thead class="bg-light">
                             <tr>
                                 <th class="px-4 py-3">Name</th>
-                                <th class="py-3">Staff ID</th>
                                 <th class="py-3">Email</th>
                                 <th class="py-3">Contact Number</th>
                                 <th class="py-3">Gender</th>
@@ -80,7 +79,6 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="py-3">{{ $user->staff_id }}</td>
                                         <td class="py-3">{{ $user->email }}</td>
                                         <td class="py-3">{{ $user->contact_number }}</td>
                                         <td class="py-3">{{ $user->gender }}</td>

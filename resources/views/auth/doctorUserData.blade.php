@@ -18,7 +18,7 @@
         <div class="card-body p-4">
             <form method="POST" action="{{ route('admin.doctorUserdata.store', $userToEdit->id) }}" class="row g-4">
                 @csrf
-                
+                @method('POST')
                 <!-- Basic Info Column -->
                 <div class="col-md-4">
                     <h5 class="mb-3 fw-bold">Basic Information</h5>
@@ -131,10 +131,14 @@
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text"><i class="bi bi-droplet fs-4"></i></span>
                                 <select class="form-select" name="blood_type" required>
-                                    <option value="" disabled selected>Blood Type</option>
-                                    @foreach(['rh+a', 'rh-a', 'rh+b', 'rh-b', 'rh+ab', 'rh-ab', 'rh+o', 'rh-o'] as $type)
-                                        <option value="{{ $type }}">{{ strtoupper($type) }}</option>
-                                    @endforeach
+                                    <option value="rh+ a" {{ $userToEdit->blood_type == 'rh+ a' ? 'selected' : '' }}>A+</option>
+                                    <option value="rh- a" {{ $userToEdit->blood_type == 'rh- a' ? 'selected' : '' }}>A-</option>
+                                    <option value="rh+ b" {{ $userToEdit->blood_type == 'rh+ b' ? 'selected' : '' }}>B+</option>
+                                    <option value="rh- b" {{ $userToEdit->blood_type == 'rh- b' ? 'selected' : '' }}>B-</option>
+                                    <option value="rh+ o" {{ $userToEdit->blood_type == 'rh+ o' ? 'selected' : '' }}>O+</option>
+                                    <option value="rh- o" {{ $userToEdit->blood_type == 'rh- o' ? 'selected' : '' }}>O-</option>
+                                    <option value="rh+ ab" {{ $userToEdit->blood_type == 'rh+ ab' ? 'selected' : '' }}>AB+</option>
+                                    <option value="rh- ab" {{ $userToEdit->blood_type == 'rh- ab' ? 'selected' : '' }}>AB-</option>
                                 </select>
                             </div>
                         </div>
@@ -145,11 +149,11 @@
                                     @php
                                         // Convert medical history to array, handling different possible formats
                                         $userMedicalHistory = [];
-                                        if (!empty($user->medical_history)) {
-                                            if (is_string($user->medical_history)) {
-                                                $userMedicalHistory = array_map('trim', explode(',', $user->medical_history));
-                                            } elseif (is_array($user->medical_history)) {
-                                                $userMedicalHistory = $user->medical_history;
+                                        if (!empty($userToEdit->medical_history)) {
+                                            if (is_string($userToEdit->medical_history)) {
+                                                $userMedicalHistory = array_map('trim', explode(',', $userToEdit->medical_history));
+                                            } elseif (is_array($userToEdit->medical_history)) {
+                                                $userMedicalHistory = $userToEdit->medical_history;
                                             }
                                         } else {
                                             // If medical history is null or empty, set 'none' as selected
@@ -283,9 +287,44 @@ function toggleDescriptionField() {
     descriptionField.style.display = (medicalHistorySelect.value === 'none') ? 'none' : 'block';
 }
 
+function handleMedicalHistoryChange(checkbox) {
+    const noneCheckbox = document.getElementById('medical_none');
+    const descriptionField = document.getElementById('description-field');
+    const allCheckboxes = document.querySelectorAll('input[name="medical_history[]"]');
+
+    if (checkbox.value === 'none' && checkbox.checked) {
+        // If 'none' is checked, uncheck all other options
+        allCheckboxes.forEach(box => {
+            if (box.value !== 'none') {
+                box.checked = false;
+            }
+        });
+        descriptionField.style.display = 'none';
+    } else if (checkbox.checked && checkbox.value !== 'none') {
+        // If any other option is checked, uncheck 'none'
+        noneCheckbox.checked = false;
+        descriptionField.style.display = 'block';
+    }
+
+    // Check if no options are selected, then select 'none'
+    let anyChecked = false;
+    allCheckboxes.forEach(box => {
+        if (box.checked) anyChecked = true;
+    });
+    
+    if (!anyChecked) {
+        noneCheckbox.checked = true;
+        descriptionField.style.display = 'none';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     toggleStaffIdField();
-    toggleDescriptionField();
+    
+    // Show/hide description field based on initial medical history selection
+    const noneCheckbox = document.getElementById('medical_none');
+    const descriptionField = document.getElementById('description-field');
+    descriptionField.style.display = noneCheckbox.checked ? 'none' : 'block';
 });
 </script>
 @endsection

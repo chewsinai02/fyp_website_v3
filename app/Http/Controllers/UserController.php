@@ -31,7 +31,7 @@ class UserController extends Controller
             'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
             'ic_number' => 'required|string',
             'address' => 'required|string',
-            'blood_type' => 'required|string',
+            'blood_type' => 'required|in:rh+ a,rh- a,rh+ b,rh- b,rh+ ab,rh- ab,rh+ o,rh- o',
             'contact_number' => 'required|string',
             'medical_history' => 'nullable|array',
             'medical_history.*' => 'string',
@@ -48,6 +48,12 @@ class UserController extends Controller
         $user->email = $request->email;
         $user->role = $request->role;
         $user->gender = $request->gender;
+        $user->ic_number = $request->ic_number;
+        $user->address = $request->address;
+        $user->blood_type = $request->blood_type;
+        $user->contact_number = $request->contact_number;
+        $user->emergency_contact = $request->emergency_contact;
+        $user->relation = $request->relation;
 
         // Handle profile image upload
         if ($request->hasFile('profile_picture')) {
@@ -65,11 +71,9 @@ class UserController extends Controller
         // Handle medical history
         if ($request->has('medical_history')) {
             $medicalHistory = $request->medical_history;
-            // If only 'none' is selected or no selection, store as null
             if (count($medicalHistory) === 1 && in_array('none', $medicalHistory)) {
                 $user->medical_history = null;
             } else {
-                // Filter out 'none' if other options are selected
                 $medicalHistory = array_filter($medicalHistory, function($value) {
                     return $value !== 'none';
                 });
@@ -78,15 +82,6 @@ class UserController extends Controller
         } else {
             $user->medical_history = null;
         }
-
-        // Update all other fields
-        $user->ic_number = $request->ic_number;
-        $user->address = $request->address;
-        $user->blood_type = $request->blood_type;
-        $user->contact_number = $request->contact_number;
-        $user->description = $request->description;
-        $user->emergency_contact = $request->emergency_contact;
-        $user->relation = $request->relation;
 
         // Save updated user details
         $user->save();

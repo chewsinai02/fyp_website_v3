@@ -149,7 +149,7 @@
 
     .badge-nurse {
         background-color: #60A5FA !important;   /* Blue */
-        color: #1E40AF !important; 
+        color: #1E40AF !important;
         padding: 0.5em 1em;
         border-radius: 6px;
         font-weight: 500;
@@ -205,15 +205,6 @@
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-    }
-
-    .badge-nurse {
-        background-color: #FDA4AF !important;
-        color: #9D174D !important;
-        padding: 0.5em 1em;
-        border-radius: 6px;
-        font-weight: 500;
-        font-size: 0.75rem;
     }
 
     .btn-primary {
