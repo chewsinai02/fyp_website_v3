@@ -15,7 +15,20 @@ class DoctorDashboardController extends Controller
 {
     public function doctorindex()
     {
-        // Fetch only active appointments count
+        $currentDateTime = now();
+
+        // First update status of passed appointments
+        Appointment::where('status', 'active')
+            ->where(function ($query) use ($currentDateTime) {
+                $query->whereDate('appointment_date', '<', $currentDateTime->toDateString())
+                    ->orWhere(function ($q) use ($currentDateTime) {
+                        $q->whereDate('appointment_date', '=', $currentDateTime->toDateString())
+                            ->whereTime('appointment_time', '<', $currentDateTime->toTimeString());
+                    });
+            })
+            ->update(['status' => 'pass']);
+
+        // Fetch only active appointments count (after updating statuses)
         $activeAppointmentsCount = Appointment::where('status', 'active')->count();
         
         // Fetch active appointments ordered by appointment date and time
@@ -164,6 +177,17 @@ class DoctorDashboardController extends Controller
     {
         $currentDateTime = now();
 
+        // Update status of passed appointments
+        Appointment::where('status', 'active')
+            ->where(function ($query) use ($currentDateTime) {
+                $query->whereDate('appointment_date', '<', $currentDateTime->toDateString())
+                    ->orWhere(function ($q) use ($currentDateTime) {
+                        $q->whereDate('appointment_date', '=', $currentDateTime->toDateString())
+                            ->whereTime('appointment_time', '<', $currentDateTime->toTimeString());
+                    });
+            })
+            ->update(['status' => 'pass']);
+
         // Fetch all appointments with proper ordering and relationships
         $appointments = Appointment::with(['patient', 'doctor'])
             ->where('doctor_id', auth()->id())
@@ -178,33 +202,6 @@ class DoctorDashboardController extends Controller
             ->orderBy('appointment_date', 'asc')
             ->orderBy('appointment_time', 'asc')
             ->get();
-
-        // Update status of past appointments based on report update time
-        $appointments = $appointments->map(function ($appointment) use ($currentDateTime) {
-            if ($appointment->status === 'active') {
-                $appointmentDateTime = Carbon::parse($appointment->appointment_date . ' ' . $appointment->appointment_time);
-                
-                // Only process if appointment time has passed
-                if ($appointmentDateTime->lt($currentDateTime)) {
-                    // Get the last report update time
-                    $lastReportUpdate = $appointment->updated_at;
-                    
-                    // Calculate the time difference between appointment time and report update
-                    $hoursSinceAppointment = $appointmentDateTime->diffInHours($lastReportUpdate);
-                    
-                    if ($lastReportUpdate && $hoursSinceAppointment <= 1) {
-                        // If report was updated within 1 hour of appointment time
-                        $appointment->status = 'done';
-                    } else {
-                        // If no report update within 1 hour or no update at all
-                        $appointment->status = 'pass';
-                    }
-                    
-                    $appointment->save();
-                }
-            }
-            return $appointment;
-        });
 
         return view('doctor.doctorAppointmentList', compact('appointments'));
     }    
