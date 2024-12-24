@@ -607,42 +607,81 @@ class RoomManagementController extends Controller
 
     public function changeStatus(Request $request)
     {
-        // Validate the incoming request
-        $request->validate([
-            'bed_id' => 'required|exists:beds,id',
-            'status' => 'required|string',
-            'notes' => 'nullable|string',
-        ]);
+        try {
+            // Validate the incoming request
+            $request->validate([
+                'bed_id' => 'required|exists:beds,id',
+                'status' => 'required|in:available,occupied,maintenance',
+                'notes' => 'nullable|string',
+                'patient_id' => 'required_if:status,occupied|exists:users,id'
+            ]);
 
-        // Find the bed by ID
-        $bed = Bed::find($request->bed_id);
-        if (!$bed) {
-            return response()->json(['success' => false, 'message' => 'Resource not found.'], 404);
+            // Find the bed by ID
+            $bed = Bed::find($request->bed_id);
+            if (!$bed) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Bed not found'
+                ], 404);
+            }
+
+            // Update the bed
+            $bed->status = $request->status;
+            $bed->notes = $request->notes;
+            
+            // Handle patient assignment
+            if ($request->status === 'occupied' && $request->patient_id) {
+                $bed->patient_id = $request->patient_id;
+            } else if ($request->status === 'available') {
+                $bed->patient_id = null;
+            }
+
+            $bed->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bed status updated successfully!'
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            \Log::error('Error changing bed status:', [
+                'bed_id' => $request->bed_id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update bed status'
+            ], 500);
         }
-
-        // Update the bed status
-        $bed->status = $request->status;
-        $bed->notes = $request->notes;
-        $bed->save();
-
-        return response()->json(['success' => true, 'message' => 'Bed status updated successfully!']);
     }
 
     public function getAvailableBeds($roomId)
     {
-        // Validate the room ID
-        $room = Room::find($roomId);
-        if (!$room) {
-            return response()->json(['message' => 'Room not found'], 404);
+        try {
+            $beds = Bed::where('room_id', $roomId)
+                ->where('status', 'available')
+                ->orderBy('bed_number')
+                ->get(['id', 'bed_number', 'status']);
+
+            return response()->json([
+                'success' => true,
+                'beds' => $beds
+            ]);
+        } catch (Exception $e) {
+            \Log::error('Error fetching available beds:', [
+                'room_id' => $roomId,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch available beds'
+            ], 500);
         }
-
-        // Fetch available beds for the specified room
-        $availableBeds = Bed::where('room_id', $roomId)
-            ->where('status', 'available') // Assuming 'available' is the status for available beds
-            ->get();
-
-        // Return the available beds as a JSON response
-        return response()->json(['beds' => $availableBeds]);
     }
 
     public function transferPatient(Request $request)
@@ -724,6 +763,44 @@ class RoomManagementController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch beds'
+            ], 500);
+        }
+    }
+
+    public function getAvailableRooms()
+    {
+        try {
+            \Log::info('Fetching available rooms'); // Debug log
+
+            $rooms = Room::select('id', 'room_number', 'type')
+                ->withCount(['beds as available_beds' => function($query) {
+                    $query->where('status', 'available');
+                }])
+                ->having('available_beds', '>', 0)
+                ->orderBy('room_number')
+                ->get();
+
+            \Log::info('Available rooms:', ['count' => $rooms->count(), 'rooms' => $rooms->toArray()]); // Debug log
+
+            return response()->json([
+                'success' => true,
+                'rooms' => $rooms->map(function($room) {
+                    return [
+                        'id' => $room->id,
+                        'room_number' => $room->room_number,
+                        'type' => $room->type,
+                        'available_beds' => $room->available_beds
+                    ];
+                })
+            ]);
+        } catch (Exception $e) {
+            \Log::error('Error fetching available rooms:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch available rooms: ' . $e->getMessage()
             ], 500);
         }
     }

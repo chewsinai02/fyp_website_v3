@@ -13,14 +13,17 @@
             <div class="modal-body">
                 <!-- Search Box -->
                 <div class="mb-4">
+                    <label for="roomPatientSearch" class="form-label visually-hidden">Search patients</label>
                     <div class="input-group">
                         <input type="text" 
                                id="roomPatientSearch" 
+                               name="search"
                                class="form-control"
                                placeholder="Search patients in this room..."
-                               aria-label="Search patients">
-                        <span class="input-group-text">
-                            <i class="bi bi-search"></i>
+                               aria-label="Search patients in this room"
+                               title="Search patients">
+                        <span class="input-group-text" title="Search icon">
+                            <i class="bi bi-search" aria-hidden="true"></i>
                         </span>
                     </div>
                 </div>
@@ -160,19 +163,16 @@ function updateBedsTable(beds) {
     
     beds.forEach(bed => {
         const row = document.createElement('tr');
+        const patientId = bed.status === 'occupied' && bed.patient ? bed.patient.id : '';
         
-        // Get status badge class
-        const statusBadgeClass = getStatusBadgeClass(bed.status);
-        
-        // Create row content with patient data if available
         row.innerHTML = `
             <td>Bed ${bed.bed_number}</td>
             <td>
-                <span class="badge ${statusBadgeClass} text-white">
+                <span class="badge ${getStatusBadgeClass(bed.status)} text-white">
                     ${capitalizeFirst(bed.status)}
                 </span>
             </td>
-            <td class="patient-name-cell" data-bed-id="${bed.id}">
+            <td class="patient-name-cell" data-bed-id="${bed.id}" data-patient-id="${patientId}">
                 ${bed.status === 'occupied' && bed.patient ? 
                     `<div class="fw-medium">${bed.patient.name}</div>
                      <small class="text-muted">${bed.patient.ic_number || 'No IC'}</small>` : 
@@ -190,14 +190,16 @@ function updateBedsTable(beds) {
             <td>
                 <button class="btn btn-sm btn-outline-primary me-1" 
                         onclick="editBedStatus(${bed.id}, '${bed.status}')"
-                        title="Edit bed">
-                    <i class="bi bi-pencil"></i>
+                        title="Edit bed status"
+                        aria-label="Edit bed status">
+                    <i class="bi bi-pencil" aria-hidden="true"></i>
                 </button>
                 ${bed.status === 'occupied' ? `
                     <button class="btn btn-sm btn-outline-danger"
                             onclick="dischargeBed(${bed.id})"
-                            title="Discharge patient">
-                        <i class="bi bi-box-arrow-right"></i>
+                            title="Discharge patient"
+                            aria-label="Discharge patient">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
                     </button>
                 ` : ''}
             </td>
@@ -259,9 +261,7 @@ function getStatusBadgeClass(status) {
     const classes = {
         'available': 'bg-success',
         'occupied': 'bg-warning',
-        'maintenance': 'bg-danger',
-        'cleaning': 'bg-info',
-        'repair': 'bg-secondary'
+        'maintenance': 'bg-danger'
     };
     return classes[status] || 'bg-secondary';
 }

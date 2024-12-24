@@ -36,6 +36,11 @@ class RoleMiddleware
         $userRole = strtolower($user->role);
         $allowedRoles = array_map('strtolower', $roles);
 
+        \Log::info('Comparing roles', [
+            'user_role' => $userRole,
+            'allowed_roles' => $allowedRoles
+        ]);
+
         // Check if user has any of the required roles
         if (!in_array($userRole, $allowedRoles)) {
             \Log::warning('Role Mismatch', [
