@@ -60,7 +60,7 @@
                                         </div>
                                         <div>
                                             <h6 class="mb-0">{{ $appointment->patient->name }}</h6>
-                                            <small class="text-muted">Patient ID: {{ $appointment->patient->id }}</small>
+                                            <small class="text-muted"></small>
                                         </div>
                                     </div>
                                 </td>
