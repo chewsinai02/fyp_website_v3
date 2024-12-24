@@ -34,7 +34,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">On Duty Today</h6>
+                            <h6 class="text-muted mb-2">On Duty Now</h6>
                             <h3 class="mb-0">{{ \App\Models\NurseSchedule::whereDate('date', today())->where('status', 'scheduled')->count() }}</h3>
                         </div>
                         <div class="bg-success-subtle p-3 rounded">
@@ -50,7 +50,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Total Patients</h6>
+                            <h6 class="text-muted mb-2">Total Warded Patients</h6>
                             <h3 class="mb-0">{{ \App\Models\Bed::where('status', 'occupied')->count() }}</h3>
                         </div>
                         <div class="bg-success-subtle p-3 rounded">

@@ -220,4 +220,24 @@ class User extends Authenticatable
         // If schedule exists for today = On Duty, otherwise = Off Duty
         return $hasSchedule ? 'On Duty' : 'Off Duty';
     }
+
+    /**
+     * Check if the user has any of the given roles
+     *
+     * @param string|array $roles
+     * @return bool
+     */
+    public function hasRole($roles)
+    {
+        // Convert user's role to lowercase
+        $userRole = strtolower($this->role);
+        
+        if (is_string($roles)) {
+            return $userRole === strtolower($roles);
+        }
+        
+        // Convert all roles to lowercase for comparison
+        $roles = array_map('strtolower', (array) $roles);
+        return in_array($userRole, $roles);
+    }
 }

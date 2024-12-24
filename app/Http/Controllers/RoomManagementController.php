@@ -395,16 +395,22 @@ class RoomManagementController extends Controller
                               'contact_number',
                               'emergency_contact'
                           )
-                          ->first();
-    
-            if (!$patient) {
-                return response()->json(null);
-            }
-    
+                          ->firstOrFail();
+
             return response()->json($patient);
+        } catch (ModelNotFoundException $e) {
+            \Log::error('Patient not found:', ['id' => $id]);
+            return response()->json([
+                'error' => 'Patient not found'
+            ], 404);
         } catch (Exception $e) {
-            \Log::error('Error fetching patient details: ' . $e->getMessage());
-            return response()->json(null, 500);
+            \Log::error('Error fetching patient details:', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'error' => 'Failed to fetch patient details'
+            ], 500);
         }
     }
 
@@ -683,5 +689,42 @@ class RoomManagementController extends Controller
 
         // Return a success response
         return response()->json(['success' => true, 'message' => 'Patient transferred successfully!']);
+    }
+
+    public function getBedsForRoom($roomId)
+    {
+        try {
+            // Authorization is now handled by middleware, so we can remove the manual checks
+            $room = Room::findOrFail($roomId);
+            $beds = $room->beds()
+                ->with(['patient' => function($query) {
+                    $query->select('id', 'name', 'ic_number', 'gender', 'blood_type', 'contact_number');
+                }])
+                ->orderBy('bed_number')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'beds' => $beds,
+                'room' => [
+                    'id' => $room->id,
+                    'room_number' => $room->room_number
+                ]
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Room not found'
+            ], 404);
+        } catch (Exception $e) {
+            \Log::error('Error fetching beds:', [
+                'room_id' => $roomId,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch beds'
+            ], 500);
+        }
     }
 } 

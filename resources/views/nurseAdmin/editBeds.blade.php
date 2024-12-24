@@ -6,112 +6,88 @@
 
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<div class="modal fade" id="editBedModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="editBedModal" tabindex="-1" aria-labelledby="editBedModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Manage Bed</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title" id="editBedModalLabel">Manage Bed</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <!-- Action Selection -->
         <div id="availableBedOptions">
           <div class="mb-3">
-            <label class="form-label">What do you want to do?</label>
-            <select class="form-select" id="availableActionSelect" onchange="handleActionChange()">
+            <label for="availableActionSelect" class="form-label">What do you want to do?</label>
+            <select class="form-select" id="availableActionSelect" onchange="handleActionChange()" aria-label="Select action">
               <option value="assignPatient" selected>Assign to Patient</option>
               <option value="setToMaintenance">Set to Maintenance</option>
             </select>
           </div>
 
+          <!-- Patient Selection -->
           <div id="assignPatientSection">
             <div class="mb-3">
-              <label class="form-label fw-medium">Select Patient</label>
-              <select class="form-select" id="patientSelect" style="width:100%">
+              <label for="patientSelect" class="form-label fw-medium">Select Patient</label>
+              <select class="form-select" id="patientSelect" style="width:100%" aria-label="Select patient">
                 <option value="">Search patient details...</option>
                 @foreach ($patients as $patient)
-          <option value="{{ $patient->id }}" data-name="{{ $patient->name }}" data-ic="{{ $patient->ic_number }}"
-            data-gender="{{ $patient->gender }}" data-blood="{{ $patient->blood_type }}"
-            data-contact="{{ $patient->contact_number }}" data-email="{{ $patient->email }}"
-            data-address="{{ $patient->address }}" data-emergency="{{ $patient->emergency_contact }}">
-            {{ $patient->name }}
-            {{ $patient->ic_number }}
-            {{ $patient->gender }}
-            {{ $patient->blood_type }}
-            {{ $patient->contact_number }}
-            {{ $patient->email }}
-            {{ $patient->address }}
-            {{ $patient->emergency_contact }}
-          </option>
-        @endforeach
+                  <option value="{{ $patient->id }}" 
+                    data-name="{{ $patient->name }}"
+                    data-ic="{{ $patient->ic_number }}"
+                    data-gender="{{ $patient->gender }}"
+                    data-blood="{{ $patient->blood_type }}"
+                    data-contact="{{ $patient->contact_number }}"
+                    data-email="{{ $patient->email }}"
+                    data-address="{{ $patient->address }}"
+                    data-emergency="{{ $patient->emergency_contact }}">
+                    {{ $patient->name }} - {{ $patient->ic_number }}
+                  </option>
+                @endforeach
               </select>
             </div>
-          </div>
-          <div id="maintenanceSection" style="display: none;">
-            <div class="mb-3">
-              <label class="form-label fw-medium">Make Bed Available</label>
-              <select class="form-select" id="status">
-                <option value="available">Yes</option>
-                <option value="maintenance">No (Maintenance)</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-medium">Notes (Optional)</label>
-              <textarea class="form-control" id="maintenanceNotes" rows="3"
-                placeholder="Enter maintenance details..."></textarea>
+
+            <!-- Patient Details Display -->
+            <div id="patientDetailsSection" class="mt-3" style="display: none;">
+              <h6 class="mb-3">Patient Details</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Name:</strong> <span id="patientName"></span></p>
+                  <p><strong>IC Number:</strong> <span id="patientIC"></span></p>
+                  <p><strong>Gender:</strong> <span id="patientGender"></span></p>
+                  <p><strong>Blood Type:</strong> <span id="patientBloodType"></span></p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Contact:</strong> <span id="patientContact"></span></p>
+                  <p><strong>Email:</strong> <span id="patientEmail"></span></p>
+                  <p><strong>Address:</strong> <span id="patientAddress"></span></p>
+                  <p><strong>Emergency Contact:</strong> <span id="patientEmergencyContact"></span></p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div id="occupiedBedOptions" style="display: none;">
+        <!-- Maintenance Section -->
+        <div id="maintenanceSection" style="display: none;">
           <div class="mb-3">
-            <label class="form-label">What do you want to do?</label>
-            <select class="form-select" id="occupiedActionSelect" disabled>
-              <option value="transferPatient">Transfer Patient</option>
-            </select>
-          </div>
-
-          <div id="transferSection">
-            <div class="mb-3">
-              <label class="form-label">Select Room</label>
-              <select class="form-select" id="roomSelect">
-                <option value="">Select a room</option>
-                @foreach ($rooms as $room)
-          <option value="{{ $room->id }}">{{ $room->room_number }}</option>
-        @endforeach
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Select Bed</label>
-              <select class="form-select" id="bedSelect" disabled>
-                <option value="">Select room first</option>
-              </select>
-              @foreach ($rooms as $room)
-          @foreach ($room->beds as $bed)
-        <input type="hidden" id="patientId_{{ $bed->id }}" value="{{ $bed->patient_id }}">
-      @endforeach
-        @endforeach
-            </div>
-          </div>
-        </div>
-
-        <div id="maintenanceBedOptions" style="display: none;">
-          <div class="mb-3">
-            <label class="form-label">What do you want to do?</label>
-            <select class="form-select" id="maintenanceActionSelect">
-              <option value="setToAvailable">Set to Available</option>
+            <label for="status" class="form-label fw-medium">Make Bed Available</label>
+            <select class="form-select" id="status" aria-label="Select bed status">
+              <option value="available">Yes</option>
+              <option value="maintenance">No (Maintenance)</option>
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-medium">Notes (Optional)</label>
-            <textarea class="form-control" id="statusChangeNotes" rows="3"
-              placeholder="Enter any notes about the status change..."></textarea>
+            <label for="maintenanceNotes" class="form-label fw-medium">Notes (Optional)</label>
+            <textarea class="form-control" id="maintenanceNotes" rows="3"
+              placeholder="Enter maintenance details..." aria-label="Maintenance notes"></textarea>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="saveChangesButton" onclick="saveChangesButton()">Save
-          Changes</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveChangesButton" onclick="saveChangesButton()" aria-label="Save changes">
+          Save Changes
+        </button>
       </div>
     </div>
   </div>
@@ -134,6 +110,13 @@
       dropdownParent: $('#editBedModal'),
       templateResult: formatPatient,
       templateSelection: formatPatientSelection
+    }).on('change', function() {
+      const patientId = $(this).val();
+      if (patientId) {
+        loadPatientDetails(patientId);
+      } else {
+        $('#patientDetailsSection').hide();
+      }
     });
   });
 
@@ -599,6 +582,55 @@
             });
         }
     });
+  }
+
+  // Update the loadPatientDetails function
+  function loadPatientDetails(patientId) {
+    if (!patientId) return;
+
+    $.ajax({
+      url: `/api/patients/${patientId}`,
+      method: 'GET',
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      success: function(response) {
+        if (response && !response.error) {
+          updatePatientDetailsUI(response);
+          $('#patientDetailsSection').show();
+        } else {
+          console.error('Patient details error:', response.error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: response.error || 'Patient details not found'
+          });
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('Error loading patient details:', error);
+        console.error('Response:', xhr.responseText);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load patient details. Please try again.'
+        });
+      }
+    });
+  }
+
+  // Update the updatePatientDetailsUI function
+  function updatePatientDetailsUI(patient) {
+    if (!patient) return;
+    
+    $('#patientName').text(patient.name || 'N/A');
+    $('#patientIC').text(patient.ic_number || 'N/A');
+    $('#patientGender').text(patient.gender || 'N/A');
+    $('#patientBloodType').text(patient.blood_type || 'N/A');
+    $('#patientContact').text(patient.contact_number || 'N/A');
+    $('#patientEmail').text(patient.email || 'N/A');
+    $('#patientAddress').text(patient.address || 'N/A');
+    $('#patientEmergencyContact').text(patient.emergency_contact || 'N/A');
   }
 </script>
 

@@ -1,10 +1,14 @@
+@php
+    $currentUserRole = auth()->user()->role;
+@endphp
+
 <!-- Beds Modal -->
-<div class="modal fade" id="bedsModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="bedsModal" tabindex="-1" aria-labelledby="bedsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Room Beds</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="bedsModalLabel">Room Beds</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <!-- Search Box -->
@@ -13,7 +17,8 @@
                         <input type="text" 
                                id="roomPatientSearch" 
                                class="form-control"
-                               placeholder="Search patients in this room...">
+                               placeholder="Search patients in this room..."
+                               aria-label="Search patients">
                         <span class="input-group-text">
                             <i class="bi bi-search"></i>
                         </span>
@@ -21,14 +26,14 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>Bed Number</th>
-                                <th>Status</th>
-                                <th>Patient</th>
-                                <th>Patient Details</th>
-                                <th>Actions</th>
+                                <th scope="col">Bed Number</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Patient</th>
+                                <th scope="col">Patient Details</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="bedsTableBody">
@@ -44,47 +49,94 @@
     </div>
 </div>
 
+<div class="d-none">
+    Current User Role: {{ $currentUserRole }}
+</div>
+
 @include('nurseAdmin.editBeds')
 
 <script>
+console.log('Current User Role:', '{{ $currentUserRole }}');
+
 let currentRoomId = null;
-let allBedsData = []; // Store all beds data
-let patientCache = new Map(); // Store patient data
+let allBedsData = [];
 let currentBedId = null;
 let currentBedStatus = null;
 
 function showBeds(roomId) {
     currentRoomId = roomId;
     
-    fetch(`/nurseadmin/rooms/${roomId}/beds`, {
+    // Show loading state
+    const tableBody = document.getElementById('bedsTableBody');
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="5" class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    // Show the modal while loading
+    $('#bedsModal').modal('show');
+    
+    // Fetch beds data with proper headers
+    fetch(`/api/rooms/${roomId}/beds`, {
         method: 'GET',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
+        },
+        credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(async response => {
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error('Response Error:', {
+                status: response.status,
+                data: data,
+                userRole: '{{ $currentUserRole }}'
+            });
+            
+            if (response.status === 403) {
+                throw new Error(`Access Denied. Your role (${data.debug?.user_role}) does not have permission. Required roles: ${data.debug?.required_roles?.join(', ')}`);
+            } else if (response.status === 401) {
+                throw new Error('Please log in to view bed details');
+            }
+            throw new Error(data.message || 'Failed to load beds');
+        }
+        return data;
+    })
     .then(data => {
         if (data.success) {
-            allBedsData = data.beds; // Store the beds data
-            updateBedsTable(allBedsData); // Show all beds initially
-            $('#bedsModal').modal('show'); // Show the modal
+            allBedsData = data.beds;
+            updateBedsTable(allBedsData);
         } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.message || 'Failed to fetch beds'
-            });
+            throw new Error(data.message || 'Failed to fetch beds');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to fetch beds'
-        });
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center">
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        ${error.message}
+                        ${error.debug ? `<br><small class="text-muted">${JSON.stringify(error.debug)}</small>` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+        
+        if (error.message.includes('Please log in')) {
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        }
     });
 }
 
@@ -92,10 +144,15 @@ function updateBedsTable(beds) {
     const tableBody = document.getElementById('bedsTableBody');
     tableBody.innerHTML = '';
     
-    if (beds.length === 0) {
+    if (!beds || beds.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center">No matching patients found</td>
+                <td colspan="5" class="text-center">
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        No beds found in this room
+                    </div>
+                </td>
             </tr>
         `;
         return;
@@ -104,135 +161,143 @@ function updateBedsTable(beds) {
     beds.forEach(bed => {
         const row = document.createElement('tr');
         
-        const statusClass = {
-            'available': 'bg-success',
-            'occupied': 'bg-warning',
-            'maintenance': 'bg-danger'
-        }[bed.status] || 'bg-secondary';
+        // Get status badge class
+        const statusBadgeClass = getStatusBadgeClass(bed.status);
         
-        // Check cache first
-        if (bed.patient_id && patientCache.has(bed.patient_id)) {
-            const patientData = patientCache.get(bed.patient_id);
-            updateRowWithPatientData(row, bed, patientData, statusClass);
-            tableBody.appendChild(row);
-        } else if (bed.patient_id) {
-            // Fetch and cache patient details if not in cache
-            fetch(`/api/patients/${bed.patient_id}`)
-                .then(response => response.json())
-                .then(patientData => {
-                    if (patientData) {
-                        patientCache.set(bed.patient_id, patientData);
-                    }
-                    updateRowWithPatientData(row, bed, patientData, statusClass);
-                })
-                .catch(error => {
-                    console.error('Error fetching patient details:', error);
-                    updateRowWithError(row, bed, statusClass);
-                });
-            tableBody.appendChild(row);
-        } else {
-            updateRowWithPatientData(row, bed, null, statusClass);
-            tableBody.appendChild(row);
-        }
+        // Create row content with patient data if available
+        row.innerHTML = `
+            <td>Bed ${bed.bed_number}</td>
+            <td>
+                <span class="badge ${statusBadgeClass} text-white">
+                    ${capitalizeFirst(bed.status)}
+                </span>
+            </td>
+            <td class="patient-name-cell" data-bed-id="${bed.id}">
+                ${bed.status === 'occupied' && bed.patient ? 
+                    `<div class="fw-medium">${bed.patient.name}</div>
+                     <small class="text-muted">${bed.patient.ic_number || 'No IC'}</small>` : 
+                    '<span class="text-muted">No patient</span>'}
+            </td>
+            <td class="patient-details-cell" data-bed-id="${bed.id}">
+                ${bed.status === 'occupied' && bed.patient ? 
+                    `<div class="small">
+                        <div><strong>Gender:</strong> ${bed.patient.gender || 'N/A'}</div>
+                        <div><strong>Blood Type:</strong> ${bed.patient.blood_type || 'N/A'}</div>
+                        <div><strong>Contact:</strong> ${bed.patient.contact_number || 'N/A'}</div>
+                     </div>` : 
+                    '-'}
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary me-1" 
+                        onclick="editBedStatus(${bed.id}, '${bed.status}')"
+                        title="Edit bed">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                ${bed.status === 'occupied' ? `
+                    <button class="btn btn-sm btn-outline-danger"
+                            onclick="dischargeBed(${bed.id})"
+                            title="Discharge patient">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                ` : ''}
+            </td>
+        `;
+        
+        tableBody.appendChild(row);
     });
 }
 
-// Helper function to update row with patient data
-function updateRowWithPatientData(row, bed, patientData, statusClass) {
-    row.innerHTML = `
-        <td>Bed ${bed.bed_number}</td>
-        <td>
-            <span class="badge ${statusClass}">${bed.status}</span>
-        </td>
-        <td>
-            ${(() => {
-                if (bed.status !== 'occupied') {
-                    return '<span class="text-muted">No patient </span>';
-                }
-                return patientData ? 
-                    patientData.name : 
-                    '<span class="text-warning">Loading patient data...</span>';
-            })()}
-        </td>
-        <td>
-            ${bed.status === 'occupied' ? 
-                (patientData ? `
-                    <small>
-                        <strong>IC:</strong> ${patientData.ic_number || 'N/A'}<br>
-                        <strong>Contact:</strong> ${patientData.contact_number || 'N/A'}<br>
-                        <strong>Blood Type:</strong> ${patientData.blood_type || 'N/A'}
-                    </small>
-                ` : '-')
-                : '-'
+function fetchPatientDetails(patientId, bedId) {
+    fetch(`/api/patients/${patientId}`)
+        .then(response => response.json())
+        .then(patient => {
+            if (patient && !patient.error) {
+                updatePatientCells(bedId, patient);
+            } else {
+                throw new Error(patient.error || 'Patient not found');
             }
-        </td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary me-1" 
-                    onclick="editBedStatus(${bed.id}, '${bed.status}')"
-                    ${bed.status === 'occupied'}>
-                <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger" 
-                    onclick="deleteBed(${bed.id})"
-                    ${bed.status === 'occupied'}>
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
+        })
+        .catch(error => {
+            console.error('Error fetching patient details:', error);
+            updatePatientCells(bedId, null, true);
+        });
+}
+
+function updatePatientCells(bedId, patient, error = false) {
+    const nameCell = document.querySelector(`.patient-name-cell[data-bed-id="${bedId}"]`);
+    const detailsCell = document.querySelector(`.patient-details-cell[data-bed-id="${bedId}"]`);
+    
+    if (error) {
+        nameCell.innerHTML = '<span class="text-danger">Error loading patient</span>';
+        detailsCell.innerHTML = '<span class="text-danger">Error loading details</span>';
+        return;
+    }
+    
+    if (!patient) {
+        nameCell.innerHTML = '<span class="text-muted">No patient data</span>';
+        detailsCell.innerHTML = '-';
+        return;
+    }
+    
+    // Update name cell
+    nameCell.innerHTML = `
+        <div class="fw-medium">${patient.name}</div>
+        <small class="text-muted">${patient.ic_number || 'No IC'}</small>
+    `;
+    
+    // Update details cell
+    detailsCell.innerHTML = `
+        <div class="small">
+            <div><strong>Gender:</strong> ${patient.gender || 'N/A'}</div>
+            <div><strong>Blood Type:</strong> ${patient.blood_type || 'N/A'}</div>
+            <div><strong>Contact:</strong> ${patient.contact_number || 'N/A'}</div>
+        </div>
     `;
 }
 
-// Helper function to update row with error message
-function updateRowWithError(row, bed, statusClass) {
-    row.innerHTML = `
-        <td>Bed ${bed.bed_number}</td>
-        <td>
-            <span class="badge ${statusClass}">${bed.status}</span>
-        </td>
-        <td colspan="2">
-            <span class="text-danger">Error loading patient details</span>
-        </td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary me-1" 
-                    onclick="editBedStatus(${bed.id}, '${bed.status}')"
-                    ${bed.status === 'occupied'}>
-                <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger" 
-                    onclick="deleteBed(${bed.id})"
-                    ${bed.status === 'occupied'}>
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    `;
+function getStatusBadgeClass(status) {
+    const classes = {
+        'available': 'bg-success',
+        'occupied': 'bg-warning',
+        'maintenance': 'bg-danger',
+        'cleaning': 'bg-info',
+        'repair': 'bg-secondary'
+    };
+    return classes[status] || 'bg-secondary';
 }
 
-// Search using cached data
+function capitalizeFirst(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// Search functionality
 document.getElementById('roomPatientSearch').addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
     
-    if (searchTerm === '') {
+    if (!searchTerm) {
         updateBedsTable(allBedsData);
         return;
     }
     
     const filteredBeds = allBedsData.filter(bed => {
-        if (!bed.patient_id || bed.status !== 'occupied') return false;
+        // Include bed number in search
+        if ((`bed ${bed.bed_number}`).toLowerCase().includes(searchTerm)) {
+            return true;
+        }
         
-        const patientData = patientCache.get(bed.patient_id);
-        if (!patientData) return false;
+        // If bed is occupied, search through patient details
+        if (bed.status === 'occupied' && bed.patient) {
+            const patient = bed.patient;
+            return (
+                patient.name?.toLowerCase().includes(searchTerm) ||
+                patient.ic_number?.toLowerCase().includes(searchTerm) ||
+                patient.gender?.toLowerCase().includes(searchTerm) ||
+                patient.blood_type?.toLowerCase().includes(searchTerm) ||
+                patient.contact_number?.toLowerCase().includes(searchTerm)
+            );
+        }
         
-        return (
-            String('Bed ' + bed.bed_number)?.toLowerCase().includes(searchTerm) ||
-            patientData.name?.toLowerCase().includes(searchTerm) ||
-            patientData.staff_id?.toLowerCase().includes(searchTerm) ||
-            patientData.gender?.toLowerCase().includes(searchTerm) ||
-            patientData.email?.toLowerCase().includes(searchTerm) ||
-            patientData.ic_number?.toLowerCase().includes(searchTerm) ||
-            patientData.address?.toLowerCase().includes(searchTerm) ||
-            patientData.blood_type?.toLowerCase().includes(searchTerm) ||
-            patientData.contact_number?.toLowerCase().includes(searchTerm) ||
-            patientData.emergency_contact?.toLowerCase().includes(searchTerm)
-        );
+        return false;
     });
     
     updateBedsTable(filteredBeds);
@@ -244,121 +309,7 @@ $('#bedsModal').on('hidden.bs.modal', function () {
     updateBedsTable(allBedsData);
 });
 
-function editBedStatus(bedId, status) {
-    currentBedId = bedId;
-    currentBedStatus = status;
-    
-    const editModal = new bootstrap.Modal(document.getElementById('editBedModal'));
-    
-    // Reset all sections
-    $('#availableBedOptions').hide();
-    $('#occupiedBedOptions').hide();
-    $('#maintenanceBedOptions').hide();
-
-    // Show/hide appropriate sections based on bed status
-    if (status === 'available') {
-        $('#availableBedOptions').show();
-        loadUnassignedPatients(); // Load patients for available beds
-    } else if (status === 'occupied') {
-        $('#occupiedBedOptions').show();
-        loadAvailableRooms(); // Load rooms for occupied beds
-    } else if (status === 'maintenance') {
-        $('#maintenanceBedOptions').show();
-        loadUnassignedPatients(); // Load patients for maintenance
-        // Optionally load all beds or specific beds if needed
-    }
-
-    editModal.show();
-}
-
-function loadUnassignedPatients() {
-    fetch('/api/patients/unassigned')
-        .then(response => response.json())
-        .then(patients => {
-            const select = document.getElementById('patientSelect');
-            select.innerHTML = patients.map(patient => 
-                `<option value="${patient.id}">${patient.name} (${patient.ic_number})</option>`
-            ).join('');
-        });
-}
-
-function loadAvailableRooms() {
-    fetch('/api/rooms/available')
-        .then(response => response.json())
-        .then(rooms => {
-            const select = document.getElementById('roomSelect');
-            select.innerHTML = rooms.map(room => 
-                `<option value="${room.id}">Room ${room.room_number}</option>`
-            ).join('');
-        });
-}
-
-// Load available beds when room is selected
-document.getElementById('roomSelect')?.addEventListener('change', function(e) {
-    const roomId = e.target.value;
-    const bedSelect = document.getElementById('bedSelect');
-    
-    if (!roomId) {
-        bedSelect.disabled = true;
-        bedSelect.innerHTML = '<option value="">Select room first</option>';
-        return;
-    }
-    
-    fetch(`/api/rooms/${roomId}/available-beds`)
-        .then(response => response.json())
-        .then(beds => {
-            bedSelect.innerHTML = beds.map(bed => 
-                `<option value="${bed.id}">Bed ${bed.bed_number}</option>`
-            ).join('');
-            bedSelect.disabled = false;
-        });
-});
-
-function saveBedChanges() {
-    const action = currentBedStatus === 'available' 
-        ? document.getElementById('availableActionSelect').value
-        : document.getElementById('occupiedActionSelect').value;
-    
-    let data = {
-        bed_id: currentBedId,
-        action: action
-    };
-    
-    if (action === 'assign') {
-        data.patient_id = document.getElementById('patientSelect').value;
-    } else if (action === 'transfer') {
-        data.new_bed_id = document.getElementById('bedSelect').value;
-    }
-    
-    fetch('/api/beds/manage', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success',
-                text: result.message
-            });
-            $('#editBedModal').modal('hide');
-            showBeds(currentRoomId); // Refresh the beds table
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: result.message
-            });
-        }
-    });
-}
-
-function deleteBed(bedId) {
+function dischargeBed(bedId) {
     Swal.fire({
         title: 'Discharge Patient?',
         text: 'This will discharge the patient and set the bed to maintenance for cleaning.',
@@ -386,61 +337,48 @@ function deleteBed(bedId) {
                     });
                     showBeds(currentRoomId); // Refresh the beds table
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: result.message
-                    });
+                    throw new Error(result.message);
                 }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to discharge patient'
+                });
             });
         }
     });
 }
 
-function changeBedStatus(bedId, newStatus, notes) {
-    const data = {
-        bed_id: bedId,
-        status: newStatus,
-        notes: notes // Optional notes for the status change
-    };
-
-    fetch('/api/beds/change-status', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.text().then(text => { throw new Error(text); });
-        }
-        return response.json();
-    })
-    .then(result => {
-        if (result.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Success',
-                text: 'Bed status updated to available successfully!'
-            });
-            showBeds(currentRoomId); // Refresh the beds table
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: result.message
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error updating bed status:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to update bed status: ' + error.message
-        });
-    });
+function editBedStatus(bedId, status) {
+    currentBedId = bedId;
+    currentBedStatus = status;
+    $('#editBedModal').modal('show');
 }
 </script>
+
+<style>
+.badge {
+    font-size: 0.875rem;
+    padding: 0.4em 0.8em;
+}
+
+.patient-name-cell {
+    min-width: 200px;
+}
+
+.patient-details-cell {
+    min-width: 250px;
+}
+
+.table > :not(caption) > * > * {
+    padding: 1rem 0.75rem;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+</style>

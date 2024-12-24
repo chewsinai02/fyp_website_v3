@@ -789,4 +789,16 @@ class NurseAdminDashboardController extends Controller
             ]
         };
     }
+
+    public function getNurseDetails(User $nurse)
+    {
+        $currentRoom = $nurse->currentRoom();
+        $assignedRooms = $nurse->assignedRooms();
+        
+        return response()->json([
+            'nurse' => $nurse,
+            'current_room' => $currentRoom,
+            'rooms' => $assignedRooms
+        ]);
+    }
 }

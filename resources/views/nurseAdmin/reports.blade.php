@@ -23,9 +23,11 @@
         </div>
         <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <h6 class="text-muted mb-3">Nurse Workload</h6>
-                    <canvas id="nurseChart"></canvas>
+                    <div class="flex-grow-1">
+                        <canvas id="nurseChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -129,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             scales: {
                 y: {
                     beginAtZero: true

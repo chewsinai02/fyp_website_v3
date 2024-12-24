@@ -8,19 +8,39 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <style>
+    body {
+        overflow-x: hidden;
+        overflow-y: hidden;
+    }
+
+    .content-wrapper {
+        height: calc(100vh - 60px);
+        overflow: hidden;
+        padding: 1rem;
+        max-width: 100%;
+    }
+
     .calendar-container {
         background: white;
         border-radius: 20px;
         box-shadow: 0 12px 36px rgba(0, 0, 0, 0.1);
-        margin: 20px;
-        padding: 20px;
+        margin: 0;
+        padding: 15px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        width: 100%;
     }
 
     .calendar-header {
-        background: #ffffff;
-        padding: 2rem;
-        border-radius: 20px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: white;
+        margin: 0 0 15px 0;
+        padding: 15px;
+        flex-shrink: 0;
     }
 
     .header-content {
@@ -43,7 +63,7 @@
         align-items: center;
         justify-content: flex-end;
         gap: 1rem;
-        padding: 1rem;
+        padding: 0.5rem;
     }
 
     .nav-group {
@@ -201,12 +221,13 @@
     .add-schedule-btn {
         background: rgba(255, 255, 255, 0.2);
         border: none;
-        padding: 8px 16px;
+        padding: 4px 8px;
         border-radius: 8px;
         color: white;
         cursor: pointer;
         transition: all 0.2s;
         margin-left: 10px;
+        font-size: 0.8rem;
     }
 
     .add-schedule-btn:hover {
@@ -216,8 +237,8 @@
 
     .calendar-table {
         background: white;
-        margin: 20px;
-        padding: 20px;
+        margin: 0;
+        min-width: 800px;
     }
 
     .calendar-table {
@@ -232,9 +253,9 @@
     }
 
     .calendar-table td {
-        height: 120px;
+        height: 100px;
         width: 14.28%;
-        padding: 8px;
+        padding: 5px;
         vertical-align: top;
         border: 1px solid #dee2e6;
     }
@@ -264,10 +285,10 @@
     }
 
     .schedule-item {
-        padding: 6px 8px;
+        padding: 4px 6px;
         border-radius: 4px;
-        margin-bottom: 5px;
-        font-size: 0.85rem;
+        margin-bottom: 3px;
+        font-size: 0.8rem;
         cursor: pointer;
         transition: all 0.2s;
     }
@@ -342,9 +363,9 @@
 
     /* Badge and text styling */
     .badge {
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         font-weight: 500;
-        padding: 0.5rem 1rem;
+        padding: 0.25rem 0.5rem;
     }
 
     .badge a.nurse-name {
@@ -391,8 +412,8 @@
 
     .badge {
         text-decoration: none !important;
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
         font-weight: 500;
     }
 
@@ -413,6 +434,138 @@
 
     .text-dark {
         color: #212529 !important;
+    }
+
+    /* Make table header sticky */
+    .calendar-table thead tr th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: #212529;
+    }
+
+    /* Adjust cell heights */
+    .calendar-table td {
+        height: 100px;
+        padding: 5px;
+    }
+
+    /* Make schedule items more compact */
+    .schedule-item {
+        padding: 4px 6px;
+        margin-bottom: 3px;
+        font-size: 0.8rem;
+    }
+
+    /* Adjust add schedule button */
+    .add-schedule-btn {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+
+    /* Make badges more compact */
+    .badge {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    /* Adjust navigation buttons container */
+    .nav-buttons {
+        padding: 0.5rem;
+    }
+
+    /* Make modals more compact on smaller screens */
+    @media (max-width: 768px) {
+        .content-wrapper {
+            padding: 0.5rem;
+        }
+
+        .calendar-container {
+            padding: 10px;
+        }
+
+        .calendar-header {
+            padding: 10px;
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+        }
+
+        .calendar-table td {
+            height: 80px;
+        }
+
+        .modal-dialog {
+            margin: 0.5rem;
+        }
+    }
+
+    .table-responsive {
+        flex: 1;
+        overflow: auto;
+        min-height: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .calendar-table {
+        margin: 0;
+        width: 100% !important;
+        min-width: unset !important;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    .calendar-table td,
+    .calendar-table th {
+        width: 14.28% !important;
+        min-width: unset !important;
+        padding: 5px;
+        word-wrap: break-word;
+        overflow: hidden;
+    }
+
+    .schedule-item {
+        padding: 3px 5px;
+        margin-bottom: 2px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        display: block;
+    }
+
+    .calendar-table thead th {
+        font-size: 0.9rem;
+        padding: 8px 4px;
+        white-space: nowrap;
+    }
+
+    .calendar-table {
+        min-width: unset !important;
+        max-width: 100% !important;
+    }
+
+    .calendar-date span {
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+        .calendar-table td {
+            padding: 3px;
+        }
+
+        .schedule-item {
+            font-size: 0.7rem;
+            padding: 2px 4px;
+        }
+
+        .calendar-date span {
+            font-size: 0.8rem;
+        }
     }
 </style>
 @endsection
@@ -467,92 +620,94 @@
     $nurseColors = session('nurseColors');
 @endphp
 
-<div class="calendar-container">
-    <div class="calendar-header">
-        <div class="header-content">
-            <h2 class="header-title">{{ $date->format('F Y') }}</h2>
-            
+<div class="content-wrapper">
+    <div class="calendar-container">
+        <div class="calendar-header">
+            <div class="header-content">
+                <h2 class="header-title">{{ $date->format('F Y') }}</h2>
+                
+            </div>
         </div>
-    </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered calendar-table">
-            <thead>
-                <tr>
-                    <td colspan="7">
-                        <div class="nav-buttons text-end">
-                            <button class="btn btn-sm btn-outline-primary" id="prev"><i class="fa-solid fa-chevron-left"></i></button>
-                            <button class="btn btn-sm btn-outline-primary" id="today" style="font-size: 0.9rem;height: 2.5rem;">Today</button>
-                            <button class="btn btn-sm btn-outline-primary" id="next"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="btn btn-sm btn-outline-primary add-schedule-btn" data-bs-toggle="modal" data-bs-target="#addEventModal"><i class="fa-solid fa-plus"></i></button>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="text-center">
-                    <th class="text-center bg-dark text-white">Sunday</th>
-                    <th class="text-center bg-dark text-white">Monday</th>
-                    <th class="text-center bg-dark text-white">Tuesday</th>
-                    <th class="text-center bg-dark text-white">Wednesday</th>
-                    <th class="text-center bg-dark text-white">Thursday</th>
-                    <th class="text-center bg-dark text-white">Friday</th>
-                    <th class="text-center bg-dark text-white">Saturday</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php
-                    $currentDate = $startDate->copy();
-                @endphp
-
-                @while ($currentDate <= $endDate)
-                    @if ($currentDate->dayOfWeek === 0)
-                        <tr>
-                    @endif
-
-                    <td class="{{ $currentDate->month !== $date->month ? 'other-month' : '' }} 
-                               {{ $currentDate->isToday() ? 'current-day' : '' }}">
-                        <div class="calendar-date">
-                            <span>{{ $currentDate->day }}</span>
-                        </div>
-                        <div class="schedule-container">
-                            @foreach($initialSchedules ?? [] as $schedule)
-                                @if(Carbon\Carbon::parse($schedule->date)->format('Y-m-d') === $currentDate->format('Y-m-d'))
-                                    <div class="badge rounded-pill bg-{{ $nurseColors[$schedule->nurse->id] ?? 'light' }} schedule-item {{ $schedule->shift }}-shift" data-schedule-id="{{ $schedule->id }}" style="cursor: pointer;">
-                                        <span class="nurse-name" data-bs-toggle="modal" data-bs-target="#scheduleDetailsModal">
-                                            {{ optional($schedule->nurse)->name }}
-                                            <span class="shift-badge {{ $schedule->shift }}">
-                                                ({{ ucfirst($schedule->shift) }})
-                                            </span>
-                                        </span>
-                                        <div class="schedule-details" style="display: none;">
-                                            <span class="shift-badge {{ $schedule->shift }}">
-                                                {{ ucfirst($schedule->shift) }}
-                                            </span>
-                                            <span class="room-badge">
-                                                Room {{ optional($schedule->room)->room_number }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                @endif
-                            @endforeach
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary add-schedule-btn m-1"
-                                data-date="{{ $currentDate->format('Y-m-d') }}"
-                                data-bs-toggle="modal"
-                                data-bs-target="#addEventModal">
-                            +
-                        </button>
-                    </td>
-
-                    @if ($currentDate->dayOfWeek === 6)
-                        </tr>
-                    @endif
-
+        <div class="table-responsive">
+            <table class="table table-bordered calendar-table">
+                <thead>
+                    <tr>
+                        <td colspan="7">
+                            <div class="nav-buttons text-end">
+                                <button class="btn btn-sm btn-outline-primary" id="prev"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button class="btn btn-sm btn-outline-primary" id="today" style="font-size: 0.9rem;height: 2.5rem;">Today</button>
+                                <button class="btn btn-sm btn-outline-primary" id="next"><i class="fa-solid fa-chevron-right"></i></button>
+                                <button class="btn btn-sm btn-outline-primary add-schedule-btn" data-bs-toggle="modal" data-bs-target="#addEventModal"><i class="fa-solid fa-plus"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="text-center">
+                        <th class="text-center bg-dark text-white">Sunday</th>
+                        <th class="text-center bg-dark text-white">Monday</th>
+                        <th class="text-center bg-dark text-white">Tuesday</th>
+                        <th class="text-center bg-dark text-white">Wednesday</th>
+                        <th class="text-center bg-dark text-white">Thursday</th>
+                        <th class="text-center bg-dark text-white">Friday</th>
+                        <th class="text-center bg-dark text-white">Saturday</th>
+                    </tr>
+                </thead>
+                <tbody>
                     @php
-                        $currentDate->addDay();
+                        $currentDate = $startDate->copy();
                     @endphp
-                @endwhile
-            </tbody>
-        </table>
+
+                    @while ($currentDate <= $endDate)
+                        @if ($currentDate->dayOfWeek === 0)
+                            <tr>
+                        @endif
+
+                        <td class="{{ $currentDate->month !== $date->month ? 'other-month' : '' }} 
+                                   {{ $currentDate->isToday() ? 'current-day' : '' }}">
+                            <div class="calendar-date">
+                                <span>{{ $currentDate->day }}</span>
+                            </div>
+                            <div class="schedule-container">
+                                @foreach($initialSchedules ?? [] as $schedule)
+                                    @if(Carbon\Carbon::parse($schedule->date)->format('Y-m-d') === $currentDate->format('Y-m-d'))
+                                        <div class="badge rounded-pill bg-{{ $nurseColors[$schedule->nurse->id] ?? 'light' }} schedule-item {{ $schedule->shift }}-shift" data-schedule-id="{{ $schedule->id }}" style="cursor: pointer;">
+                                            <span class="nurse-name" data-bs-toggle="modal" data-bs-target="#scheduleDetailsModal">
+                                                {{ optional($schedule->nurse)->name }}
+                                                <span class="shift-badge {{ $schedule->shift }}">
+                                                    ({{ ucfirst($schedule->shift) }})
+                                                </span>
+                                            </span>
+                                            <div class="schedule-details" style="display: none;">
+                                                <span class="shift-badge {{ $schedule->shift }}">
+                                                    {{ ucfirst($schedule->shift) }}
+                                                </span>
+                                                <span class="room-badge">
+                                                    Room {{ optional($schedule->room)->room_number }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary add-schedule-btn m-1"
+                                    data-date="{{ $currentDate->format('Y-m-d') }}"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#addEventModal">
+                                +
+                            </button>
+                        </td>
+
+                        @if ($currentDate->dayOfWeek === 6)
+                            </tr>
+                        @endif
+
+                        @php
+                            $currentDate->addDay();
+                        @endphp
+                    @endwhile
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -821,10 +976,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Show event details
+    // Schedule Details Modal
     $(document).on('click', '.schedule-item', function() {
         const scheduleId = $(this).data('schedule-id');
-        // Make an AJAX call to get schedule details
         $.ajax({
             url: `/calendar/schedule/${scheduleId}`,
             type: 'GET',
@@ -836,50 +990,54 @@ document.addEventListener('DOMContentLoaded', function() {
                 $('#modalStatus').text(schedule.status ? schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1) : 'Pending');
                 $('#modalNotes').text(schedule.notes || 'No notes');
                 
+                // Store the schedule data for week/month assignment
+                window.selectedSchedule = schedule;
+                
                 const modal = new bootstrap.Modal(document.getElementById('scheduleDetailsModal'));
                 modal.show();
-            },
-            error: function() {
-                toastr.error('Failed to load schedule details');
             }
         });
     });
-});
 
-$(document).ready(function() {
-    // Weekly Assignment
+    // Week Assignment Button
     $('#assignWeek').click(function() {
+        if (!window.selectedSchedule) {
+            toastr.error('Please select a schedule first');
+            return;
+        }
+
         Swal.fire({
             title: 'Weekly Schedule Assignment',
             html: `
                 <form id="weeklyAssignForm" class="text-start">
                     <div class="mb-3">
                         <label class="form-label">Nurse</label>
-                        <select class="form-select" id="weeklyNurse" required>
-                            @foreach($nurses as $nurse)
-                                <option value="{{ $nurse->id }}">{{ $nurse->name }}</option>
-                            @endforeach
+                        <select class="form-select" id="weeklyNurse" required disabled>
+                            <option value="${window.selectedSchedule.nurse.id}" selected>
+                                ${window.selectedSchedule.nurse.name}
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Room</label>
-                        <select class="form-select" id="weeklyRoom" required>
-                            @foreach($rooms as $room)
-                                <option value="{{ $room->id }}">Room {{ $room->room_number }}</option>
-                            @endforeach
+                        <select class="form-select" id="weeklyRoom" required disabled>
+                            <option value="${window.selectedSchedule.room.id}" selected>
+                                Room ${window.selectedSchedule.room.room_number}
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Shift</label>
-                        <select class="form-select" id="weeklyShift" required>
-                            <option value="morning">Morning (7AM - 3PM)</option>
-                            <option value="evening">Evening (3PM - 11PM)</option>
-                            <option value="night">Night (11PM - 7AM)</option>
+                        <select class="form-select" id="weeklyShift" required disabled>
+                            <option value="${window.selectedSchedule.shift}" selected>
+                                ${window.selectedSchedule.shift.charAt(0).toUpperCase() + window.selectedSchedule.shift.slice(1)}
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Week Starting From</label>
-                        <input type="date" class="form-control" id="weekStartDate" required>
+                        <input type="date" class="form-control" id="weekStartDate" required 
+                               value="${window.selectedSchedule.date}">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Select Rest Days</label>
@@ -896,105 +1054,75 @@ $(document).ready(function() {
                         </div>
                         <small class="text-danger">* At least one rest day required</small>
                     </div>
-                </form>`,
+                </form>
+            `,
             showCancelButton: true,
             confirmButtonText: 'Assign Schedule',
-            cancelButtonText: 'Cancel',
             didOpen: () => {
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById('weekStartDate').min = today;
-            },
-            preConfirm: () => {
-                const restDays = $('.weekly-rest-day:checked').length;
-                if (restDays === 0) {
-                    Swal.showValidationMessage('Please select at least one rest day');
-                    return false;
-                }
-                return true;
             }
         }).then((result) => {
             if (result.isConfirmed) {
                 const formData = {
-                    nurse_id: $('#weeklyNurse').val(),
-                    room_id: $('#weeklyRoom').val(),
-                    shift: $('#weeklyShift').val(),
+                    nurse_id: window.selectedSchedule.nurse.id,
+                    room_id: window.selectedSchedule.room.id,
+                    shift: window.selectedSchedule.shift,
                     start_date: $('#weekStartDate').val(),
                     rest_days: $('.weekly-rest-day:checked').map(function() {
                         return parseInt($(this).val());
                     }).get()
                 };
 
-                // Add console.log for debugging
-                console.log('Sending formData:', formData);
-
-                // Send AJAX request
                 $.ajax({
                     url: '/nurseadmin/schedules/assign-week',
                     type: 'POST',
                     data: formData,
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
                     success: function(response) {
-                        console.log('Success response:', response);
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success!',
-                                text: 'Weekly schedule has been assigned successfully',
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                window.location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error!',
-                                text: response.message
-                            });
-                        }
+                        Swal.fire('Success', 'Weekly schedule assigned successfully', 'success')
+                            .then(() => window.location.reload());
                     },
-                    error: function(xhr, status, error) {
-                        console.error('Error details:', {xhr, status, error});
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: xhr.responseJSON?.message || 'Failed to assign weekly schedule'
-                        });
+                    error: function(xhr) {
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to assign schedule', 'error');
                     }
                 });
             }
         });
     });
 
-    // Monthly Assignment
+    // Month Assignment Button
     $('#assignMonth').click(function() {
+        if (!window.selectedSchedule) {
+            toastr.error('Please select a schedule first');
+            return;
+        }
+
         Swal.fire({
             title: 'Monthly Schedule Assignment',
             html: `
                 <form id="monthlyAssignForm" class="text-start">
                     <div class="mb-3">
                         <label class="form-label">Nurse</label>
-                        <select class="form-select" id="monthlyNurse" required>
-                            @foreach($nurses as $nurse)
-                                <option value="{{ $nurse->id }}">{{ $nurse->name }}</option>
-                            @endforeach
+                        <select class="form-select" id="monthlyNurse" required disabled>
+                            <option value="${window.selectedSchedule.nurse.id}" selected>
+                                ${window.selectedSchedule.nurse.name}
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Room</label>
-                        <select class="form-select" id="monthlyRoom" required>
-                            @foreach($rooms as $room)
-                                <option value="{{ $room->id }}">Room {{ $room->room_number }}</option>
-                            @endforeach
+                        <select class="form-select" id="monthlyRoom" required disabled>
+                            <option value="${window.selectedSchedule.room.id}" selected>
+                                Room ${window.selectedSchedule.room.room_number}
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Shift</label>
-                        <select class="form-select" id="monthlyShift" required>
-                            <option value="morning">Morning (7AM - 3PM)</option>
-                            <option value="evening">Evening (3PM - 11PM)</option>
-                            <option value="night">Night (11PM - 7AM)</option>
+                        <select class="form-select" id="monthlyShift" required disabled>
+                            <option value="${window.selectedSchedule.shift}" selected>
+                                ${window.selectedSchedule.shift.charAt(0).toUpperCase() + window.selectedSchedule.shift.slice(1)}
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -1016,59 +1144,37 @@ $(document).ready(function() {
                         </div>
                         <small class="text-danger">* At least one rest day per week required</small>
                     </div>
-                </form>`,
+                </form>
+            `,
             showCancelButton: true,
             confirmButtonText: 'Assign Schedule',
-            cancelButtonText: 'Cancel',
             didOpen: () => {
                 const today = new Date();
                 const minMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
                 document.getElementById('monthSelect').min = minMonth;
-            },
-            preConfirm: () => {
-                const restDays = $('.monthly-rest-day:checked').length;
-                if (restDays === 0) {
-                    Swal.showValidationMessage('Please select at least one rest day per week');
-                    return false;
-                }
-                return true;
             }
         }).then((result) => {
             if (result.isConfirmed) {
                 const formData = {
-                    nurse_id: $('#monthlyNurse').val(),
-                    room_id: $('#monthlyRoom').val(),
-                    shift: $('#monthlyShift').val(),
+                    nurse_id: window.selectedSchedule.nurse.id,
+                    room_id: window.selectedSchedule.room.id,
+                    shift: window.selectedSchedule.shift,
                     month: $('#monthSelect').val(),
                     rest_days: $('.monthly-rest-day:checked').map(function() {
-                        return $(this).val();
+                        return parseInt($(this).val());
                     }).get()
                 };
 
-                // Send AJAX request
                 $.ajax({
                     url: '/nurseadmin/schedules/assign-month',
                     type: 'POST',
                     data: formData,
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
                     success: function(response) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: 'Monthly schedule has been assigned successfully',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            window.location.reload();
-                        });
+                        Swal.fire('Success', 'Monthly schedule assigned successfully', 'success')
+                            .then(() => window.location.reload());
                     },
                     error: function(xhr) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: xhr.responseJSON?.message || 'Failed to assign monthly schedule'
-                        });
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to assign schedule', 'error');
                     }
                 });
             }

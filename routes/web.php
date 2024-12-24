@@ -280,7 +280,9 @@ Route::middleware(['auth', 'role:nurse_admin'])->group(function () {
     //calander
     Route::get('full-calendar', [CalendarController::class, 'index'])->name('full-calendar');
     Route::post('full-calendar/action', [CalendarController::class, 'action'])->name('full-calendar.action');
-    Route::get('/calendar/schedule/{id}', [CalendarController::class, 'getSchedule'])->name('calendar.getSchedule');
+    Route::get('/calendar/schedule/{id}', [CalendarController::class, 'getSchedule'])->name('calendar.getSchedule'); 
+    Route::get('/nurseadmin/nurse/{nurse}/details', [NurseAdminDashboardController::class, 'getNurseDetails'])
+    ->name('nurseadmin.nurse.details'); 
     Route::post('nurseadmin/schedules/assign-week', [CalendarController::class, 'assignWeek'])->name('nurseadmin.schedules.assign-week');
     Route::post('/nurseadmin/schedules/assign-month', [CalendarController::class, 'assignMonth'])->name('nurseadmin.schedules.assign-month');
     Route::delete('/schedules/{id}', [CalendarController::class, 'destroy'])->name('schedules.destroy');
