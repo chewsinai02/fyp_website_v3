@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoomManagementController;
 use App\Http\Controllers\BedController;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,4 +60,22 @@ Route::get('/check-role', function () {
         'role' => auth()->user()->role,
         'is_authenticated' => auth()->check()
     ]);
+});
+
+Route::get('/patients/{id}', function ($id) {
+    $patient = DB::table('users')
+        ->select('name')
+        ->where('id', $id)
+        ->first();
+    
+    return response()->json($patient);
+});
+
+Route::get('/beds/patient/{patientId}', function ($patientId) {
+    $bed = DB::table('beds')
+        ->select('bed_number')
+        ->where('patient_id', $patientId)
+        ->first();
+    
+    return response()->json($bed);
 });

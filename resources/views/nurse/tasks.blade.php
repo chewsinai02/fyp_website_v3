@@ -16,11 +16,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
-    text-align: left;
+    text-align: match-parent;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    text-size-adjust: 100%;
+    -webkit-text-align: match-parent;
 }
 
 .task-item:hover {
@@ -193,6 +195,8 @@
     -moz-user-select: none;     /* Firefox */
     -ms-user-select: none;      /* IE 10+ */
     user-select: none;          /* Standard syntax */
+    text-size-adjust: 100%;     /* Add support for modern browsers */
+    -webkit-text-size-adjust: 100%;
 }
 
 /* Add this to override SweetAlert2 styles */
@@ -289,7 +293,7 @@ div:where(.swal2-icon) {
                         </div>
                     </td>
                     <td>{{ $task->patient->name }}</td>
-                    <td>{{ $task->patient->bed->bed_number }}</td>
+                    <td>{{ $task->patient->bed->bed_number ?? 'No Bed' }}</td>
                     <td>{{ $task->title }}</td>
                     <td>
                         <span class="badge bg-{{ getPriorityColor($task->priority) }}">
@@ -306,6 +310,7 @@ div:where(.swal2-icon) {
                         <button type="button" 
                                 class="btn btn-sm btn-info view-task" 
                                 data-task-id="{{ $task->id }}"
+                                data-patient-id="{{ $task->patient_id }}"
                                 aria-label="View task details"
                                 title="View task details">
                             <i class="fas fa-eye" aria-hidden="true"></i>
@@ -435,6 +440,12 @@ div:where(.swal2-icon) {
 
 <script>
 $(document).ready(function() {
+    // Initialize all modals
+    var modals = document.querySelectorAll('.modal');
+    modals.forEach(function(modal) {
+        new bootstrap.Modal(modal);
+    });
+    
     // Filter tasks based on status
     window.filterTasks = function(status) {
         const taskRows = $('tbody tr'); // Select all task rows
@@ -457,11 +468,12 @@ $(document).ready(function() {
     // Handle view task button click
     $(document).on('click', '.view-task', function() {
         const taskId = $(this).data('task-id');
-        console.log('Viewing task with ID:', taskId);
+        const patientId = $(this).data('patient-id');
+        console.log('Viewing task with ID:', taskId, 'Patient ID:', patientId);
 
         // Show loading state
-        $(this).prop('disabled', true);
         const button = $(this);
+        button.prop('disabled', true);
 
         // AJAX request to fetch task details
         $.ajax({
@@ -471,38 +483,60 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
                 'Accept': 'application/json'
             },
-            success: function(data) {
-                console.log('Task details received:', data);
-                if (!data) {
+            success: function(response) {
+                console.log('Raw task details received:', response);
+                if (!response.success || !response.task) {
                     showModal('Error', 'No task details found');
                     return;
                 }
 
-                // Populate the modal with task details
-                $('#taskTitle').text(data.title || 'N/A');
-                $('#taskDescription').text(data.description || 'N/A');
-                $('#taskPatient').text(data.patient ? data.patient.name : 'N/A');
-                $('#taskBedNumber').text(data.patient && data.patient.bed ? data.patient.bed.bed_number : 'N/A');
+                try {
+                    const data = response.task; // Get the task data from the response
+                    
+                    // Log each piece of data we're trying to access
+                    console.log('Title:', data.title);
+                    console.log('Description:', data.description);
+                    console.log('Patient ID:', patientId);
+                    console.log('Patient:', data.patient);
+                    console.log('Priority:', data.priority);
+                    console.log('Status:', data.status);
+                    console.log('Due date:', data.due_date);
 
-                // Set the priority with color
-                const priorityClass = getPriorityClass(data.priority);
-                $('#taskPriority').html(`<span class="badge ${priorityClass}">${data.priority || 'N/A'}</span>`);
-                
-                const statusClass = getStatusClass(data.status);
-                $('#taskStatus').html(`<span class="badge ${statusClass}">${data.status || 'N/A'}</span>`);
-                
-                // Format the due date
-                if (data.due_date) {
-                    const dueDate = new Date(data.due_date);
-                    const formattedDueDate = dueDate.toISOString().slice(0, 10) + ' ' + 
-                        dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    $('#taskDueDate').text(formattedDueDate);
-                } else {
-                    $('#taskDueDate').text('N/A');
+                    // Populate the modal with task details
+                    $('#taskTitle').text(data?.title || 'N/A');
+                    $('#taskDescription').text(data?.description || 'N/A');
+                    
+                    // Use the patient data from the task if available
+                    fetchPatientAndBedDetails(patientId);
+
+                    // Set the priority with color
+                    const priorityClass = getPriorityClass(data?.priority);
+                    $('#taskPriority').html(`<span class="badge ${priorityClass}">${data?.priority || 'N/A'}</span>`);
+                    
+                    const statusClass = getStatusClass(data?.status);
+                    $('#taskStatus').html(`<span class="badge ${statusClass}">${data?.status || 'N/A'}</span>`);
+                    
+                    // Format the due date
+                    if (data?.due_date) {
+                        const dueDate = new Date(data.due_date);
+                        if (!isNaN(dueDate.getTime())) {
+                            const formattedDueDate = dueDate.toISOString().slice(0, 10) + ' ' + 
+                                dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            $('#taskDueDate').text(formattedDueDate);
+                        } else {
+                            $('#taskDueDate').text('N/A');
+                        }
+                    } else {
+                        $('#taskDueDate').text('N/A');
+                    }
+                    
+                    // Show the modal
+                    const taskModal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
+                    taskModal.show();
+                } catch (error) {
+                    console.error('Error processing task details:', error);
+                    showModal('Error', 'Failed to process task details');
                 }
-                
-                // Show the modal
-                $('#taskDetailsModal').modal('show');
             },
             error: function(xhr, status, error) {
                 console.error('Error details:', {
@@ -514,15 +548,58 @@ $(document).ready(function() {
                 showModal('Error', 'Failed to fetch task details. Please try again.');
             },
             complete: function() {
-                // Re-enable the button
                 button.prop('disabled', false);
             }
         });
     });
 
+    // Add this new function to fetch both patient and bed details
+    function fetchPatientAndBedDetails(patientId) {
+        if (!patientId) {
+            $('#taskPatient').text('N/A');
+            $('#taskBedNumber').text('N/A');
+            return;
+        }
+
+        // First fetch patient details
+        $.ajax({
+            url: `/api/patients/${patientId}`,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
+            success: function(patientData) {
+                $('#taskPatient').text(patientData?.name || 'N/A');
+                
+                // Then fetch bed details
+                $.ajax({
+                    url: `/api/beds/patient/${patientId}`,
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'Accept': 'application/json'
+                    },
+                    success: function(bedData) {
+                        $('#taskBedNumber').text(bedData?.bed_number || 'N/A');
+                    },
+                    error: function() {
+                        $('#taskBedNumber').text('N/A');
+                    }
+                });
+            },
+            error: function() {
+                $('#taskPatient').text('Error loading patient');
+                $('#taskBedNumber').text('N/A');
+            }
+        });
+    }
+
     // Function to return the appropriate class based on priority
     function getPriorityClass(priority) {
-        switch (priority.toLowerCase()) {
+        if (!priority) return 'bg-secondary'; // Handle null/undefined priority
+        
+        switch (priority.toString().toLowerCase()) {
             case 'low':
                 return 'bg-success'; // Green
             case 'medium':
@@ -530,24 +607,26 @@ $(document).ready(function() {
             case 'high':
                 return 'bg-danger'; // Red
             case 'urgent':
-                return 'bg-danger'; // Red (or you can create a custom class)
+                return 'bg-danger'; // Red
             default:
                 return 'bg-secondary'; // Default class for unknown priority
         }
     }
 
     function getStatusClass(status) {
-        switch (status.toLowerCase()) {
+        if (!status) return 'bg-secondary'; // Handle null/undefined status
+        
+        switch (status.toString().toLowerCase()) {
             case 'pending':
-                return 'bg-warning'; // Yellow
+                return 'bg-warning';
             case 'completed':
-                return 'bg-success'; // Green
+                return 'bg-success';
             case 'passed':
-                return 'bg-danger'; // Red
+                return 'bg-danger';
             case 'cancelled':
-                return 'bg-danger'; // Red
+                return 'bg-danger';
             default:
-                return 'bg-secondary'; // Default class for unknown status
+                return 'bg-secondary';
         }
     }
 
@@ -630,6 +709,32 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Add this function to fetch patient details if needed
+    function fetchPatientDetails(patientId) {
+        if (!patientId) {
+            $('#taskPatient').text('N/A');
+            $('#taskBedNumber').text('N/A');
+            return;
+        }
+
+        $.ajax({
+            url: `/nurse/patients/${patientId}`,
+            method: 'GET',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
+            success: function(patientData) {
+                $('#taskPatient').text(patientData?.name || 'N/A');
+                $('#taskBedNumber').text(patientData?.bed_number || 'N/A');
+            },
+            error: function() {
+                $('#taskPatient').text('Error loading patient');
+                $('#taskBedNumber').text('N/A');
+            }
+        });
+    }
 });
 </script>
 
