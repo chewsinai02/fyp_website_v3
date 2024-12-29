@@ -279,16 +279,22 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="logo-container">
-            <a href="{{ route('adminDashboard') }}" class="text-decoration-none text-white">
+            <a href="{{ route('doctorDashboard') }}" class="text-decoration-none text-white">
                 <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid mb-2">
                 <h6 class="mb-0">SUC Hospital</h6>
         </div>
 
         <ul class="nav flex-column mt-3">
-            <li class="nav-item">
-                <a href="/doctor/dashboard" class="nav-link">
+        <li class="nav-item">
+                <a href="{{ route('doctor_dashboard') }}" class="nav-link">
                     <i class="bi bi-speedometer2"></i>                    
                     <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('doctorDashboard') }}" class="nav-link">
+                    <i class="bi bi-speedometer2"></i>                    
+                    <span>Overview Appointment</span>
                 </a>
             </li>
             <li class="nav-item">

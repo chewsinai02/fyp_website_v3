@@ -44,7 +44,35 @@ class DoctorDashboardController extends Controller
             'appointments' => $activeAppointments,
             'activeAppointmentsCount' => $activeAppointmentsCount
         ]);
-    }      
+    }  
+    
+    public function dashboard()
+    {
+        $currentDateTime = now();
+
+        // First update status of passed appointments
+        Appointment::where('status', 'active')
+            ->where(function ($query) use ($currentDateTime) {
+                $query->whereDate('appointment_date', '<', $currentDateTime->toDateString())
+                    ->orWhere(function ($q) use ($currentDateTime) {
+                        $q->whereDate('appointment_date', '=', $currentDateTime->toDateString())
+                            ->whereTime('appointment_time', '<', $currentDateTime->toTimeString());
+                    });
+            })
+            ->update(['status' => 'pass']);
+
+        // Fetch all appointments with proper relationships
+        $appointments = Appointment::with(['patient', 'doctor'])
+            ->where('doctor_id', auth()->id())
+            ->orderBy('appointment_date')
+            ->orderBy('appointment_time')
+            ->get();
+
+        // Get active appointments count
+        $activeAppointmentsCount = $appointments->where('status', 'active')->count();
+
+        return view('doctor.doctor_dashboard', compact('appointments', 'activeAppointmentsCount'));
+    }
 
     public function doctorManageProfile()
     {
@@ -434,13 +462,16 @@ class DoctorDashboardController extends Controller
         return redirect()->route('doctorDashboard')->with('success', 'Medical information updated successfully!');
     } 
 
+    /**
+     * Get count of unread messages for the authenticated doctor
+     */
     public function getUnreadCount()
     {
-        $count = Message::where('receiver_id', auth()->id())
+        $unreadCount = Message::where('receiver_id', auth()->id())
             ->where('is_read', false)
             ->count();
         
-        return response()->json(['count' => $count]);
+        return response()->json(['count' => $unreadCount]);
     }
 
     public function sendMessage(Request $request, $receiverId)

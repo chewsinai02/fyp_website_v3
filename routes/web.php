@@ -134,9 +134,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 // Route for the doctor dashboard
 Route::middleware(['auth', 'doctor'])->group(function () {
-    Route::get('/doctor/dashboard', [DoctorDashboardController::class, 'doctorindex'])->name('doctorDashboard');
+    Route::get('/doctor/overview', [DoctorDashboardController::class, 'doctorindex'])->name('doctorDashboard');
     Route::get('/doctor/dashboard/searchActiveAppointments', [DoctorDashboardController::class, 'searchActiveAppointments'])->name('searchActiveAppointments');
-
+    Route::get('/doctor/dashboard', [DoctorDashboardController::class, 'dashboard'])->name('doctor_dashboard');
     //appoinment
     Route::get('/doctor/appointments', [DoctorDashboardController::class, 'doctorAppointmentIndex'])->name('doctorAppointment.index');
     Route::get('/doctor/appointments/{appointment}', [DoctorDashboardController::class, 'doctorAppointmentShow'])->name('doctorAppointment.show');
@@ -378,4 +378,13 @@ Route::middleware(['auth', 'role:doctor'])->group(function () {
     // Update the chat route to use DoctorDashboardController
     Route::post('/doctor/chat/{receiverId}', [DoctorDashboardController::class, 'sendMessage'])
         ->name('chat.store');
+});
+
+// Doctor routes group
+Route::middleware(['auth', 'role:doctor'])->group(function () {
+    // Existing routes...
+    
+    // Add this new route for unread message count
+    Route::get('/doctor/messages/unread-count', [DoctorDashboardController::class, 'getUnreadCount'])
+        ->name('doctor.unreadCount');
 });
