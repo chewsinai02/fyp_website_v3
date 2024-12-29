@@ -582,7 +582,7 @@ class NurseAdminDashboardController extends Controller
 
         // Validate all fields
         $request->validate([
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:5120', // 5MB max
+            'profile_picture_url' => 'nullable|string|url', // For Firebase URL
             'contact_number' => 'nullable|string',
             'address' => 'nullable|string',
             'blood_type' => 'nullable|string',
@@ -594,42 +594,9 @@ class NurseAdminDashboardController extends Controller
             'relation' => 'nullable|string',
         ]);
 
-        // Handle profile image upload to Firebase
-        if ($request->hasFile('profile_picture')) {
-            try {
-                $file = $request->file('profile_picture');
-                
-                // Create Firebase Storage URL format
-                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
-                $path = "assets/images/{$filename}";
-                
-                // Get Firebase bucket
-                $storage = app(\Kreait\Firebase\Storage::class);
-                $bucket = $storage->getBucket();
-                
-                // Upload file
-                $bucket->upload(
-                    $file->get(),
-                    [
-                        'name' => $path,
-                        'metadata' => [
-                            'contentType' => $file->getMimeType(),
-                        ]
-                    ]
-                );
-
-                // Generate Firebase Storage URL
-                $url = "https://firebasestorage.googleapis.com/v0/b/fyptestv2-37c45.firebasestorage.app/o/" . 
-                       urlencode($path) . "?alt=media";
-
-                // Update user's profile picture URL
-                $user->profile_picture = $url;
-            } catch (\Exception $e) {
-                Log::error('Profile image upload failed: ' . $e->getMessage());
-                return redirect()->back()
-                    ->withErrors(['error' => 'Failed to upload image: ' . $e->getMessage()])
-                    ->withInput();
-            }
+        // Update profile picture URL
+        if ($request->has('profile_picture_url')) {
+            $user->profile_picture = $request->profile_picture_url;
         }
 
         // Handle medical history
@@ -666,7 +633,7 @@ class NurseAdminDashboardController extends Controller
         $user->save();
 
         return redirect()->back()->with('success', 'Profile updated successfully!');
-    }   
+    } 
 
     public function getRoomBeds($roomId)
     {
