@@ -116,7 +116,7 @@ class NurseDashboardController extends Controller
 
         // Validate all fields
         $request->validate([
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+            'profile_picture_url' => 'nullable|string|url', // For Firebase URL
             'contact_number' => 'nullable|string',
             'address' => 'nullable|string',
             'blood_type' => 'nullable|string',
@@ -128,25 +128,9 @@ class NurseDashboardController extends Controller
             'relation' => 'nullable|string',
         ]);
 
-        // Handle profile image upload
-        if ($request->hasFile('profile_picture')) {
-            $image = $request->file('profile_picture');
-            $originalName = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
-            $extension = $image->getClientOriginalExtension();
-            $imageName = $originalName . '.' . $extension;
-
-            // Check if file already exists and add a unique suffix if necessary
-            $counter = 1;
-            while (file_exists(public_path('images/' . $imageName))) {
-                $imageName = $originalName . '_' . $counter . '.' . $extension; // Append counter to filename
-                $counter++;
-            }
-
-            // Move the image to 'public/images' directory
-            $image->move(public_path('images'), $imageName);
-            
-            // Update the profile picture path in the database
-            $user->profile_picture = 'images/' . $imageName;
+        // Update profile picture URL
+        if ($request->has('profile_picture_url')) {
+            $user->profile_picture = $request->profile_picture_url;
         }
 
         // Handle medical history
@@ -155,7 +139,6 @@ class NurseDashboardController extends Controller
             if (count($medicalHistory) === 1 && in_array('none', $medicalHistory)) {
                 $user->medical_history = null;
             } else {
-                // Filter out 'none' if other options are selected
                 $medicalHistory = array_filter($medicalHistory, function($value) {
                     return $value !== 'none';
                 });
@@ -184,7 +167,7 @@ class NurseDashboardController extends Controller
         $user->save();
 
         return redirect()->back()->with('success', 'Profile updated successfully!');
-    }   
+    } 
 
     public function show(User $user)
     {

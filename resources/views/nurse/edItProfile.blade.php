@@ -38,56 +38,62 @@
                     <h5 class="mb-3 fw-bold">Profile Information</h5>
                     <div class="text-center mb-4">
                         <div class="position-relative d-inline-block">
-                            @if($user->profile_picture)
-                                <img src="{{ asset($user->profile_picture) }}" 
-                                     alt="Profile" 
-                                     class="rounded-circle mb-3 shadow-sm" 
-                                     id="profile_preview"
-                                     style="width: 150px; height: 150px; object-fit: cover;">
-                            @else
-                                <img src="{{ asset('images/profile.png') }}" 
-                                     alt="Profile" 
-                                     class="rounded-circle mb-3 shadow-sm" 
-                                     id="profile_preview"
-                                     style="width: 150px; height: 150px; object-fit: cover;">
-                            @endif
-                            <div class="upload-overlay" onclick="document.getElementById('profile_picture').click();">
-                                <i class="bi bi-camera-fill"></i>
+                            <img id="profile_preview" 
+                                 src="{{ $user->profile_picture ? asset($user->profile_picture) : asset('images/profile.png') }}" 
+                                 data-default-image="{{ $user->profile_picture ? asset($user->profile_picture) : asset('images/profile.png') }}"
+                                 alt="Profile Picture" 
+                                 class="rounded-circle mb-3 shadow-sm" 
+                                 style="width: 150px; height: 150px; object-fit: cover;">
+                            <div class="upload-overlay" 
+                                 role="button" 
+                                 tabindex="0" 
+                                 onclick="document.getElementById('profile_picture').click();"
+                                 title="Upload Profile Picture">
+                                <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                                <span class="visually-hidden">Upload Profile Picture</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="info-grid">
-                        <div class="info-item">
-                            <i class="bi bi-person-circle text-primary"></i>
-                            <div>
-                                <small>Name</small>
-                                <h6 class="mb-0">{{ $user->name }}</h6>
+                        <div class="row">
+                            <div class="info-item">
+                                <i class="bi bi-person-circle text-primary"></i>
+                                <div>
+                                    <small>Name</small>
+                                    <h6 class="mb-0">{{ $user->name }}</h6>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="info-item">
-                            <i class="bi bi-envelope-fill text-primary"></i>
-                            <div>
-                                <small>Email</small>
-                                <h6 class="mb-0">{{ $user->email }}</h6>
+                        <div class="row">
+                            <div class="info-item">
+                                <i class="bi bi-envelope-fill text-primary"></i>
+                                <div>
+                                    <small>Email</small>
+                                    <h6 class="mb-0">{{ $user->email }}</h6>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="info-item">
-                            <i class="bi bi-shield-fill text-primary"></i>
-                            <div>
-                                <small>Role</small>
-                                <h6 class="mb-0">{{ ucfirst($user->role) }}</h6>
+                        <div class="row">
+                            <div class="info-item">
+                                <i class="bi bi-shield-fill text-primary"></i>
+                                <div>
+                                    <small>Role</small>
+                                    <h6 class="mb-0">{{ ucfirst($user->role) }}</h6>
+                                </div>
                             </div>
                         </div>
                         
                         @if($user->staff_id)
-                        <div class="info-item">
-                            <i class="bi bi-person-badge-fill text-primary"></i>
-                            <div>
-                                <small>Staff ID</small>
-                                <h6 class="mb-0">{{ $user->staff_id }}</h6>
+                        <div class="row">
+                            <div class="info-item">
+                                <i class="bi bi-person-badge-fill text-primary"></i>
+                                <div>
+                                    <small>Staff ID</small>
+                                    <h6 class="mb-0">{{ $user->staff_id }}</h6>
+                                </div>
                             </div>
                         </div>
                         @endif
@@ -96,10 +102,18 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('nurse.updateProfilePicture') }}" enctype="multipart/form-data" class="col-md-8">
+        <form method="POST" 
+              action="{{ route('nurse.updateProfilePicture') }}" 
+              enctype="multipart/form-data" 
+              id="uploadForm" 
+              class="col-md-8">
             @csrf
-            <input type="file" class="d-none" id="profile_picture" name="profile_picture" 
-                   accept="image/*" onchange="previewImage(event)">
+            <input type="file" 
+                   class="d-none" 
+                   id="profile_picture" 
+                   name="profile_picture" 
+                   accept="image/*" 
+                   onchange="previewImage(event)">
 
             <div class="card details-card">
                 <div class="card-body p-4">
@@ -113,26 +127,40 @@
                     <div class="row g-4">
                         <div class="col-md-6">
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-telephone fs-4"></i></span>
-                                <input type="text" class="form-control" name="contact_number" 
+                                <span class="input-group-text" aria-hidden="true"><i class="bi bi-telephone fs-4"></i></span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="contact_number"
+                                       name="contact_number" 
                                        value="{{ old('contact_number', $user->contact_number) }}" 
-                                       placeholder="Contact Number" required>
+                                       placeholder="Contact Number"
+                                       aria-label="Contact Number" 
+                                       required>
                             </div>
                         </div>
 
                         <div class="col-md-6">
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-geo-alt fs-4"></i></span>
-                                <input type="text" class="form-control" name="address" 
+                                <span class="input-group-text" aria-hidden="true"><i class="bi bi-geo-alt fs-4"></i></span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="address"
+                                       name="address" 
                                        value="{{ old('address', $user->address) }}" 
-                                       placeholder="Address" required>
+                                       placeholder="Address"
+                                       aria-label="Address" 
+                                       required>
                             </div>
                         </div>
 
                         <div class="col-md-6">
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-droplet fs-4"></i></span>
-                                <select class="form-select" name="blood_type" required>
+                                <span class="input-group-text" aria-hidden="true"><i class="bi bi-droplet fs-4"></i></span>
+                                <select class="form-select" 
+                                        id="blood_type"
+                                        name="blood_type" 
+                                        aria-label="Blood Type"
+                                        required>
                                     <option value="rh+ a" {{ $user->blood_type == 'rh+ a' ? 'selected' : '' }}>A+</option>
                                     <option value="rh- a" {{ $user->blood_type == 'rh- a' ? 'selected' : '' }}>A-</option>
                                     <option value="rh+ b" {{ $user->blood_type == 'rh+ b' ? 'selected' : '' }}>B+</option>
@@ -147,8 +175,12 @@
 
                         <div class="col-md-6">
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-gender-ambiguous fs-4"></i></span>
-                                <select class="form-select" name="gender" required>
+                                <span class="input-group-text" aria-hidden="true"><i class="bi bi-gender-ambiguous fs-4"></i></span>
+                                <select class="form-select" 
+                                        id="gender"
+                                        name="gender" 
+                                        aria-label="Gender"
+                                        required>
                                     <option value="male" {{ $user->gender == 'male' ? 'selected' : '' }}>Male</option>
                                     <option value="female" {{ $user->gender == 'female' ? 'selected' : '' }}>Female</option>
                                 </select>
@@ -160,7 +192,6 @@
                             <div class="medical-history-group">
                                 <div class="row">
                                     @php
-                                        // Convert medical history to array, handling different possible formats
                                         $userMedicalHistory = [];
                                         if (!empty($user->medical_history)) {
                                             if (is_string($user->medical_history)) {
@@ -169,7 +200,6 @@
                                                 $userMedicalHistory = $user->medical_history;
                                             }
                                         } else {
-                                            // If medical history is null or empty, set 'none' as selected
                                             $userMedicalHistory = ['none'];
                                         }
                                         
@@ -180,12 +210,14 @@
                                     <div class="col-6">
                                         @foreach(array_slice($conditions, 0, $halfCount) as $history)
                                             <div class="form-check medical-history-item">
-                                                <input class="form-check-input" type="checkbox" 
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
                                                        name="medical_history[]" 
                                                        value="{{ $history }}" 
                                                        id="medical_{{ $history }}"
                                                        {{ in_array(strtolower($history), array_map('strtolower', $userMedicalHistory)) ? 'checked' : '' }}
-                                                       onchange="handleMedicalHistoryChange(this)">
+                                                       onchange="handleMedicalHistoryChange(this)"
+                                                       aria-label="{{ ucfirst($history) }}">
                                                 <label class="form-check-label" for="medical_{{ $history }}">
                                                     {{ ucfirst($history) }}
                                                 </label>
@@ -196,12 +228,14 @@
                                     <div class="col-6">
                                         @foreach(array_slice($conditions, $halfCount) as $history)
                                             <div class="form-check medical-history-item">
-                                                <input class="form-check-input" type="checkbox" 
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
                                                        name="medical_history[]" 
                                                        value="{{ $history }}" 
                                                        id="medical_{{ $history }}"
                                                        {{ in_array(strtolower($history), array_map('strtolower', $userMedicalHistory)) ? 'checked' : '' }}
-                                                       onchange="handleMedicalHistoryChange(this)">
+                                                       onchange="handleMedicalHistoryChange(this)"
+                                                       aria-label="{{ ucfirst($history) }}">
                                                 <label class="form-check-label" for="medical_{{ $history }}">
                                                     {{ ucfirst($history) }}
                                                 </label>
@@ -210,30 +244,43 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>                                    
+                        </div>
 
                         <div class="col-12">
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-file-text fs-4"></i></span>
-                                <input type="text" class="form-control" name="description" 
+                                <span class="input-group-text" aria-hidden="true"><i class="bi bi-file-text fs-4"></i></span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="description"
+                                       name="description" 
+                                       value="{{ old('description', $user->description) }}"
                                        placeholder="Medical history details (optional)"
-                                       value="{{ old('description', $user->description) }}">
+                                       aria-label="Medical History Details">
                             </div>
                         </div>
 
                         <div class="col-md-6">
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-telephone-plus fs-4"></i></span>
-                                <input type="text" class="form-control" name="emergency_contact" 
+                                <span class="input-group-text" aria-hidden="true"><i class="bi bi-telephone-plus fs-4"></i></span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="emergency_contact"
+                                       name="emergency_contact" 
                                        value="{{ old('emergency_contact', $user->emergency_contact) }}" 
-                                       placeholder="Emergency Contact" required>
+                                       placeholder="Emergency Contact"
+                                       aria-label="Emergency Contact" 
+                                       required>
                             </div>
                         </div>
 
                         <div class="col-md-6">
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text"><i class="bi bi-people fs-4"></i></span>
-                                <select class="form-select" name="relation" required>
+                                <span class="input-group-text" aria-hidden="true"><i class="bi bi-people fs-4"></i></span>
+                                <select class="form-select" 
+                                        id="relation"
+                                        name="relation" 
+                                        aria-label="Relation"
+                                        required>
                                     <option value="" disabled {{ !$user->relation ? 'selected' : '' }}>Select Relation</option>
                                     <option value="parent" {{ $user->relation == 'parent' ? 'selected' : '' }}>Parent</option>
                                     <option value="child" {{ $user->relation == 'child' ? 'selected' : '' }}>Child</option>
@@ -242,9 +289,22 @@
                             </div>
                         </div>
 
+                        <!-- Loading and Error Messages -->
+                        <div id="loading" class="d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Uploading image...</span>
+                        </div>
+
+                        <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+
                         <div class="col-12 d-flex justify-content-end mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg px-5">
-                                <i class="bi bi-check-circle me-2"></i>Save Changes
+                            <button type="submit" 
+                                    class="btn btn-primary btn-lg px-5"
+                                    id="submit-button">
+                                <i class="bi bi-check-circle me-2" aria-hidden="true"></i>
+                                Save Changes
                             </button>
                         </div>
                     </div>
@@ -257,10 +317,15 @@
 <style>
 /* Profile Info Styles */
 .info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    padding: 0.5rem;
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    overflow: hidden; /* Prevent overflow */
+}
+
+.info-item {
+    width: 100%; /* Ensure items take full width */
+    box-sizing: border-box; /* Include padding and border in width */
+    margin-bottom: 1rem; /* Add space between items */
 }
 
 .info-item {
@@ -342,54 +407,203 @@
         grid-template-columns: 1fr;
     }
 }
+
+.upload-overlay {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.upload-overlay:hover, 
+.upload-overlay:focus {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.upload-overlay:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* Add loading styles */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+}
 </style>
 
+<!-- Add Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
 <script>
-function previewImage(event) {
+// Initialize Firebase
+const app = firebase.initializeApp({
+    apiKey: "AIzaSyAiElkmNSl0K-N0Rz4kuqKAXrr6Eg7oo64",
+    authDomain: "fyptestv2-37c45.firebaseapp.com",
+    projectId: "fyptestv2-37c45",
+    storageBucket: "fyptestv2-37c45.firebasestorage.app",
+    messagingSenderId: "500961952253",
+    appId: "1:500961952253:web:a846193490974d3667d994"
+});
+
+// Simplified image upload function
+async function previewImage(event) {
     const file = event.target.files[0];
     const preview = document.getElementById('profile_preview');
     
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+    if (!file) {
+        preview.src = preview.getAttribute('data-default-image') || '{{ asset("images/profile.png") }}';
+        return;
+    }
+
+    // Basic validation
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        event.target.value = '';
+        return;
+    }
+
+    if (!file.type.match('image.*')) {
+        alert('Please select an image file');
+        event.target.value = '';
+        return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        preview.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    try {
+        // Create file reference
+        const timestamp = Date.now();
+        const filename = `profile_${timestamp}_${file.name}`;
+        const storageRef = firebase.storage().ref(`assets/images/${filename}`);
+
+        // Upload file
+        const uploadTask = storageRef.put(file);
+
+        // Show upload progress
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress mt-2';
+        progressBar.innerHTML = `
+            <div class="progress-bar" role="progressbar" style="width: 0%" 
+                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        `;
+        preview.parentElement.appendChild(progressBar);
+
+        uploadTask.on('state_changed', 
+            // Progress
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                progressBar.querySelector('.progress-bar').style.width = progress + '%';
+            },
+            // Error
+            (error) => {
+                console.error('Upload failed:', error);
+                alert('Upload failed: ' + error.message);
+                progressBar.remove();
+            },
+            // Success
+            async () => {
+                try {
+                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                    
+                    // Add URL to hidden input
+                    let urlInput = document.getElementById('profile_picture_url');
+                    if (!urlInput) {
+                        urlInput = document.createElement('input');
+                        urlInput.type = 'hidden';
+                        urlInput.id = 'profile_picture_url';
+                        urlInput.name = 'profile_picture_url';
+                        document.getElementById('uploadForm').appendChild(urlInput);
+                    }
+                    urlInput.value = downloadURL;
+                    
+                    // Remove progress bar after success
+                    setTimeout(() => progressBar.remove(), 1000);
+                } catch (error) {
+                    console.error('Failed to get download URL:', error);
+                    alert('Failed to get download URL: ' + error.message);
+                    progressBar.remove();
+                }
+            }
+        );
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Upload failed: ' + error.message);
     }
 }
 
-function handleMedicalHistoryChange(checkbox) {
-    const noneCheckbox = document.getElementById('medical_none');
-    const allCheckboxes = document.querySelectorAll('input[name="medical_history[]"]');
+// Update form submission
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const urlInput = document.getElementById('profile_picture_url');
+    const fileInput = document.getElementById('profile_picture');
     
-    if (checkbox.value === 'none' && checkbox.checked) {
-        allCheckboxes.forEach(cb => {
-            if (cb.value !== 'none') cb.checked = false;
-        });
-    } else if (checkbox.checked) {
-        noneCheckbox.checked = false;
+    if (urlInput && urlInput.value) {
+        // Clear file input if we have a URL
+        fileInput.value = '';
     }
-    
-    let anyChecked = false;
-    allCheckboxes.forEach(cb => {
-        if (cb.checked && cb.value !== 'none') anyChecked = true;
-    });
-    
-    if (!anyChecked) {
-        noneCheckbox.checked = true;
-    }
-}
+});
 
+// Auto dismiss alerts
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto dismiss alerts after 3 seconds
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
         setTimeout(() => {
             const bsAlert = new bootstrap.Alert(alert);
             bsAlert.close();
-        }, 3000);
+        }, 5000);
     });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to update calls button visibility
+    function updateCallsButtonVisibility(count) {
+        const callsButton = document.getElementById('calls-toggle');
+        if (callsButton) {
+            if (count <= 0) {
+                callsButton.style.display = 'none';
+            } else {
+                callsButton.style.display = 'block';
+            }
+        }
+    }
+
+    // Initial check for calls count
+    const callsCount = document.getElementById('calls-count');
+    if (callsCount) {
+        updateCallsButtonVisibility(parseInt(callsCount.textContent));
+    }
+
+    // Optional: Set up a MutationObserver to watch for changes in the calls count
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                updateCallsButtonVisibility(parseInt(callsCount.textContent));
+            }
+        });
+    });
+
+    if (callsCount) {
+        observer.observe(callsCount, { 
+            characterData: true, 
+            childList: true, 
+            subtree: true 
+        });
+    }
 });
 </script>
 @endsection
