@@ -174,15 +174,20 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         const formData = new FormData(this);
-        
-        // Disable the submit button to prevent double submission
         const submitButton = this.querySelector('button[type="submit"]');
         submitButton.disabled = true;
+
+        // Get the Firebase image URL if it exists
+        const imageUrlInput = document.getElementById('uploadedImageUrl');
+        if (imageUrlInput && imageUrlInput.value) {
+            // Replace the file input with the Firebase URL
+            formData.delete('image');
+            formData.append('image', imageUrlInput.value);
+        }
         
         fetch(this.action, {
             method: 'POST',
             body: formData,
-            // Don't set Content-Type header - let the browser set it with boundary for multipart/form-data
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             }
@@ -211,25 +216,164 @@ document.addEventListener('DOMContentLoaded', function() {
             alert(error.message || 'Failed to send message');
         })
         .finally(() => {
-            // Re-enable the submit button
             submitButton.disabled = false;
         });
     });
 });
 
-function handleImageUpload(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            const preview = document.getElementById('imagePreview');
-            preview.querySelector('img').src = e.target.result;
-            preview.classList.remove('d-none');
-        };
-        
-        reader.readAsDataURL(input.files[0]);
+// Add this function to handle camera access
+async function openCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoModal = `
+            <div class="modal fade" id="cameraModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Take Photo</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <video id="video" autoplay style="width: 100%;"></video>
+                            <canvas id="canvas" style="display: none;"></canvas>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" onclick="capturePhoto()">Capture</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add modal to body if it doesn't exist
+        if (!document.getElementById('cameraModal')) {
+            document.body.insertAdjacentHTML('beforeend', videoModal);
+        }
+
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+        modal.show();
+
+        // Clean up when modal is closed
+        document.getElementById('cameraModal').addEventListener('hidden.bs.modal', () => {
+            stream.getTracks().forEach(track => track.stop());
+        });
+
+    } catch (err) {
+        alert('Error accessing camera: ' + err.message);
     }
 }
+
+// Function to capture photo from camera
+function capturePhoto() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to blob
+    canvas.toBlob(async (blob) => {
+        // Create file from blob
+        const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        
+        // Upload to Firebase
+        await uploadImageToFirebase(file, 'camera');
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('cameraModal')).hide();
+    }, 'image/jpeg');
+}
+
+// Function to handle gallery image selection
+async function openGallery() {
+    const input = document.getElementById('galleryInput');
+    input.click();
+}
+
+// Function to upload image to Firebase
+async function uploadImageToFirebase(file, source) {
+    try {
+        // Create unique filename with timestamp
+        const timestamp = Date.now();
+        const filename = `image_${timestamp}.${file.name.split('.').pop()}`;
+        const path = `assets/chat_images/${filename}`;
+
+        // Get Firebase bucket
+        const storage = firebase.storage();
+        const storageRef = storage.ref();
+        const imageRef = storageRef.child(path);
+
+        // Upload file
+        const snapshot = await imageRef.put(file, {
+            contentType: file.type,
+        });
+
+        // Generate Firebase Storage URL in the correct format
+        const encodedPath = encodeURIComponent(path);
+        const token = await snapshot.ref.getDownloadURL(); // This gets the token
+        const url = `https://firebasestorage.googleapis.com/v0/b/fyptestv2-37c45.firebasestorage.app/o/${encodedPath}?alt=media&token=${token.split('token=')[1]}`;
+
+        // Show preview
+        const preview = document.getElementById('imagePreview');
+        preview.querySelector('img').src = url;
+        preview.classList.remove('d-none');
+
+        // Store URL in a hidden input
+        let urlInput = document.getElementById('uploadedImageUrl');
+        if (!urlInput) {
+            urlInput = document.createElement('input');
+            urlInput.type = 'hidden';
+            urlInput.id = 'uploadedImageUrl';
+            urlInput.name = 'image_url';
+            document.getElementById('chatForm').appendChild(urlInput);
+        }
+        urlInput.value = url;
+
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Failed to upload image: ' + error.message);
+    }
+}
+
+// Update the existing handleImageUpload function
+async function handleImageUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            input.value = '';
+            return;
+        }
+
+        // Validate file type
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            input.value = '';
+            return;
+        }
+
+        await uploadImageToFirebase(file, 'gallery');
+    }
+}
+
+// Update the camera and gallery button click handlers
+document.querySelector('[onclick="document.getElementById(\'cameraInput\').click();"]')
+    .setAttribute('onclick', 'openCamera()');
+
+document.querySelector('[onclick="document.getElementById(\'galleryInput\').click();"]')
+    .setAttribute('onclick', 'openGallery()');
 
 function removeImage() {
     const preview = document.getElementById('imagePreview');
@@ -281,6 +425,26 @@ function createMessageHtml(message) {
             </div>
         </div>
     `;
+}
+</script>
+
+<!-- Add Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+<script>
+// Initialize Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyAiElkmNSl0K-N0Rz4kuqKAXrr6Eg7oo64",
+    authDomain: "fyptestv2-37c45.firebaseapp.com",
+    projectId: "fyptestv2-37c45",
+    storageBucket: "fyptestv2-37c45.firebasestorage.app",
+    messagingSenderId: "500961952253",
+    appId: "1:500961952253:web:a846193490974d3667d994"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
 }
 </script>
 @endsection

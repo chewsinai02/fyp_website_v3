@@ -542,4 +542,60 @@ class DoctorDashboardController extends Controller
         
         return response()->json(['count' => $count]);
     }
+
+    public function sendMessage(Request $request, $receiverId)
+    {
+        try {
+            $request->validate([
+                'message' => 'nullable|string|max:500',
+                'image' => 'nullable|string', // Changed to string to accept Firebase URLs
+            ]);
+
+            // Initialize message text
+            $messageText = $request->message;
+            $imagePath = null;
+
+            // Handle image URL from Firebase
+            if ($request->image && str_contains($request->image, 'firebasestorage.googleapis.com')) {
+                $imagePath = $request->image; // Store the full Firebase URL
+                
+                // If no text message, set a default message for image
+                if (empty($messageText)) {
+                    $messageText = '[Image]';
+                }
+            }
+
+            // Ensure there's either a message or an image
+            if (!$messageText && !$imagePath) {
+                throw new \Exception('Please provide a message or image.');
+            }
+
+            $message = Message::create([
+                'sender_id' => auth()->id(),
+                'receiver_id' => $receiverId,
+                'message' => $messageText,
+                'image' => $imagePath,
+                'created_at' => now('Asia/Kuala_Lumpur'),
+            ]);
+
+            // Load relationships for the response
+            $message->load('sender', 'receiver');
+
+            return response()->json([
+                'success' => true,
+                'message' => $message
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error sending message:', [
+                'error' => $e->getMessage(),
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
+    }
 }

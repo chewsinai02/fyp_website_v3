@@ -371,3 +371,11 @@ Route::get('/firebase/push', [FirebaseController::class, 'pushToList']);
 Route::get('/firebase/query', [FirebaseController::class, 'query']);
 Route::post('/upload', [UploadController::class, 'upload'])->middleware('auth');
 Route::delete('/upload', [UploadController::class, 'delete'])->middleware('auth');
+
+Route::middleware(['auth', 'role:doctor'])->group(function () {
+    // ... your existing doctor routes ...
+    
+    // Update the chat route to use DoctorDashboardController
+    Route::post('/doctor/chat/{receiverId}', [DoctorDashboardController::class, 'sendMessage'])
+        ->name('chat.store');
+});
