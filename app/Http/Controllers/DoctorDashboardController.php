@@ -370,87 +370,20 @@ class DoctorDashboardController extends Controller
             }
         }
     
-     // Store a new message from the doctor
-     public function doctorstore(Request $request, $receiverId)
-     {
-        try {
-            $request->validate([
-                'message' => 'nullable|string|max:500',
-                'image' => 'nullable|image|max:5120', // 5MB max
-            ]);
-
-            // Initialize message text
-            $messageText = $request->message;
-
-            // Handle image upload
-            $imagePath = null;
-            if ($request->hasFile('image')) {
-                try {
-                    $file = $request->file('image');
-                    $fileName = time() . '_' . $file->getClientOriginalName();
-                    $file->move(public_path('chat_images'), $fileName);
-                    $imagePath = 'chat_images/' . $fileName;
-                    
-                    // If no text message, set a default message for image
-                    if (empty($messageText)) {
-                        $messageText = '[Image]';
-                    }
-                } catch (\Exception $e) {
-                    \Log::error('Error uploading image:', [
-                        'error' => $e->getMessage()
-                    ]);
-                    throw new \Exception('Failed to upload image. Please try again.');
-                }
-            }
-
-            // Ensure there's either a message or an image
-            if (!$messageText && !$imagePath) {
-                throw new \Exception('Please provide a message or image.');
-            }
-
-            $message = Message::create([
-                'sender_id' => auth()->id(),
-                'receiver_id' => $receiverId,
-                'message' => $messageText,
-                'image' => $imagePath,
-                'created_at' => now('Asia/Kuala_Lumpur'),
-            ]);
-
-            // Load relationships for the response
-            $message->load('sender', 'receiver');
-
-            return response()->json([
-                'success' => true,
-                'message' => $message
-            ]);
-
-        } catch (\Exception $e) {
-            \Log::error('Error sending message:', [
-                'error' => $e->getMessage(),
-                'request' => $request->all()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 422);
+    // Delete a message
+    public function doctordestroy($messageId)
+    {
+        $message = Message::findOrFail($messageId);
+    
+        if ($message->sender_id == auth()->id()) {
+            $message->delete();
         }
+    
+        return back();
     }
- 
-     // Delete a message
-     public function doctordestroy($messageId)
-     {
-         $message = Message::findOrFail($messageId);
      
-         if ($message->sender_id == auth()->id()) {
-             $message->delete();
-         }
-     
-         return back();
-     }
-     
-     public function editPatientDetails($id)
-     {
+    public function editPatientDetails($id)
+    {
         // Get the patient
         $patient = User::findOrFail($id);
     
@@ -515,7 +448,7 @@ class DoctorDashboardController extends Controller
         try {
             $request->validate([
                 'message' => 'nullable|string|max:500',
-                'image' => 'nullable|string', // Changed to string to accept Firebase URLs
+                'image' => 'nullable|string', // For Firebase URLs
             ]);
 
             // Initialize message text
@@ -537,13 +470,15 @@ class DoctorDashboardController extends Controller
                 throw new \Exception('Please provide a message or image.');
             }
 
-            $message = Message::create([
-                'sender_id' => auth()->id(),
-                'receiver_id' => $receiverId,
-                'message' => $messageText,
-                'image' => $imagePath,
-                'created_at' => now('Asia/Kuala_Lumpur'),
-            ]);
+            // Force is_read to integer 1
+            $message = new Message();
+            $message->sender_id = auth()->id();
+            $message->receiver_id = $receiverId;
+            $message->message = $messageText;
+            $message->image = $imagePath;
+            $message->created_at = now('Asia/Kuala_Lumpur');
+            $message->is_read = 1; // Explicitly set to integer 1
+            $message->save();
 
             // Load relationships for the response
             $message->load('sender', 'receiver');
