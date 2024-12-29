@@ -174,13 +174,10 @@
       dropdownParent: $('#editBedModal'),
       templateResult: formatPatient,
       templateSelection: formatPatientSelection
-    }).on('change', function() {
-      const patientId = $(this).val();
-      if (patientId) {
-        loadPatientDetails(patientId);
-      } else {
-        $('#patientDetailsSection').hide();
-      }
+    }).on('select2:select', function(e) {
+      loadPatientDetails($(this).val());
+    }).on('select2:clear', function() {
+      $('#patientDetailsSection').hide();
     });
   });
 
@@ -542,43 +539,30 @@
 
   // Update the loadPatientDetails function
   function loadPatientDetails(patientId) {
-    if (!patientId) return;
+    const selectedOption = $('#patientSelect option:selected');
+    
+    // Get data directly from the selected option's data attributes
+    const patientData = {
+        name: selectedOption.data('name'),
+        ic_number: selectedOption.data('ic'),
+        gender: selectedOption.data('gender'),
+        blood_type: selectedOption.data('blood'),
+        contact_number: selectedOption.data('contact'),
+        email: selectedOption.data('email'),
+        address: selectedOption.data('address'),
+        emergency_contact: selectedOption.data('emergency')
+    };
 
-    $.ajax({
-      url: `/api/patients/${patientId}`,
-      method: 'GET',
-      headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-      },
-      success: function(response) {
-        if (response && !response.error) {
-          updatePatientDetailsUI(response);
-          $('#patientDetailsSection').show();
-        } else {
-          console.error('Patient details error:', response.error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: response.error || 'Patient details not found'
-          });
-        }
-      },
-      error: function(xhr, status, error) {
-        console.error('Error loading patient details:', error);
-        console.error('Response:', xhr.responseText);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Failed to load patient details. Please try again.'
-        });
-      }
-    });
+    // Update UI with the patient data
+    updatePatientDetailsUI(patientData);
+    $('#patientDetailsSection').show();
   }
 
   // Update the updatePatientDetailsUI function
   function updatePatientDetailsUI(patient) {
     if (!patient) return;
-    
+
+    // Set text content with fallback to 'N/A' if value is empty
     $('#patientName').text(patient.name || 'N/A');
     $('#patientIC').text(patient.ic_number || 'N/A');
     $('#patientGender').text(patient.gender || 'N/A');
