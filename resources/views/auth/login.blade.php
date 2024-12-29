@@ -267,7 +267,7 @@
 
             <p class="register-prompt">
                 Don't have an account? 
-                <a href="#" class="register-link">Please contact our administrator</a>
+                <a href="mailto:chewsinai2002@gmail.com" class="register-link">Please contact our administrator</a>
             </p>
         </form>
     </div>

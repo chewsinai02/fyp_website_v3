@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/logo.png') }}">
+
     <title>SUC Hospital - Welcome</title>
     
     <!-- CSS Dependencies -->
@@ -40,6 +45,10 @@
                                     </a></li>
                                 @elseif(auth()->user()->role === 'doctor')
                                     <li><a class="dropdown-item" href="{{ route('doctorDashboard') }}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                    </a></li>
+                                 @elseif(auth()->user()->role === 'nurse_admin')
+                                    <li><a class="dropdown-item" href="{{ route('nurseadminDashboard') }}">
                                         <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                                     </a></li>
                                 @elseif(auth()->user()->role === 'nurse')
@@ -83,6 +92,9 @@
                         <img src="{{ asset('images/logo.png') }}" alt="Hospital Logo" class="img-fluid mb-4" style="max-width: 200px;">
                     </div>
                 </div>
+                <h5 class="text-muted">A Real-Time Communication and<br>
+                    Management System for Families and<br>
+                    Hospital in Patient Care System</h5>
             </div>
         </div>
 
@@ -97,9 +109,26 @@
                         </div>
                         <h3>Medical Staff</h3>
                         <p class="text-muted">Access your dashboard and manage patient care efficiently.</p>
-                        <a href="{{ route('login') }}" class="btn btn-primary mt-auto">
-                            <i class="fas fa-sign-in-alt me-2"></i>Staff Login
-                        </a>
+                        @if (Auth::check())
+                            @php
+                                $role = Auth::user()->role;
+                                $dashboardRoute = match($role) {
+                                    'nurse_admin' => 'nurseadminDashboard',
+                                    'nurse' => 'nurseDashboard',
+                                    'doctor' => 'doctorDashboard',
+                                    'admin' => 'adminDashboard',
+                                    default => 'home'
+                                };
+                            @endphp
+                            
+                            <a href="{{ route($dashboardRoute) }}" class="btn btn-primary mt-auto">
+                                <i class="fas fa-columns me-2"></i>Go to Dashboard
+                            </a>
+                        @else
+                            <a href="{{ route('login') }}" class="btn btn-primary mt-auto">
+                                <i class="fas fa-sign-in-alt me-2"></i>Staff Login
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -125,7 +154,7 @@
                         </div>
                         <h3>Emergency</h3>
                         <p class="text-muted">24/7 emergency services and immediate care.</p>
-                        <a href="#" class="btn btn-danger mt-auto">
+                        <a href="mailto:chewsinai2002@gmail.com" class="btn btn-danger mt-auto">
                             <i class="fas fa-phone-alt me-2"></i>Emergency Contact
                         </a>
                     </div>

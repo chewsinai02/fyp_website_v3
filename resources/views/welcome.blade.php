@@ -3,8 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'MedCare') }}</title>
-
+    <title>{{ config('app.name', 'SUC Hospital') }}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -30,7 +34,6 @@
 
         body {
             height: 100vh;
-            overflow: hidden;
             background: var(--background);
         }
 
@@ -193,6 +196,133 @@
                 font-size: 2.5rem;
             }
         }
+
+        .section {
+            padding: 4rem 2rem;
+        }
+
+        .section-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: var(--text);
+        }
+
+        /* Services Styles */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .service-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .service-card i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .service-card h3 {
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .service-card p {
+            color: var(--text-light);
+        }
+
+        /* About Styles */
+        .about-content {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .about-text {
+            text-align: center;
+        }
+
+        .about-text p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Contact Styles */
+        .contact-content {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .contact-info {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-item i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .contact-item h3 {
+            margin-bottom: 0.25rem;
+            color: var(--text);
+        }
+
+        .contact-item p {
+            color: var(--text-light);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section {
+                padding: 2rem 1rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -251,5 +381,92 @@
             <img src="{{ asset('images/doctor.png') }}" alt="Doctor" class="hero-image">
         </div>
     </div>
+
+    <!-- Services Section -->
+    <section id="services" class="section">
+        <div class="section-container">
+            <h2 class="section-title">Our Services</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <i class="bi bi-hospital"></i>
+                    <h3>Emergency Care</h3>
+                    <p>24/7 emergency medical services with state-of-the-art facilities.</p>
+                </div>
+                <div class="service-card">
+                    <i class="bi bi-clipboard2-pulse"></i>
+                    <h3>General Check-ups</h3>
+                    <p>Comprehensive health screenings and preventive care.</p>
+                </div>
+                <div class="service-card">
+                    <i class="bi bi-capsule"></i>
+                    <h3>Pharmacy Services</h3>
+                    <p>Full-service pharmacy with prescription management.</p>
+                </div>
+                <div class="service-card">
+                    <i class="bi bi-heart-pulse"></i>
+                    <h3>Specialized Care</h3>
+                    <p>Expert care in various medical specialties.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="section">
+        <div class="section-container">
+            <h2 class="section-title">About Us</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <p>SUC Hospital is committed to providing exceptional healthcare services to our community. With our team of dedicated healthcare professionals and modern facilities, we ensure the highest quality of patient care.</p>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <h3>50+</h3>
+                            <p>Medical Experts</p>
+                        </div>
+                        <div class="stat-item">
+                            <h3>24/7</h3>
+                            <p>Emergency Care</p>
+                        </div>
+                        <div class="stat-item">
+                            <h3>1000+</h3>
+                            <p>Patients Served</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="section">
+        <div class="section-container">
+            <h2 class="section-title">Contact Us</h2>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <i class="bi bi-geo-alt"></i>
+                        <div>
+                            <h3>Location</h3>
+                            <p>PTD 64888, Jalan Selatan Utama, KM 15, Off, Skudai Lbh, 81300 Skudai, Johor</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <i class="bi bi-telephone"></i>
+                        <div>
+                            <h3>Phone</h3>
+                            <p>+60-177423008</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <i class="bi bi-envelope"></i>
+                        <div>
+                            <h3>Email</h3>
+                            <p>chewsinai2002@gmail.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </body>
 </html>
