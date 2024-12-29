@@ -24,6 +24,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\NurseController;
 use App\Http\Controllers\NurseCalendarController;
 use App\Http\Controllers\BedController;
+use App\Http\Controllers\UploadController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -368,3 +369,5 @@ Route::get('/firebase/update', [FirebaseController::class, 'update']);
 Route::get('/firebase/delete', [FirebaseController::class, 'delete']);
 Route::get('/firebase/push', [FirebaseController::class, 'pushToList']);
 Route::get('/firebase/query', [FirebaseController::class, 'query']);
+Route::post('/upload', [UploadController::class, 'upload'])->middleware('auth');
+Route::delete('/upload', [UploadController::class, 'delete'])->middleware('auth');

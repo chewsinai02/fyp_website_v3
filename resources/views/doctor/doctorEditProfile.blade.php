@@ -350,12 +350,31 @@ function previewImage(event) {
     const preview = document.getElementById('profile_preview');
     
     if (file) {
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            event.target.value = '';
+            return;
+        }
+
+        // Validate file type
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            event.target.value = '';
+            return;
+        }
+
+        // Show preview immediately by replacing current image
         const reader = new FileReader();
         reader.onload = function(e) {
             preview.src = e.target.result;
-            preview.style.display = 'block';
+            preview.style.display = 'block'; // Ensure image is visible
         };
         reader.readAsDataURL(file);
+    } else {
+        // If no file selected, keep current profile picture
+        const currentPicture = preview.getAttribute('data-default-image') || '{{ asset("images/profile.png") }}';
+        preview.src = currentPicture;
     }
 }
 

@@ -6,6 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Blade;
+use App\Helpers\ImageUploadHelper;
+use Kreait\Firebase\Storage;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,7 +18,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(ImageUploadHelper::class, function ($app) {
+            // Get Firebase Storage instance from the container
+            $firebaseStorage = $app->make(Storage::class);
+            return new ImageUploadHelper($firebaseStorage);
+        });
     }
 
     /**

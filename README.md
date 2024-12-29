@@ -62,3 +62,13 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Firebase Setup
+
+1. Download Firebase credentials from Firebase Console
+2. Create directory: `storage/app/firebase/`
+3. Save credentials as: `firebase-credentials.json`
+4. Set proper file permissions
+5. Add the path to .gitignore
+
+For detailed setup instructions, see FIREBASE_SETUP.md

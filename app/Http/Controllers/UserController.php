@@ -7,9 +7,17 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Helpers\ImageUploadHelper;
 
 class UserController extends Controller
 {
+    protected $imageUploader;
+
+    public function __construct(ImageUploadHelper $imageUploader)
+    {
+        $this->imageUploader = $imageUploader;
+    }
+
     // Display the edit form for user details
     public function adminedit($id)
     {
@@ -22,13 +30,12 @@ class UserController extends Controller
     {
         Log::info('Update method called for user ID: ' . $id);
 
-        // Validate the request data
-        $request->validate([
+        // Separate validation rules for profile picture
+        $validationRules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'role' => 'required|string',
             'gender' => 'required|string',
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
             'ic_number' => 'required|string',
             'address' => 'required|string',
             'blood_type' => 'required|in:rh+ a,rh- a,rh+ b,rh- b,rh+ ab,rh- ab,rh+ o,rh- o',
@@ -39,33 +46,42 @@ class UserController extends Controller
             'description' => 'nullable|string',
             'emergency_contact' => 'required|string',
             'relation' => 'required|string',
-        ]);
+        ];
+
+        // Add profile_picture validation only if a file was uploaded
+        if ($request->hasFile('profile_picture')) {
+            $validationRules['profile_picture'] = 'image|mimes:jpg,jpeg,png,gif|max:5120'; // 5MB max
+        }
+
+        // Validate the request data
+        $request->validate($validationRules);
 
         $user = User::findOrFail($id);
 
         // Update basic user details
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->role = $request->role;
-        $user->gender = $request->gender;
-        $user->ic_number = $request->ic_number;
-        $user->address = $request->address;
-        $user->blood_type = $request->blood_type;
-        $user->contact_number = $request->contact_number;
-        $user->emergency_contact = $request->emergency_contact;
-        $user->relation = $request->relation;
+        $user->fill($request->except('profile_picture', 'medical_history'));
 
         // Handle profile image upload
         if ($request->hasFile('profile_picture')) {
-            $image = $request->file('profile_picture');
-            $imageName = $image->getClientOriginalName();
-            $image->move(public_path('images'), $imageName);
-
-            if ($user->profile_picture && file_exists(public_path('images/' . $user->profile_picture))) {
-                unlink(public_path('images/' . $user->profile_picture));
+            try {
+                $url = $this->imageUploader->uploadImage(
+                    $request->file('profile_picture'),
+                    $user->role,
+                    $user->id
+                );
+                
+                // Delete old image if exists and not a default image
+                if ($user->profile_picture && !str_starts_with($user->profile_picture, 'images/')) {
+                    $this->imageUploader->deleteImage($user->profile_picture);
+                }
+                
+                $user->profile_picture = $url;
+            } catch (\Exception $e) {
+                Log::error('Profile image upload failed: ' . $e->getMessage());
+                return redirect()->back()
+                    ->withErrors(['error' => 'Failed to upload image: ' . $e->getMessage()])
+                    ->withInput();
             }
-
-            $user->profile_picture = 'images/' . $imageName;
         }
 
         // Handle medical history
