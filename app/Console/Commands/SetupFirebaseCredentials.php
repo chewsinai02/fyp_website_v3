@@ -11,9 +11,9 @@ class SetupFirebaseCredentials extends Command
 
     public function handle()
     {
-        $sourcePath = base_path('fyptestv2-37c45-firebase-adminsdk-tu0u8-2ebcfea884.json');
+        $sourcePath = base_path('fyptestv2-37c45-firebase-adminsdk-tu0u8-caf619423c.json');
         $targetDir = storage_path('app/firebase');
-        $targetPath = $targetDir . DIRECTORY_SEPARATOR . 'fyptestv2-37c45-firebase-adminsdk-tu0u8-2ebcfea884.json';
+        $targetPath = $targetDir . DIRECTORY_SEPARATOR . 'fyptestv2-37c45-firebase-adminsdk-tu0u8-caf619423c.json';
 
         try {
             // Create directory if it doesn't exist

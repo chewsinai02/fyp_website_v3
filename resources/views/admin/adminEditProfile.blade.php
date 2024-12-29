@@ -13,26 +13,6 @@
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-12">
-            @if(session('firebase_success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i>
-                    {{ session('firebase_success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if(session('firebase_error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    {{ session('firebase_error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-        </div>
-    </div>
-
     @if ($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -125,7 +105,6 @@
                    id="profile_picture" 
                    name="profile_picture" 
                    accept="image/*" 
-                   aria-label="Profile Picture Upload"
                    onchange="previewImage(event)">
 
             <div class="card details-card">
@@ -449,53 +428,124 @@
 }
 </style>
 
+<!-- Add Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
 <script>
-function previewImage(event) {
+// Initialize Firebase
+const app = firebase.initializeApp({
+    apiKey: "AIzaSyAiElkmNSl0K-N0Rz4kuqKAXrr6Eg7oo64",
+    authDomain: "fyptestv2-37c45.firebaseapp.com",
+    projectId: "fyptestv2-37c45",
+    storageBucket: "fyptestv2-37c45.firebasestorage.app",
+    messagingSenderId: "500961952253",
+    appId: "1:500961952253:web:a846193490974d3667d994"
+});
+
+// Simplified image upload function
+async function previewImage(event) {
     const file = event.target.files[0];
     const preview = document.getElementById('profile_preview');
     
-    if (file) {
-        // Validate file size (5MB max)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('File size must be less than 5MB');
-            event.target.value = '';
-            return;
-        }
+    if (!file) {
+        preview.src = preview.getAttribute('data-default-image') || '{{ asset("images/profile.png") }}';
+        return;
+    }
 
-        // Validate file type
-        if (!file.type.match('image.*')) {
-            alert('Please select an image file');
-            event.target.value = '';
-            return;
-        }
+    // Basic validation
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        event.target.value = '';
+        return;
+    }
 
-        // Show preview immediately by replacing current image
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            preview.src = e.target.result;
-            preview.style.display = 'block'; // Ensure image is visible
-        };
-        reader.readAsDataURL(file);
-    } else {
-        // If no file selected, keep current profile picture
-        const currentPicture = preview.getAttribute('data-default-image') || '{{ asset("images/profile.png") }}';
-        preview.src = currentPicture;
+    if (!file.type.match('image.*')) {
+        alert('Please select an image file');
+        event.target.value = '';
+        return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        preview.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    try {
+        // Create file reference
+        const timestamp = Date.now();
+        const filename = `profile_${timestamp}_${file.name}`;
+        const storageRef = firebase.storage().ref(`assets/images/${filename}`);
+
+        // Upload file
+        const uploadTask = storageRef.put(file);
+
+        // Show upload progress
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress mt-2';
+        progressBar.innerHTML = `
+            <div class="progress-bar" role="progressbar" style="width: 0%" 
+                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        `;
+        preview.parentElement.appendChild(progressBar);
+
+        uploadTask.on('state_changed', 
+            // Progress
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                progressBar.querySelector('.progress-bar').style.width = progress + '%';
+            },
+            // Error
+            (error) => {
+                console.error('Upload failed:', error);
+                alert('Upload failed: ' + error.message);
+                progressBar.remove();
+            },
+            // Success
+            async () => {
+                try {
+                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                    
+                    // Add URL to hidden input
+                    let urlInput = document.getElementById('profile_picture_url');
+                    if (!urlInput) {
+                        urlInput = document.createElement('input');
+                        urlInput.type = 'hidden';
+                        urlInput.id = 'profile_picture_url';
+                        urlInput.name = 'profile_picture_url';
+                        document.getElementById('uploadForm').appendChild(urlInput);
+                    }
+                    urlInput.value = downloadURL;
+                    
+                    // Remove progress bar after success
+                    setTimeout(() => progressBar.remove(), 1000);
+                } catch (error) {
+                    console.error('Failed to get download URL:', error);
+                    alert('Failed to get download URL: ' + error.message);
+                    progressBar.remove();
+                }
+            }
+        );
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Upload failed: ' + error.message);
     }
 }
 
-// Form submission handler
+// Update form submission
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
-    const loading = document.getElementById('loading');
-    const submitButton = document.getElementById('submit-button');
+    const urlInput = document.getElementById('profile_picture_url');
     const fileInput = document.getElementById('profile_picture');
-
-    if (fileInput.files.length > 0) {
-        loading.classList.remove('d-none');
-        submitButton.disabled = true;
+    
+    if (urlInput && urlInput.value) {
+        // Clear file input if we have a URL
+        fileInput.value = '';
     }
 });
 
-// Auto dismiss alerts after 5 seconds
+// Auto dismiss alerts
 document.addEventListener('DOMContentLoaded', function() {
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {

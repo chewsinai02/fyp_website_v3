@@ -38,19 +38,12 @@
                     <h5 class="mb-3 fw-bold">Profile Information</h5>
                     <div class="text-center mb-4">
                         <div class="position-relative d-inline-block">
-                            @if($user->profile_picture)
-                                <img src="{{ asset($user->profile_picture) }}" 
-                                     alt="Profile" 
-                                     class="rounded-circle mb-3 shadow-sm" 
-                                     id="profile_preview"
-                                     style="width: 150px; height: 150px; object-fit: cover;">
-                            @else
-                                <img src="{{ asset('images/profile.png') }}" 
-                                     alt="Profile" 
-                                     class="rounded-circle mb-3 shadow-sm" 
-                                     id="profile_preview"
-                                     style="width: 150px; height: 150px; object-fit: cover;">
-                            @endif
+                            <img id="profile_preview" 
+                                 src="{{ $user->profile_picture ? asset($user->profile_picture) : asset('images/profile.png') }}" 
+                                 data-default-image="{{ $user->profile_picture ? asset($user->profile_picture) : asset('images/profile.png') }}"
+                                 alt="Profile Picture" 
+                                 class="rounded-circle mb-3 shadow-sm" 
+                                 style="width: 150px; height: 150px; object-fit: cover;">
                             <div class="upload-overlay" onclick="document.getElementById('profile_picture').click();">
                                 <i class="bi bi-camera-fill"></i>
                             </div>
@@ -349,12 +342,31 @@ function previewImage(event) {
     const preview = document.getElementById('profile_preview');
     
     if (file) {
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            event.target.value = '';
+            return;
+        }
+
+        // Validate file type
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            event.target.value = '';
+            return;
+        }
+
+        // Show preview immediately by replacing current image
         const reader = new FileReader();
         reader.onload = function(e) {
             preview.src = e.target.result;
             preview.style.display = 'block';
         };
         reader.readAsDataURL(file);
+    } else {
+        // If no file selected, keep current profile picture
+        const currentPicture = preview.getAttribute('data-default-image') || '{{ asset("images/profile.png") }}';
+        preview.src = currentPicture;
     }
 }
 

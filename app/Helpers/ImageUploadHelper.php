@@ -10,25 +10,19 @@ use Illuminate\Support\Str;
 class ImageUploadHelper
 {
     protected $storage;
+    protected const FIREBASE_BUCKET = 'fyptestv2-37c45.firebasestorage.app';
+    protected const CREDENTIALS_FILE = 'fyptestv2-37c45-firebase-adminsdk-tu0u8-caf619423c.json';
+    
     protected $defaultImages = [
         'profile' => 'images/profile.png',
         'nurse' => 'images/nurse.png',
-        'nurse_alt1' => 'images/nurse(1).png',
-        'nurse_alt2' => 'images/nurse(2).png',
+        'doctor' => 'images/doctor.png',
         'patient' => 'images/p2.jpg'
     ];
 
     public function __construct(Storage $storage)
     {
         $this->storage = $storage;
-        
-        // Verify storage connection
-        try {
-            $this->storage->getBucket()->exists();
-        } catch (\Exception $e) {
-            Log::error('Firebase Storage connection failed: ' . $e->getMessage());
-            throw new \Exception('Failed to initialize Firebase Storage');
-        }
     }
 
     /**
@@ -40,9 +34,10 @@ class ImageUploadHelper
             // Validate file
             $this->validateFile($file);
 
-            // Generate very short unique filename (8 chars + extension)
-            $filename = substr(md5(uniqid() . time()), 0, 8) . '.' . $file->getClientOriginalExtension();
-            $path = "img/{$filename}"; // Shorter path
+            // Generate filename with timestamp
+            $timestamp = time();
+            $filename = "image_{$timestamp}_{$file->getClientOriginalName()}";
+            $path = "assets/images/{$filename}";
 
             // Get bucket
             $bucket = $this->storage->getBucket();
@@ -52,23 +47,30 @@ class ImageUploadHelper
                 $file->get(),
                 [
                     'name' => $path,
-                    'predefinedAcl' => 'publicRead', // Make it public
                     'metadata' => [
                         'contentType' => $file->getMimeType(),
+                        'firebaseStorageDownloadTokens' => Str::uuid(), // Add download token
                         'metadata' => [
                             'userType' => $userType,
-                            'userId' => $userId
+                            'userId' => $userId,
+                            'uploadTime' => $timestamp
                         ]
                     ]
                 ]
             );
 
-            // Use direct storage URL format
-            return "https://storage.googleapis.com/{$bucket->name()}/{$path}";
+            // Get download URL with token
+            $downloadToken = $object->info()['metadata']['firebaseStorageDownloadTokens'];
+            
+            // Generate Firebase Storage URL
+            $encodedPath = urlencode($path);
+            $url = "https://firebasestorage.googleapis.com/v0/b/" . self::FIREBASE_BUCKET . "/o/{$encodedPath}?alt=media&token={$downloadToken}";
+
+            return $url;
 
         } catch (\Exception $e) {
             Log::error("Image upload failed: " . $e->getMessage());
-            return $this->getDefaultImage($userType);
+            throw new \Exception('Failed to upload image: ' . $e->getMessage());
         }
     }
 
@@ -79,16 +81,13 @@ class ImageUploadHelper
     {
         try {
             // Don't delete default images
-            if (in_array($url, $this->defaultImages)) {
+            if (in_array($url, array_values($this->defaultImages))) {
                 return;
             }
 
-            // Extract path from URL
-            $path = str_replace(
-                "https://storage.googleapis.com/{$this->storage->getBucket()->name()}/",
-                '',
-                $url
-            );
+            // Extract path from Firebase URL
+            $path = explode('?', explode('/o/', $url)[1])[0];
+            $path = urldecode($path);
 
             $bucket = $this->storage->getBucket();
             if ($bucket->object($path)->exists()) {
@@ -100,14 +99,6 @@ class ImageUploadHelper
     }
 
     /**
-     * Get default image for user type
-     */
-    protected function getDefaultImage(string $userType): string
-    {
-        return $this->defaultImages[$userType] ?? $this->defaultImages['profile'];
-    }
-
-    /**
      * Validate uploaded file
      */
     protected function validateFile(UploadedFile $file): void
@@ -115,11 +106,21 @@ class ImageUploadHelper
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
         
         if (!in_array($file->getMimeType(), $allowedTypes)) {
-            throw new \Exception('Invalid file type. Only images are allowed.');
+            throw new \Exception('Invalid file type. Only images (JPG, PNG, GIF) are allowed.');
         }
 
         if ($file->getSize() > 5 * 1024 * 1024) { // 5MB
             throw new \Exception('File size exceeds 5MB limit.');
         }
+    }
+
+    /**
+     * Get Firebase Storage URL for a path
+     */
+    protected function getFirebaseUrl(string $path, string $token): string
+    {
+        $encodedPath = urlencode($path);
+        return "https://firebasestorage.googleapis.com/v0/b/" . self::FIREBASE_BUCKET . 
+               "/o/{$encodedPath}?alt=media&token={$token}";
     }
 } 

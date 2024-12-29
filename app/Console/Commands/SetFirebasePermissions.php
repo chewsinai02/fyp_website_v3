@@ -12,7 +12,7 @@ class SetFirebasePermissions extends Command
     public function handle()
     {
         $path = storage_path('app/firebase');
-        $file = $path . DIRECTORY_SEPARATOR . 'fyptestv2-37c45-firebase-adminsdk-tu0u8-2ebcfea884.json';
+        $file = $path . DIRECTORY_SEPARATOR . 'fyptestv2-37c45-firebase-adminsdk-tu0u8-caf619423c.json';
 
         // Create directory if it doesn't exist
         if (!file_exists($path)) {

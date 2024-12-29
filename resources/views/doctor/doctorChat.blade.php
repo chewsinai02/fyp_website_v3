@@ -32,8 +32,14 @@
         </div>
 
         <!-- Chat Messages -->
-        <div id="chatContainer" style="flex: 1; overflow-y: auto; background-color: #f8fafc;" class="p-4">
-            @foreach($messages as $message)
+        <div id="chatContainer" 
+             style="flex: 1; 
+                    overflow-y: auto; 
+                    background-color: #f8fafc;
+                    display: flex;
+                    flex-direction: column-reverse;" 
+             class="p-4">
+            @foreach($messages->sortByDesc('created_at') as $message)
                 <div style="margin-bottom: 1rem; display: flex; justify-content: {{ $message->sender_id == auth()->id() ? 'flex-end' : 'flex-start' }}">
                     <div style="max-width: 70%;">
                         <div style="padding: 0.75rem 1rem; border-radius: 12px; margin-bottom: 0.25rem; position: relative; 
@@ -41,12 +47,42 @@
                                      ? 'background-color: var(--bs-primary); color: white; border-bottom-right-radius: 4px;' 
                                      : 'background-color: white; border-bottom-left-radius: 4px;' }}">
                             @if($message->image)
-                                <div class="mb-2">
-                                    <img src="{{ asset($message->image) }}" 
-                                         alt="Sent image" 
-                                         style="max-width: 100%; border-radius: 8px; cursor: pointer;"
-                                         onclick="window.open('{{ asset($message->image) }}', '_blank')">
-                                </div>
+                                @php
+                                    $filename = basename(parse_url($message->image, PHP_URL_PATH));
+                                    $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                                    $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
+                                    $isImage = in_array($extension, $imageExtensions);
+                                @endphp
+
+                                @if($isImage)
+                                    <!-- Display images directly -->
+                                    <div class="mb-2">
+                                        <img src="{{ $message->image }}" 
+                                             alt="Sent image" 
+                                             style="max-width: 100%; border-radius: 8px;"
+                                             loading="lazy">
+                                    </div>
+                                @else
+                                    <!-- Display files as links with icons -->
+                                    <div class="file-message p-2 rounded d-flex align-items-center" 
+                                         style="background: rgba(255,255,255,0.1); cursor: pointer;"
+                                         onclick="window.open('{{ $message->image }}', '_blank')">
+                                        @php
+                                            $fileIcon = 'bi-file-earmark';
+                                            if (str_contains($filename, '.pdf')) $fileIcon = 'bi-file-earmark-pdf';
+                                            elseif (str_contains($filename, '.doc')) $fileIcon = 'bi-file-earmark-word';
+                                            elseif (str_contains($filename, '.xls')) $fileIcon = 'bi-file-earmark-excel';
+                                            elseif (str_contains($filename, '.ppt')) $fileIcon = 'bi-file-earmark-ppt';
+                                            elseif (str_contains($filename, '.zip') || str_contains($filename, '.rar')) $fileIcon = 'bi-file-earmark-zip';
+                                            elseif (str_contains($filename, '.txt')) $fileIcon = 'bi-file-earmark-text';
+                                        @endphp
+                                        <i class="bi {{ $fileIcon }} me-2 fs-4"></i>
+                                        <div class="d-flex flex-column">
+                                            <span style="font-size: 0.9em;">{{ substr($filename, strpos($filename, '_') + 1) }}</span>
+                                            <small style="opacity: 0.8;">Click to download</small>
+                                        </div>
+                                    </div>
+                                @endif
                             @endif
                             @if($message->message && $message->message !== '[Image]')
                                 {{ $message->message }}
@@ -73,6 +109,13 @@
                   id="chatForm">
                 @csrf
                 <div class="input-group">
+                    <!-- Hidden file inputs -->
+                    <input type="file" 
+                           id="attachmentInput" 
+                           name="image" 
+                           accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.zip,.rar" 
+                           class="d-none"
+                           onchange="handleAttachmentUpload(this)">
                     <input type="file" 
                            id="cameraInput" 
                            name="image" 
@@ -87,16 +130,27 @@
                            class="d-none"
                            onchange="handleImageUpload(this)">
                     
+                    <!-- Attachment button -->
                     <button type="button" 
-                            class="btn btn-light rounded-circle d-flex align-items-center justify-content-center" 
+                            class="btn btn-light rounded-circle d-flex align-items-center justify-content-center me-2" 
                             style="width: 40px; height: 40px; padding: 0; border: 1px solid #e2e8f0;"
-                            onclick="document.getElementById('cameraInput').click();">
+                            onclick="document.getElementById('attachmentInput').click();">
+                        <i class="bi bi-paperclip"></i>
+                    </button>
+                    
+                    <!-- Existing camera button -->
+                    <button type="button" 
+                            class="btn btn-light rounded-circle d-flex align-items-center justify-content-center me-2" 
+                            style="width: 40px; height: 40px; padding: 0; border: 1px solid #e2e8f0;"
+                            onclick="openCamera();">
                         <i class="bi bi-camera"></i>
                     </button>
+                    
+                    <!-- Existing gallery button -->
                     <button type="button" 
-                            class="btn btn-light rounded-circle d-flex align-items-center justify-content-center" 
+                            class="btn btn-light rounded-circle d-flex align-items-center justify-content-center me-2" 
                             style="width: 40px; height: 40px; padding: 0; border: 1px solid #e2e8f0;"
-                            onclick="document.getElementById('galleryInput').click();">
+                            onclick="openGallery();">
                         <i class="bi bi-image"></i>
                     </button>
                     
@@ -204,12 +258,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('messageInput').value = '';
             removeImage();
             
-            // Add new message to chat
+            // Add new message to chat at the beginning since we're using column-reverse
             const messageHtml = createMessageHtml(data.message);
-            chatContainer.insertAdjacentHTML('beforeend', messageHtml);
-            
-            // Scroll to bottom
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            chatContainer.insertAdjacentHTML('afterbegin', messageHtml);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -305,10 +356,9 @@ async function uploadImageToFirebase(file, source) {
     try {
         // Create unique filename with timestamp
         const timestamp = Date.now();
-        const filename = `image_${timestamp}.${file.name.split('.').pop()}`;
+        const filename = `image_${timestamp}_${file.name}`;
         const path = `assets/chat_images/${filename}`;
 
-        // Get Firebase bucket
         const storage = firebase.storage();
         const storageRef = storage.ref();
         const imageRef = storageRef.child(path);
@@ -318,26 +368,38 @@ async function uploadImageToFirebase(file, source) {
             contentType: file.type,
         });
 
-        // Generate Firebase Storage URL in the correct format
+        // Generate Firebase Storage URL
         const encodedPath = encodeURIComponent(path);
-        const token = await snapshot.ref.getDownloadURL(); // This gets the token
+        const token = await snapshot.ref.getDownloadURL();
         const url = `https://firebasestorage.googleapis.com/v0/b/fyptestv2-37c45.firebasestorage.app/o/${encodedPath}?alt=media&token=${token.split('token=')[1]}`;
 
-        // Show preview
-        const preview = document.getElementById('imagePreview');
-        preview.querySelector('img').src = url;
-        preview.classList.remove('d-none');
-
-        // Store URL in a hidden input
+        // Store URL in image_url input
         let urlInput = document.getElementById('uploadedImageUrl');
         if (!urlInput) {
             urlInput = document.createElement('input');
             urlInput.type = 'hidden';
             urlInput.id = 'uploadedImageUrl';
-            urlInput.name = 'image_url';
+            urlInput.name = 'image';
             document.getElementById('chatForm').appendChild(urlInput);
         }
         urlInput.value = url;
+
+        // Show preview
+        const preview = document.getElementById('imagePreview');
+        preview.innerHTML = `
+            <div class="position-relative d-inline-block">
+                <img src="${URL.createObjectURL(file)}" 
+                     alt="Preview" 
+                     style="max-height: 100px; border-radius: 8px;">
+                <button type="button" 
+                        class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                        style="margin: -8px -8px 0 0;"
+                        onclick="removeImage()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+        preview.classList.remove('d-none');
 
     } catch (error) {
         console.error('Upload error:', error);
@@ -364,7 +426,12 @@ async function handleImageUpload(input) {
             return;
         }
 
-        await uploadImageToFirebase(file, 'gallery');
+        try {
+            await uploadImageToFirebase(file, 'gallery');
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to upload image: ' + error.message);
+        }
     }
 }
 
@@ -378,12 +445,97 @@ document.querySelector('[onclick="document.getElementById(\'galleryInput\').clic
 function removeImage() {
     const preview = document.getElementById('imagePreview');
     preview.classList.add('d-none');
-    preview.querySelector('img').src = '';
+    preview.innerHTML = ''; // Clear the entire preview content
     
     // Clear file inputs
     document.getElementById('cameraInput').value = '';
     document.getElementById('galleryInput').value = '';
+    document.getElementById('attachmentInput').value = '';
+    
+    // Remove the hidden URL input if it exists
+    const urlInput = document.getElementById('uploadedImageUrl');
+    if (urlInput) {
+        urlInput.remove();
+    }
 }
+
+async function handleDocumentUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            input.value = '';
+            return;
+        }
+
+        // Validate file type
+        if (!file.type.match('application/pdf|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document|text/plain')) {
+            alert('Please select a valid document file');
+            input.value = '';
+            return;
+        }
+
+        try {
+            // Create unique filename with timestamp
+            const timestamp = Date.now();
+            const filename = `doc_${timestamp}_${file.name}`;
+            const path = `assets/chat_images/${filename}`; // Use same directory as images
+
+            const storage = firebase.storage();
+            const storageRef = storage.ref();
+            const docRef = storageRef.child(path);
+
+            // Upload file
+            const snapshot = await docRef.put(file, {
+                contentType: file.type,
+            });
+
+            // Generate Firebase Storage URL in the correct format
+            const encodedPath = encodeURIComponent(path);
+            const token = await snapshot.ref.getDownloadURL();
+            const url = `https://firebasestorage.googleapis.com/v0/b/fyptestv2-37c45.firebasestorage.app/o/${encodedPath}?alt=media&token=${token.split('token=')[1]}`;
+
+            // Store URL in image_url input (same as images)
+            let urlInput = document.getElementById('uploadedImageUrl');
+            if (!urlInput) {
+                urlInput = document.createElement('input');
+                urlInput.type = 'hidden';
+                urlInput.id = 'uploadedImageUrl';
+                urlInput.name = 'image'; // Use same column as images
+                document.getElementById('chatForm').appendChild(urlInput);
+            }
+            urlInput.value = url;
+
+            // Show preview
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = `
+                <div class="position-relative d-inline-block">
+                    <div class="document-preview p-2 border rounded">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        ${file.name}
+                    </div>
+                    <button type="button" 
+                            class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                            style="margin: -8px -8px 0 0;"
+                            onclick="removeImage()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            preview.classList.remove('d-none');
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to upload document: ' + error.message);
+        }
+    }
+}
+
+// Update the document button click handler
+document.querySelector('[onclick="document.getElementById(\'documentInput\').click();"]')
+    .setAttribute('onclick', 'openCamera()');
 
 function createMessageHtml(message) {
     const time = new Date(message.created_at).toLocaleTimeString('en-US', {
@@ -394,20 +546,47 @@ function createMessageHtml(message) {
     
     let content = '';
     
-    // Add image if exists
+    // Add image/file if exists
     if (message.image) {
-        content += `
-            <div class="mb-2">
-                <img src="${message.image}" 
-                     alt="Sent image" 
-                     style="max-width: 100%; border-radius: 8px; cursor: pointer;"
+        const filename = message.image.split('/').pop().split('?')[0];
+        const extension = filename.split('.').pop().toLowerCase();
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
+        const isImage = imageExtensions.includes(extension);
+        
+        if (isImage) {
+            content += `
+                <div class="mb-2">
+                    <img src="${message.image}" 
+                         alt="Sent image" 
+                         style="max-width: 100%; border-radius: 8px;"
+                         loading="lazy">
+                </div>
+            `;
+        } else {
+            let fileIcon = 'bi-file-earmark';
+            if (filename.includes('.pdf')) fileIcon = 'bi-file-earmark-pdf';
+            else if (filename.includes('.doc')) fileIcon = 'bi-file-earmark-word';
+            else if (filename.includes('.xls')) fileIcon = 'bi-file-earmark-excel';
+            else if (filename.includes('.ppt')) fileIcon = 'bi-file-earmark-ppt';
+            else if (filename.includes('.zip') || filename.includes('.rar')) fileIcon = 'bi-file-earmark-zip';
+            else if (filename.includes('.txt')) fileIcon = 'bi-file-earmark-text';
+
+            content += `
+                <div class="file-message p-2 rounded d-flex align-items-center" 
+                     style="background: rgba(255,255,255,0.1); cursor: pointer;"
                      onclick="window.open('${message.image}', '_blank')">
-            </div>
-        `;
+                    <i class="bi ${fileIcon} me-2 fs-4"></i>
+                    <div class="d-flex flex-column">
+                        <span style="font-size: 0.9em;">${filename.substring(filename.indexOf('_') + 1)}</span>
+                        <small style="opacity: 0.8;">Click to download</small>
+                    </div>
+                </div>
+            `;
+        }
     }
     
     // Add message text if exists
-    if (message.message) {
+    if (message.message && message.message !== '[Image]') {
         content += `<div>${message.message}</div>`;
     }
     
@@ -426,6 +605,208 @@ function createMessageHtml(message) {
         </div>
     `;
 }
+
+async function handleFileUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            input.value = '';
+            return;
+        }
+
+        try {
+            // Create unique filename with timestamp
+            const timestamp = Date.now();
+            const filename = `file_${timestamp}_${file.name}`;
+            const path = `assets/chat_images/${filename}`; // Use same directory
+
+            const storage = firebase.storage();
+            const storageRef = storage.ref();
+            const fileRef = storageRef.child(path);
+
+            // Upload file
+            const snapshot = await fileRef.put(file, {
+                contentType: file.type,
+            });
+
+            // Generate Firebase Storage URL
+            const encodedPath = encodeURIComponent(path);
+            const token = await snapshot.ref.getDownloadURL();
+            const url = `https://firebasestorage.googleapis.com/v0/b/fyptestv2-37c45.firebasestorage.app/o/${encodedPath}?alt=media&token=${token.split('token=')[1]}`;
+
+            // Store URL in image_url input
+            let urlInput = document.getElementById('uploadedImageUrl');
+            if (!urlInput) {
+                urlInput = document.createElement('input');
+                urlInput.type = 'hidden';
+                urlInput.id = 'uploadedImageUrl';
+                urlInput.name = 'image';
+                document.getElementById('chatForm').appendChild(urlInput);
+            }
+            urlInput.value = url;
+
+            // Show preview based on file type
+            const preview = document.getElementById('imagePreview');
+            if (file.type.startsWith('image/')) {
+                preview.innerHTML = `
+                    <div class="position-relative d-inline-block">
+                        <img src="${URL.createObjectURL(file)}" 
+                             alt="Preview" 
+                             style="max-height: 100px; border-radius: 8px;">
+                        <button type="button" 
+                                class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                                style="margin: -8px -8px 0 0;"
+                                onclick="removeImage()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                `;
+            } else {
+                preview.innerHTML = `
+                    <div class="position-relative d-inline-block">
+                        <div class="file-preview p-2 border rounded">
+                            <i class="bi bi-file-earmark me-2"></i>
+                            ${file.name}
+                        </div>
+                        <button type="button" 
+                                class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                                style="margin: -8px -8px 0 0;"
+                                onclick="removeImage()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                `;
+            }
+            preview.classList.remove('d-none');
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to upload file: ' + error.message);
+        }
+    }
+}
+
+async function handleAttachmentUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            input.value = '';
+            return;
+        }
+
+        try {
+            // Create unique filename with timestamp
+            const timestamp = Date.now();
+            const filename = `attachment_${timestamp}_${file.name}`;
+            const path = `assets/chat_images/${filename}`; // Use same directory as images
+
+            const storage = firebase.storage();
+            const storageRef = storage.ref();
+            const fileRef = storageRef.child(path);
+
+            // Upload file
+            const snapshot = await fileRef.put(file, {
+                contentType: file.type,
+            });
+
+            // Generate Firebase Storage URL
+            const encodedPath = encodeURIComponent(path);
+            const token = await snapshot.ref.getDownloadURL();
+            const url = `https://firebasestorage.googleapis.com/v0/b/fyptestv2-37c45.firebasestorage.app/o/${encodedPath}?alt=media&token=${token.split('token=')[1]}`;
+
+            // Store URL in image_url input
+            let urlInput = document.getElementById('uploadedImageUrl');
+            if (!urlInput) {
+                urlInput = document.createElement('input');
+                urlInput.type = 'hidden';
+                urlInput.id = 'uploadedImageUrl';
+                urlInput.name = 'image';
+                document.getElementById('chatForm').appendChild(urlInput);
+            }
+            urlInput.value = url;
+
+            // Show preview with appropriate icon based on file type
+            const preview = document.getElementById('imagePreview');
+            let fileIcon = 'bi-file-earmark';
+            
+            // Choose appropriate icon based on file type
+            if (file.type.includes('pdf')) fileIcon = 'bi-file-earmark-pdf';
+            else if (file.type.includes('word')) fileIcon = 'bi-file-earmark-word';
+            else if (file.type.includes('sheet') || file.type.includes('excel')) fileIcon = 'bi-file-earmark-excel';
+            else if (file.type.includes('presentation') || file.type.includes('powerpoint')) fileIcon = 'bi-file-earmark-ppt';
+            else if (file.type.includes('zip') || file.type.includes('rar')) fileIcon = 'bi-file-earmark-zip';
+            else if (file.type.includes('text')) fileIcon = 'bi-file-earmark-text';
+
+            preview.innerHTML = `
+                <div class="position-relative d-inline-block">
+                    <div class="file-preview p-2 border rounded d-flex align-items-center">
+                        <i class="bi ${fileIcon} me-2 fs-5"></i>
+                        <span>${file.name}</span>
+                    </div>
+                    <button type="button" 
+                            class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                            style="margin: -8px -8px 0 0;"
+                            onclick="removeImage()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+            preview.classList.remove('d-none');
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to upload file: ' + error.message);
+        }
+    }
+}
+
+// Update the scroll function
+function scrollToBottom(smooth = false) {
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.scrollTop = 0; // For column-reverse, 0 is the "bottom"
+}
+
+// Update the initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Initial scroll to bottom
+    scrollToBottom();
+    
+    // Scroll after all images are loaded
+    const images = document.querySelectorAll('#chatContainer img');
+    let loadedImages = 0;
+    
+    function checkAllImagesLoaded() {
+        loadedImages++;
+        if (loadedImages === images.length) {
+            scrollToBottom();
+        }
+    }
+    
+    images.forEach(img => {
+        if (img.complete) {
+            checkAllImagesLoaded();
+        } else {
+            img.addEventListener('load', checkAllImagesLoaded);
+            img.addEventListener('error', checkAllImagesLoaded);
+        }
+    });
+    
+    // Observe chat container for changes
+    const observer = new MutationObserver(() => {
+        scrollToBottom(true);
+    });
+    
+    observer.observe(document.getElementById('chatContainer'), {
+        childList: true,
+        subtree: true
+    });
+});
 </script>
 
 <!-- Add Firebase SDK -->

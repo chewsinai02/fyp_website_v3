@@ -4,7 +4,7 @@ require __DIR__.'/../vendor/autoload.php';
 
 use Kreait\Firebase\Factory;
 
-$credentialsPath = __DIR__.'/../storage/app/firebase/firebase-credentials.json';
+$credentialsPath = __DIR__.'/../storage/app/firebase/fyptestv2-37c45-firebase-adminsdk-tu0u8-caf619423c.json';
 
 try {
     // Read and decode the credentials file

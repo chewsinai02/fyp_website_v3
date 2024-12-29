@@ -39,12 +39,6 @@ class UploadController extends Controller
                 case 'profile':
                     $url = $this->firebaseStorage->uploadProfilePicture($file, $id);
                     break;
-                case 'medical':
-                    $url = $this->firebaseStorage->uploadMedicalImage($file, $id);
-                    break;
-                case 'room':
-                    $url = $this->firebaseStorage->uploadRoomImage($file, $id);
-                    break;
                 default:
                     throw new \Exception('Invalid upload type');
             }

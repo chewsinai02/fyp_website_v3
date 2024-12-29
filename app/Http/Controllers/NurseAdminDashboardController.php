@@ -582,7 +582,7 @@ class NurseAdminDashboardController extends Controller
 
         // Validate all fields
         $request->validate([
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:5120', // 5MB max
             'contact_number' => 'nullable|string',
             'address' => 'nullable|string',
             'blood_type' => 'nullable|string',
@@ -594,25 +594,42 @@ class NurseAdminDashboardController extends Controller
             'relation' => 'nullable|string',
         ]);
 
-        // Handle profile image upload
+        // Handle profile image upload to Firebase
         if ($request->hasFile('profile_picture')) {
-            $image = $request->file('profile_picture');
-            $originalName = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
-            $extension = $image->getClientOriginalExtension();
-            $imageName = $originalName . '.' . $extension;
+            try {
+                $file = $request->file('profile_picture');
+                
+                // Create Firebase Storage URL format
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $path = "assets/images/{$filename}";
+                
+                // Get Firebase bucket
+                $storage = app(\Kreait\Firebase\Storage::class);
+                $bucket = $storage->getBucket();
+                
+                // Upload file
+                $bucket->upload(
+                    $file->get(),
+                    [
+                        'name' => $path,
+                        'metadata' => [
+                            'contentType' => $file->getMimeType(),
+                        ]
+                    ]
+                );
 
-            // Check if file already exists and add a unique suffix if necessary
-            $counter = 1;
-            while (file_exists(public_path('images/' . $imageName))) {
-                $imageName = $originalName . '_' . $counter . '.' . $extension; // Append counter to filename
-                $counter++;
+                // Generate Firebase Storage URL
+                $url = "https://firebasestorage.googleapis.com/v0/b/fyptestv2-37c45.firebasestorage.app/o/" . 
+                       urlencode($path) . "?alt=media";
+
+                // Update user's profile picture URL
+                $user->profile_picture = $url;
+            } catch (\Exception $e) {
+                Log::error('Profile image upload failed: ' . $e->getMessage());
+                return redirect()->back()
+                    ->withErrors(['error' => 'Failed to upload image: ' . $e->getMessage()])
+                    ->withInput();
             }
-
-            // Move the image to 'public/images' directory
-            $image->move(public_path('images'), $imageName);
-            
-            // Update the profile picture path in the database
-            $user->profile_picture = 'images/' . $imageName;
         }
 
         // Handle medical history
@@ -621,7 +638,6 @@ class NurseAdminDashboardController extends Controller
             if (count($medicalHistory) === 1 && in_array('none', $medicalHistory)) {
                 $user->medical_history = null;
             } else {
-                // Filter out 'none' if other options are selected
                 $medicalHistory = array_filter($medicalHistory, function($value) {
                     return $value !== 'none';
                 });
