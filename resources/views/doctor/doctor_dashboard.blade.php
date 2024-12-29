@@ -77,7 +77,7 @@
                             <h6 class="text-muted mb-2">Unread Messages</h6>
                             <h3 class="mb-0" id="unreadCount">
                                 {{ \App\Models\Message::where('receiver_id', auth()->id())
-                                    ->where('is_read', false)
+                                    ->where('is_read', 1)
                                     ->count() }}
                             </h3>
                         </div>
@@ -134,7 +134,8 @@
                                 </td>
                                 <td>
                                     <a href="{{ route('doctor.chat', $appointment->patient->id) }}" 
-                                       class="btn btn-sm btn-outline-primary me-1">
+                                       class="btn btn-sm btn-outline-primary me-1 chat-link"
+                                       data-patient-id="{{ $appointment->patient->id }}">
                                         <i class="bi bi-chat"></i>
                                     </a>
                                     <a href="{{ route('doctor.editPatientDetails', $appointment->patient->id) }}" 
@@ -304,19 +305,31 @@ function updateUnreadCount() {
 
 // Update count when page loads and every 30 seconds
 document.addEventListener('DOMContentLoaded', function() {
-    // Initial count is already set from the server-side
-    
-    // Update count every 30 seconds
-    setInterval(updateUnreadCount, 30000);
-    
-    // Add click handler for the messages icon
-    const messagesIcon = document.querySelector('.bi-chat-dots');
-    if (messagesIcon) {
-        messagesIcon.closest('a').addEventListener('click', function(e) {
-            // Don't prevent default - let it navigate to messages page
-            updateUnreadCount(); // Update count when clicking messages
+    // Add click handlers for all chat links
+    document.querySelectorAll('.chat-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            const patientId = this.dataset.patientId;
+            
+            // Mark messages as read
+            fetch(`/doctor/mark-messages-read/${patientId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateUnreadCount(); // Update the unread count after marking as read
+                }
+            })
+            .catch(error => console.error('Error marking messages as read:', error));
         });
-    }
+    });
+
+    // Existing interval setup...
+    setInterval(updateUnreadCount, 30000);
 });
 </script>
 @endsection 

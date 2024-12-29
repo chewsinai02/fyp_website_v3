@@ -468,7 +468,7 @@ class DoctorDashboardController extends Controller
     public function getUnreadCount()
     {
         $unreadCount = Message::where('receiver_id', auth()->id())
-            ->where('is_read', false)
+            ->where('is_read', 1)
             ->count();
         
         return response()->json(['count' => $unreadCount]);
@@ -530,5 +530,46 @@ class DoctorDashboardController extends Controller
                 'message' => $e->getMessage()
             ], 422);
         }
+    }
+
+    /**
+     * Mark messages from a specific sender as read
+     */
+    public function markMessagesAsRead($senderId)
+    {
+        try {
+            // Update all unread messages from this sender to read
+            Message::where('sender_id', $senderId)
+                ->where('receiver_id', auth()->id())
+                ->where('is_read', 1)  // Currently unread
+                ->update(['is_read' => 0]);  // Mark as read
+            
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Show chat with specific user
+     */
+    public function showChat($userId)
+    {
+        // Get the patient
+        $patient = User::findOrFail($userId);
+        
+        // Get messages between doctor and patient
+        $messages = Message::where(function($query) use ($userId) {
+                $query->where('sender_id', auth()->id())
+                      ->where('receiver_id', $userId);
+            })
+            ->orWhere(function($query) use ($userId) {
+                $query->where('sender_id', $userId)
+                      ->where('receiver_id', auth()->id());
+            })
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        return view('doctor.doctorChat', compact('patient', 'messages'));
     }
 }

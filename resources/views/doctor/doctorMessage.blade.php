@@ -24,12 +24,22 @@
                             @php
                                 $displayUser = $message->sender_id == auth()->id() ? $message->receiver : $message->sender;
                                 $messagePreview = $message->sender_id == auth()->id() ? 'Me: ' . Str::limit($message->message, 40) : Str::limit($message->message, 40);
-                                $isUnread = !$message->is_read && $message->receiver_id == auth()->id();
+                                
+                                // Get all unread messages from this conversation
+                                $unreadCount = \App\Models\Message::where('sender_id', $displayUser->id)
+                                    ->where('receiver_id', auth()->id())
+                                    ->where('is_read', 1)
+                                    ->count();
+                                    
+                                // Message is considered unread if there are any unread messages in the conversation
+                                $isUnread = $unreadCount > 0;
                             @endphp
                             
                             <a href="{{ route('doctor.chat', $displayUser->id) }}" 
-                               class="message-item position-relative"
-                               style="display: block; padding: 1rem; border-bottom: 1px solid #f1f5f9; text-decoration: none; color: inherit; transition: all 0.2s ease; background-color: {{ $isUnread ? 'rgba(var(--bs-primary-rgb), 0.05)' : 'transparent' }}">
+                               class="message-item position-relative {{ $isUnread ? 'unread-message' : 'read-message' }}"
+                               data-href="{{ route('doctor.chat', $displayUser->id) }}"
+                               onclick="markAsRead({{ $displayUser->id }}, event, this)"
+                               style="display: block; padding: 1rem; text-decoration: none; color: inherit;">
                                 <div class="d-flex align-items-center">
                                     <div class="position-relative me-3">
                                         <img src="{{ asset($displayUser->profile_picture ?? 'images/profile.png') }}"
@@ -37,18 +47,22 @@
                                              class="rounded-circle shadow-sm"
                                              style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #fff;">
                                         @if($isUnread)
-                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
-                                                  style="width: 10px; height: 10px; padding: 0; border: 2px solid #fff;">
-                                                <span class="visually-hidden">unread message</span>
-                                            </span>
+                                            <span class="unread-indicator"></span>
                                         @endif
                                     </div>
                                     <div class="flex-grow-1 min-width-0">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <h6 class="mb-0 text-truncate">{{ $displayUser->name }}</h6>
-                                            <small class="text-muted ms-2">{{ $message->created_at->format('h:i A') }}</small>
+                                            <h6 class="mb-0 text-truncate {{ $isUnread ? 'fw-bold' : '' }}">
+                                                {{ $displayUser->name }}
+                                            </h6>
+                                            <div class="d-flex align-items-center">
+                                                @if($unreadCount > 0)
+                                                    <span class="badge bg-primary rounded-pill me-2">{{ $unreadCount }}</span>
+                                                @endif
+                                                <small class="text-muted">{{ $message->created_at->format('h:i A') }}</small>
+                                            </div>
                                         </div>
-                                        <p class="text-muted small mb-0 text-truncate">
+                                        <p class="message-preview {{ $isUnread ? 'unread-text' : 'read-text' }}">
                                             {{ $messagePreview }}
                                         </p>
                                     </div>
@@ -71,8 +85,81 @@
     </div>
 </div>
 
-<!-- Keep only these essential styles that can't be inlined -->
 <style>
+/* Message item base styles */
+.message-item {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Unread message styles */
+.unread-message {
+    background-color: #EBF8FF !important;
+    border-left: 4px solid #3B82F6;
+}
+
+.unread-text {
+    color: #1e293b !important;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Read message styles */
+.read-message {
+    background-color: white;
+    border-left: 4px solid transparent;
+}
+
+.read-text {
+    color: #64748b !important;
+    font-weight: normal;
+    font-size: 0.875rem;
+}
+
+/* Unread indicator dot */
+.unread-indicator {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    background-color: #3B82F6;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+/* Message preview base styles */
+.message-preview {
+    margin: 0;
+    line-height: 1.5;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* Hover effects */
+.message-item:hover {
+    background-color: #F1F5F9 !important;
+}
+
+/* Delete button */
+.delete-message {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.message-item:hover .delete-message {
+    opacity: 1;
+}
+
+.delete-message .btn-link {
+    font-size: 1.1rem;
+}
+
+.delete-message .btn-link:hover {
+    transform: scale(1.1);
+}
+
 /* Custom Scrollbar */
 .messages-container::-webkit-scrollbar {
     width: 6px;
@@ -91,11 +178,6 @@
     background: #94a3b8;
 }
 
-/* Hover effects */
-.messageList a:hover {
-    background-color: rgba(0, 0, 0, 0.02) !important;
-}
-
 /* Media Query */
 @media (max-width: 768px) {
     .message-list {
@@ -104,21 +186,18 @@
     }
 }
 
-.message-item:hover .delete-message {
-    opacity: 1;
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+    font-weight: 600;
 }
 
-.delete-message {
-    opacity: 0;
-    transition: opacity 0.2s ease;
+.badge.bg-primary {
+    background-color: #3B82F6 !important;
 }
 
-.delete-message .btn-link {
-    font-size: 1.1rem;
-}
-
-.delete-message .btn-link:hover {
-    transform: scale(1.1);
+.badge.rounded-pill {
+    min-width: 1.5rem;
 }
 </style>
 
@@ -151,6 +230,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
 });
+
+// Function to handle marking messages as read
+function markAsRead(senderId, event, element) {
+    event.preventDefault(); // Prevent the default link behavior
+    
+    const chatUrl = element.getAttribute('data-href');
+    
+    fetch(`/doctor/mark-messages-read/${senderId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to chat page after marking as read
+            window.location.href = chatUrl;
+        }
+    })
+    .catch(error => {
+        console.error('Error marking messages as read:', error);
+        // Still redirect even if there's an error
+        window.location.href = chatUrl;
+    });
+}
 </script>
 
 <!-- Add Modal for Delete Confirmation -->

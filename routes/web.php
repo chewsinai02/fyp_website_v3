@@ -388,3 +388,22 @@ Route::middleware(['auth', 'role:doctor'])->group(function () {
     Route::get('/doctor/messages/unread-count', [DoctorDashboardController::class, 'getUnreadCount'])
         ->name('doctor.unreadCount');
 });
+
+Route::middleware(['auth', 'role:doctor'])->group(function () {
+    // ... existing routes ...
+    
+    // Add this new route for marking messages as read
+    Route::post('/doctor/mark-messages-read/{senderId}', [DoctorDashboardController::class, 'markMessagesAsRead'])
+        ->name('doctor.markMessagesAsRead');
+});
+
+Route::middleware(['auth', 'role:doctor'])->group(function () {
+    // ... existing routes ...
+    
+    // Add this route for the chat view
+    Route::get('/doctor/chat/{userId}', [DoctorDashboardController::class, 'showChat'])
+        ->name('doctor.chat');
+        
+    Route::post('/doctor/chat/{receiverId}', [DoctorDashboardController::class, 'sendMessage'])
+        ->name('chat.store');
+});

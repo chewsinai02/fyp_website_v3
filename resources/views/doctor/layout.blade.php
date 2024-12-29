@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
@@ -352,7 +353,7 @@
                     <i class="bi bi-chat-dots"></i>
                     @php
                         $unreadCount = \App\Models\Message::where('receiver_id', auth()->id())
-                            ->where('is_read', false)
+                            ->where('is_read', 1)
                             ->count();
                     @endphp
                     @if($unreadCount > 0)
