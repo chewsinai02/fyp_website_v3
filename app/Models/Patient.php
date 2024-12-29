@@ -9,11 +9,12 @@ use App\Models\VitalSign;
 
 class Patient extends Model
 {
-    protected $table = 'tasks';
+    protected $table = 'users';
 
     protected $fillable = [
-        'user_id',
-        'patient_id',
+        'name',
+        'email',
+        'password',
         'date_of_birth',
         'gender',
         'admission_date',
@@ -21,14 +22,9 @@ class Patient extends Model
         'condition'
     ];
 
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function bed()
     {
-        return $this->belongsTo(Bed::class);
+        return $this->hasOne(Bed::class, 'patient_id', 'id');
     }
 
     public function vital_signs()
@@ -45,5 +41,10 @@ class Patient extends Model
             'Good' => 'success',
             default => 'secondary'
         };
+    }
+
+    public function scopePatients($query)
+    {
+        return $query->where('role', 'patient');
     }
 } 

@@ -153,18 +153,52 @@
                     </thead>
                     <tbody>
                         @php
-                            // Get assigned rooms for today with proper date filtering
-                            $assignedRoomIds = \App\Models\NurseSchedule::where('nurse_id', auth()->id())
-                                ->whereDate('date', today())
-                                ->pluck('room_id');
+                            $today = now()->toDateString();
+                            $currentTime = now()->format('H:i:s');
+                            $nurseId = auth()->id();
                             
-                            $occupiedBeds = \App\Models\Bed::whereIn('room_id', $assignedRoomIds)
-                                ->where('status', 'occupied')
-                                ->with(['patient', 'room'])
+                            // Determine current shift
+                            $currentShift = match(true) {
+                                $currentTime >= '07:00:00' && $currentTime < '15:00:00' => 'morning',
+                                $currentTime >= '15:00:00' && $currentTime < '23:00:00' => 'afternoon',
+                                default => 'night'
+                            };
+                            
+                            // Get assigned rooms for today with proper shift
+                            $schedules = \App\Models\NurseSchedule::where('nurse_id', $nurseId)
+                                ->whereDate('date', $today)
+                                ->where('shift', $currentShift)
                                 ->get();
+                            
+                            $assignedRoomIds = $schedules->pluck('room_id');
+                            
+                            $patients = \App\Models\Patient::patients()
+                                ->whereHas('bed', function($query) use ($assignedRoomIds) {
+                                    $query->whereIn('room_id', $assignedRoomIds)
+                                        ->where('status', 'occupied')
+                                        ->whereNull('deleted_at')
+                                        ->whereHas('room');
+                                })
+                                ->with(['bed.room'])
+                                ->get();
+                            
+                            // Debug information
+                            $debug = [
+                                'nurse_id' => $nurseId,
+                                'today' => $today,
+                                'current_time' => $currentTime,
+                                'current_shift' => $currentShift,
+                                'schedule_count' => $schedules->count(),
+                                'assigned_rooms' => $assignedRoomIds->toArray(),
+                                'patient_count' => $patients->count()
+                            ];
+                            
+                            // Add these to debug information
+                            $debug['query_sql'] = \DB::getQueryLog();
+                            \DB::enableQueryLog(); // Enable query logging temporarily
                         @endphp
 
-                        @foreach($occupiedBeds as $bed)
+                        @forelse($patients as $patient)
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
@@ -172,15 +206,27 @@
                                          class="rounded-circle me-2" 
                                          width="32" 
                                          height="32">
-                                    {{ $bed->patient->name }}
+                                    {{ $patient->name }}
                                 </div>
                             </td>
-                            <td>Room {{ $bed->room->room_number }}</td>
-                            <td>Bed {{ $bed->bed_number }}</td>
                             <td>
-                                @if($bed->condition)
-                                    <span class="badge bg-{{ $bed->condition_color }}">
-                                        {{ $bed->condition }}
+                                @if($patient->bed && $patient->bed->room)
+                                    Room {{ $patient->bed->room->room_number }}
+                                @else
+                                    <span class="text-danger">No Room Assigned</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($patient->bed)
+                                    Bed {{ $patient->bed->bed_number }}
+                                @else
+                                    <span class="text-danger">No Bed Assigned</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($patient->condition)
+                                    <span class="badge bg-{{ $patient->condition_color }}">
+                                        {{ $patient->condition }}
                                     </span>
                                 @else
                                     <span class="badge bg-secondary">
@@ -189,25 +235,47 @@
                                 @endif
                             </td>
                             <td>
-                                @if($bed->patient && ($bed->latest_update ?? null))
-                                    {{ $bed->latest_update->diffForHumans() }}
+                                @if($patient->updated_at)
+                                    {{ $patient->updated_at->diffForHumans() }}
                                 @else
                                     <span class="text-muted">No updates</span>
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('nurse.patient.view', ['user' => $bed->patient_id]) }}" 
+                                <a href="{{ route('nurse.patient.view', ['user' => $patient->id]) }}" 
                                    class="btn btn-sm btn-outline-primary me-1">
                                     <i class="bi bi-eye"></i> View
                                 </a>
                             </td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    No patients assigned for today
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <!-- Add this debug section temporarily
+    @if(config('app.debug'))
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">Debug Information</h5>
+            </div>
+            <div class="card-body">
+                <pre>{{ json_encode($debug, JSON_PRETTY_PRINT) }}</pre>
+            </div>
+        </div>
+    @endif
+     -->
 
     <!-- Add this temporarily to see your ID -->
     <!--

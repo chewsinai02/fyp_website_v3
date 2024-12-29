@@ -29,7 +29,7 @@
                                                 {{ ucfirst($schedule->shift) }}
                                             </span>
                                         </td>
-                                        <td>Room {{ $schedule->room->room_number }}</td>
+                                        <td>Room {{ $schedule->room_number }}</td>
                                         <td>
                                             <span class="badge bg-{{ $schedule->date->isPast() ? 'secondary' : 'success' }}">
                                                 {{ $schedule->date->isPast() ? 'Completed' : 'Upcoming' }}
