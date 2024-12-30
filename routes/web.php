@@ -53,7 +53,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/details/{id}/edit', [UserController::class, 'adminedit'])->name('details.edit');
     Route::put('admin/users/{id}', [UserController::class, 'adminupdate'])->name('details.update');    
     Route::delete('/admin/users/{id}', [UserController::class, 'admindestroy'])->name('users.destroy'); // Delete route
-    Route::get('/details/{id}/detailshow', [AdminDashboardController::class, 'admindetailshow'])->name('admindetailshow');
+    Route::get('admin/details/{id}/detailshow', [AdminDashboardController::class, 'admindetailshow'])->name('admindetailshow');
     // Route to show the form for entering additional user details
     Route::middleware(['auth', 'can:isAdmin'])->group(function () {
         // Admin user data routes
@@ -130,6 +130,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Add new patient
     Route::get('/admin/addPatient', [AdminPatientController::class, 'showAddPatientForm'])->name('addPatientForm');
     Route::post('/admin/addPatient', [AdminPatientController::class, 'addNewPatient'])->name('addNewPatient');
+
+    Route::get('/admin/filter-users', [AdminDashboardController::class, 'filterByRole'])->name('admin.filterUsers');
 });
 
 

@@ -27,7 +27,10 @@ class AdminDashboardController extends Controller
             'totalDoctors' => User::where('role', 'doctor')->count(),
             'totalNurses' => User::where('role', 'nurse')->count(),
             'totalPatients' => User::where('role', 'patient')->count(),
-            'recentUsers' => User::latest()->take(5)->get(),
+            'recentUsers' => User::select('id', 'name', 'role', 'email', 'created_at')
+                                ->orderBy('created_at', 'desc')
+                                ->take(5)
+                                ->get(),
         ];
         return view('admin.dashboard', $data);
     }
@@ -191,5 +194,19 @@ class AdminDashboardController extends Controller
     public function patientList(Request $request)
     {
         return view('admin.patientList');
+    }
+
+    public function filterByRole(Request $request)
+    {
+        $role = $request->role;
+        
+        $users = User::select('id', 'name', 'role', 'email', 'created_at')
+                    ->when($role !== 'all', function($query) use ($role) {
+                        return $query->where('role', $role);
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+        return response()->json($users);
     }
 }
