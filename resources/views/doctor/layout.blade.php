@@ -280,7 +280,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="logo-container">
-            <a href="{{ route('doctorDashboard') }}" class="text-decoration-none text-white">
+            <a href="{{ route('doctor_dashboard') }}" class="text-decoration-none text-white">
                 <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid mb-2">
                 <h6 class="mb-0">SUC Hospital</h6>
         </div>
@@ -294,7 +294,7 @@
             </li>
             <li class="nav-item">
                 <a href="{{ route('doctorDashboard') }}" class="nav-link">
-                    <i class="bi bi-speedometer2"></i>                    
+                    <i class="bi bi-person-lines-fill"></i>                    
                     <span>Overview Appointment</span>
                 </a>
             </li>
@@ -335,14 +335,14 @@
             <button class="btn" onclick="window.history.back()">
                 <i class="bi bi-arrow-left"></i>
             </button>
-            <a href="{{ route('adminDashboard') }}" class="text-decoration-none text-black">
+            <a href="{{ route('doctor_dashboard') }}" class="text-decoration-none text-black">
                 <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid ms-3 rounded-circle" style="width: 5%; height: 5%; border-black">
                 &nbsp;&nbsp;SUC Hospital        
             </a>
         </div>
 
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('adminDashboard') }}" class="btn btn-primary">
+            <a href="{{ route('doctor_dashboard') }}" class="btn btn-primary">
                 <i class="bi bi-house"></i>
                 <span>Home</span>
             </a>

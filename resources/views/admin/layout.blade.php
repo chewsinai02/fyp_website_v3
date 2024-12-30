@@ -235,14 +235,20 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="logo-container">
-            <a href="{{ route('adminDashboard') }}" class="text-decoration-none text-white">
+            <a href="{{ route('dashboard') }}" class="text-decoration-none text-white">
                 <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid mb-2">
                 <h6 class="mb-0">SUC Hospital</h6>
         </div>
 
         <ul class="nav flex-column mt-3">
+        <li class="nav-item">
+                <a href="{{ route('dashboard') }}" class="nav-link">
+                    <i class="bi bi-people"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
             <li class="nav-item">
-                <a href="/admin/dashboard" class="nav-link">
+                <a href="{{ route('adminDashboard') }}" class="nav-link">
                     <i class="bi bi-people"></i>
                     <span>My Users</span>
                 </a>
@@ -302,14 +308,14 @@
             <button class="btn" onclick="window.history.back()">
                 <i class="bi bi-arrow-left"></i>
             </button>
-            <a href="{{ route('adminDashboard') }}" class="text-decoration-none text-black">
+            <a href="{{ route('dashboard') }}" class="text-decoration-none text-black">
                 <img src="{{ asset('images/logo.png') }}" alt="SUC Hospital" class="img-fluid ms-3 rounded-circle" style="width: 5%; height: 5%; border-black">
                 &nbsp;&nbsp;SUC Hospital        
             </a>
         </div>
 
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('adminDashboard') }}" class="btn btn-primary">
+            <a href="{{ route('dashboard') }}" class="btn btn-primary">
                 <i class="bi bi-house"></i>
                 <span>Home</span>
             </a>

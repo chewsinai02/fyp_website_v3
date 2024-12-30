@@ -20,6 +20,18 @@ class AdminDashboardController extends Controller
         $this->imageUploader = $imageUploader;
     }
 
+    public function dashboard()
+    {
+        $data = [
+            'totalUsers' => User::count(),
+            'totalDoctors' => User::where('role', 'doctor')->count(),
+            'totalNurses' => User::where('role', 'nurse')->count(),
+            'totalPatients' => User::where('role', 'patient')->count(),
+            'recentUsers' => User::latest()->take(5)->get(),
+        ];
+        return view('admin.dashboard', $data);
+    }
+
     public function adminindex()
     {
         // Fetch all users from the database

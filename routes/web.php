@@ -46,6 +46,7 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 // Route for the admin dashboard
 Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/adminDashboard', [AdminDashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/admin/dashboard', [AdminDashboardController::class, 'adminindex'])->name('adminDashboard');
     Route::put('/details/{id}', [UserController::class, 'adminupdate'])->name('details.update');
     Route::get('/details/{id}', [UserDataController::class, 'adminshow'])->name('details.show');

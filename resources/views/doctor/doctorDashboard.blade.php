@@ -1,5 +1,5 @@
 @extends('doctor.layout')
-@section('title', 'Dashboard')
+@section('title', 'Overview Appointment')
 
 @section('content')
 <div class="container-fluid p-0">

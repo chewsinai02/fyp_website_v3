@@ -115,8 +115,8 @@
                                 $dashboardRoute = match($role) {
                                     'nurse_admin' => 'nurseadminDashboard',
                                     'nurse' => 'nurseDashboard',
-                                    'doctor' => 'doctorDashboard',
-                                    'admin' => 'adminDashboard',
+                                    'doctor' => 'doctor_dashboard',
+                                    'admin' => 'dashboard',
                                     default => 'home'
                                 };
                             @endphp
