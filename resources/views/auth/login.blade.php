@@ -61,10 +61,19 @@
 }
 
 .invalid-feedback {
-    display: block;
-    color: #EF4444;
-    font-size: 13px;
-    margin-top: 6px;
+    display: none;
+    color: #dc3545;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+#reset-email.is-invalid {
+    border-color: #dc3545;
+}
+
+#reset-email.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
 }
 
 .form-options {
@@ -201,6 +210,14 @@
 .register-link:hover {
     text-decoration: underline;
 }
+
+.swal2-show-input-spacing .swal2-html-container {
+    margin: 1em 1.6em;
+}
+
+.swal2-popup input.form-control {
+    margin-bottom: 0.5rem;
+}
 </style>
 @endpush
 
@@ -281,6 +298,189 @@ document.querySelector('.toggle-password').addEventListener('click', function() 
     passwordInput.setAttribute('type', type);
     this.classList.toggle('bi-eye');
     this.classList.toggle('bi-eye-slash');
+});
+
+document.querySelector('.forgot-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    let userEmail = ''; // Store email for later use
+    
+    Swal.fire({
+        title: 'Reset Password',
+        html: `
+            <div class="mb-3">
+                <input type="email" id="reset-email" class="form-control" placeholder="Enter your email" required>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Send Reset Link',
+        showLoaderOnConfirm: true,
+        preConfirm: async () => {
+            try {
+                const email = document.getElementById('reset-email').value.trim();
+                userEmail = email; // Store email
+                
+                if (!email) {
+                    throw new Error('Please enter your email address');
+                }
+
+                const response = await fetch('{{ route("password.email") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Something went wrong');
+                }
+                
+                return true;
+            } catch (error) {
+                Swal.showValidationMessage(error.message);
+                return false;
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show OTP input dialog
+            Swal.fire({
+                title: 'Enter OTP',
+                text: 'Please check your email for the OTP code',
+                html: `
+                    <div class="mb-3">
+                        <input type="text" id="otp-input" class="form-control" placeholder="Enter 6-digit OTP" maxlength="6" required>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Verify OTP',
+                showLoaderOnConfirm: true,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    document.getElementById('otp-input').focus();
+                },
+                preConfirm: async () => {
+                    try {
+                        const otp = document.getElementById('otp-input').value;
+                        
+                        if (!otp) {
+                            throw new Error('Please enter the OTP');
+                        }
+
+                        const response = await fetch('{{ route("password.verify") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ email: userEmail, otp })
+                        });
+
+                        const data = await response.json();
+                        console.log('OTP Verification Response:', data);
+                        
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Invalid OTP');
+                        }
+                        
+                        return true;
+                    } catch (error) {
+                        console.error('OTP Verification Error:', error);
+                        Swal.showValidationMessage(error.message);
+                        return false;
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show new password input dialog
+                    Swal.fire({
+                        title: 'Set New Password',
+                        html: `
+                            <div style="margin-bottom: 1rem;">
+                                <input type="password" id="new-password" class="form-control" placeholder="New password" required>
+                            </div>
+                            <div>
+                                <input type="password" id="confirm-password" class="form-control" placeholder="Confirm password" required>
+                            </div>
+                        `,
+                        customClass: {
+                            popup: 'swal2-show-input-spacing'
+                        },
+                        showCancelButton: true,
+                        confirmButtonText: 'Reset Password',
+                        showLoaderOnConfirm: true,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            document.getElementById('new-password').focus();
+                        },
+                        preConfirm: async () => {
+                            try {
+                                const password = document.getElementById('new-password').value;
+                                const password_confirmation = document.getElementById('confirm-password').value;
+
+                                if (!password) {
+                                    throw new Error('Please enter a new password');
+                                }
+
+                                if (password.length < 6) {
+                                    throw new Error('Password must be at least 6 characters long');
+                                }
+
+                                if (password !== password_confirmation) {
+                                    throw new Error('Passwords do not match');
+                                }
+                                
+                                const response = await fetch('{{ route("password.update") }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify({ 
+                                        email: userEmail, 
+                                        password,
+                                        password_confirmation
+                                    })
+                                });
+
+                                const data = await response.json();
+                                console.log('Password Reset Response:', data);
+                                
+                                if (!response.ok) {
+                                    throw new Error(data.message || 'Failed to reset password');
+                                }
+                                
+                                return true;
+                            } catch (error) {
+                                console.error('Password Reset Error:', error);
+                                Swal.showValidationMessage(error.message);
+                                return false;
+                            }
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Password has been reset successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
 });
 </script>
 @endpush

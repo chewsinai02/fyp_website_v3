@@ -25,6 +25,7 @@ use App\Http\Controllers\NurseController;
 use App\Http\Controllers\NurseCalendarController;
 use App\Http\Controllers\BedController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -410,3 +411,7 @@ Route::middleware(['auth', 'role:doctor'])->group(function () {
     Route::post('/doctor/chat/{receiverId}', [DoctorDashboardController::class, 'sendMessage'])
         ->name('chat.store');
 });
+
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLink'])->name('password.email');
+Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify');
+Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])->name('password.update');
