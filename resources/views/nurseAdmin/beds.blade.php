@@ -32,7 +32,7 @@
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th scope="col">Bed Number</th>
+                                <th scope="col">Bed Info</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Patient</th>
                                 <th scope="col">Patient Details</th>
@@ -166,7 +166,22 @@ function updateBedsTable(beds) {
         const patientId = bed.status === 'occupied' && bed.patient ? bed.patient.id : '';
         
         row.innerHTML = `
-            <td>Bed ${bed.bed_number}</td>
+            <td>
+                <div class="d-flex flex-column">
+                    <div class="fw-medium mb-1">Bed ${bed.bed_number}</div>
+                    ${bed.status === 'occupied' ? 
+                        `<span class="badge bg-${getConditionBadgeClass(bed.condition)}-subtle 
+                                text-${getConditionBadgeClass(bed.condition)}">
+                            ${bed.condition || 'Not Set'}
+                        </span>
+                        ${bed.notes ? 
+                            `<div class="small text-muted mt-1">
+                                <i class="bi bi-info-circle"></i> ${bed.notes}
+                            </div>` : 
+                            ''}` : 
+                        ''}
+                </div>
+            </td>
             <td>
                 <span class="badge ${getStatusBadgeClass(bed.status)} text-white" style="font-size: 0.75rem;">
                     ${capitalizeFirst(bed.status)}
@@ -360,6 +375,17 @@ function editBedStatus(bedId, status) {
     currentBedStatus = status;
     $('#editBedModal').modal('show');
 }
+
+function getConditionBadgeClass(condition) {
+    const classes = {
+        'Critical': 'danger',
+        'Serious': 'warning',
+        'Fair': 'info',
+        'Good': 'success',
+        'Stable': 'primary'
+    };
+    return classes[condition] || 'secondary';
+}
 </script>
 
 <style>
@@ -436,5 +462,88 @@ function editBedStatus(bedId, status) {
 
 .bg-danger {
     background-color: #dc3545 !important;
+}
+
+/* Condition badge styles */
+.badge.bg-danger-subtle {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.badge.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.badge.bg-info-subtle {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.badge.bg-success-subtle {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.badge.bg-primary-subtle {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.badge.text-danger {
+    color: #dc3545 !important;
+}
+
+.badge.text-warning {
+    color: #ffc107 !important;
+}
+
+.badge.text-info {
+    color: #0dcaf0 !important;
+}
+
+.badge.text-success {
+    color: #198754 !important;
+}
+
+.badge.text-primary {
+    color: #0d6efd !important;
+}
+
+/* Notes styling */
+.small.text-muted {
+    font-size: 0.75rem;
+}
+
+.small.text-muted i {
+    font-size: 0.7rem;
+}
+
+/* Bed info column styling */
+.bed-info {
+    min-width: 120px;
+}
+
+.bed-number {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+/* Update badge margins */
+.badge {
+    margin-bottom: 0.25rem;
+}
+
+/* Make the condition badge slightly smaller than the status badge */
+.badge.condition-badge {
+    font-size: 0.7rem;
+}
+
+/* Add some spacing between bed number and condition */
+.bed-info .badge {
+    margin-top: 0.25rem;
+}
+
+/* Make notes more compact */
+.small.text-muted {
+    font-size: 0.7rem;
+    line-height: 1.2;
+    margin-top: 0.25rem;
 }
 </style>

@@ -11,6 +11,8 @@
     body {
         overflow-x: hidden;
         overflow-y: hidden;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
     }
 
     .content-wrapper {
@@ -567,6 +569,16 @@
             font-size: 0.8rem;
         }
     }
+
+    .selector {
+        text-align: -webkit-match-parent;
+        text-align: match-parent;
+    }
+
+    .user-select-none {
+        -webkit-user-select: none;
+        user-select: none;
+    }
 </style>
 @endsection
 
@@ -832,10 +844,94 @@
                         <span id="modalNotes"></span>
                     </div>
                     <div class="info-group m-4 text-center">
+                        <button class="btn btn-sm btn-outline-primary" id="editSchedule">
+                            <i class="fa-solid fa-pen"></i> Edit
+                        </button>
                         <button class="btn btn-sm btn-outline-primary" id="assignWeek"><i class="fa-solid fa-repeat"></i> Week</button>
                         <button class="btn btn-sm btn-outline-primary" id="assignMonth"><i class="fa-solid fa-repeat"></i> Month</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Schedule Modal -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editScheduleModalLabel">Edit Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Close modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editScheduleForm">
+                    @csrf
+                    <input type="hidden" id="edit_schedule_id" name="schedule_id">
+                    
+                    <div class="mb-3">
+                        <label for="edit_nurse_id" class="form-label">Nurse</label>
+                        <select class="form-select" 
+                                id="edit_nurse_id" 
+                                name="nurse_id" 
+                                required 
+                                title="Select nurse"
+                                aria-label="Select nurse">
+                            @foreach($nurses as $nurse)
+                                <option value="{{ $nurse->id }}">{{ $nurse->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_date" class="form-label">Date</label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="edit_date" 
+                               name="date" 
+                               required 
+                               title="Select date"
+                               aria-label="Select date">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_shift" class="form-label">Shift</label>
+                        <select class="form-select" 
+                                id="edit_shift" 
+                                name="shift" 
+                                required 
+                                title="Select shift"
+                                aria-label="Select shift">
+                            <option value="morning">Morning</option>
+                            <option value="afternoon">Afternoon</option>
+                            <option value="night">Night</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_room_id" class="form-label">Room</label>
+                        <select class="form-select" 
+                                id="edit_room_id" 
+                                name="room_id" 
+                                required 
+                                title="Select room"
+                                aria-label="Select room">
+                            @foreach($rooms as $room)
+                                <option value="{{ $room->id }}">Room {{ $room->room_number }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" 
+                        class="btn btn-secondary" 
+                        data-bs-dismiss="modal" 
+                        title="Cancel changes">Cancel</button>
+                <button type="button" 
+                        class="btn btn-primary" 
+                        id="updateScheduleBtn"
+                        title="Save schedule changes">Update Schedule</button>
             </div>
         </div>
     </div>
@@ -848,6 +944,59 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
+// Define updateSchedule function globally
+function updateSchedule() {
+    console.log('updateSchedule called'); // Debug log
+    const form = document.getElementById('editScheduleForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    console.log('Form data:', data); // Debug log
+
+    fetch('/nurseadmin/schedule/update', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log('Response:', response); // Debug log
+        return response.json();
+    })
+    .then(data => {
+        console.log('Success:', data); // Debug log
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Schedule updated successfully'
+            }).then(() => {
+                // Close both modals
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editScheduleModal'));
+                const detailsModal = bootstrap.Modal.getInstance(document.getElementById('scheduleDetailsModal'));
+                if (editModal) editModal.hide();
+                if (detailsModal) detailsModal.hide();
+                // Refresh the calendar
+                calendar.refetchEvents();
+            });
+        } else {
+            throw new Error(data.message || 'Failed to update schedule');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Failed to update schedule'
+        });
+    });
+}
+
+// Your existing document ready function
 document.addEventListener('DOMContentLoaded', function() {
     $.ajaxSetup({
         headers: {
@@ -1228,6 +1377,76 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
+    });
+
+    // Update the edit button click handler
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('#editSchedule');
+        if (target) {
+            if (!window.selectedSchedule) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Schedule Selected',
+                    text: 'Please select a schedule to edit.'
+                });
+                return;
+            }
+
+            const schedule = window.selectedSchedule;
+            console.log('Selected schedule:', schedule); // Debug log
+
+            // Populate the edit form
+            document.getElementById('edit_schedule_id').value = schedule.id;
+            document.getElementById('edit_nurse_id').value = schedule.nurse_id;
+            document.getElementById('edit_date').value = schedule.date;
+            document.getElementById('edit_shift').value = schedule.shift;
+            document.getElementById('edit_room_id').value = schedule.room_id;
+
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
+            modal.show();
+        }
+    });
+
+    // Add event listener for update button using jQuery
+    $(document).on('click', '#updateScheduleBtn', function(e) {
+        e.preventDefault();
+        console.log('Update button clicked'); // Debug log
+        updateSchedule();
+    });
+
+    // Initialize modals
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modalEl => {
+        if (!bootstrap.Modal.getInstance(modalEl)) {
+            new bootstrap.Modal(modalEl);
+        }
+    });
+
+    // Update calendar event click handler
+    calendar.on('eventClick', function(info) {
+        const event = info.event;
+        window.selectedSchedule = {
+            id: event.id,
+            nurse_id: event.extendedProps.nurse_id,
+            date: event.start.toISOString().split('T')[0],
+            shift: event.extendedProps.shift,
+            room_id: event.extendedProps.room_id,
+            nurse: event.extendedProps.nurse,
+            room: event.extendedProps.room
+        };
+
+        console.log('Event clicked, selected schedule:', window.selectedSchedule); // Debug log
+
+        // Show the schedule details modal
+        $('#modalNurseName').text(event.extendedProps.nurse.name);
+        $('#modalShift').text(event.extendedProps.shift);
+        $('#modalRoom').text(`Room ${event.extendedProps.room.room_number}`);
+        $('#modalDate').text(moment(event.start).format('YYYY-MM-DD'));
+        $('#modalStatus').text(event.extendedProps.status || 'Scheduled');
+        $('#modalNotes').text(event.extendedProps.notes || 'No notes');
+
+        $('#scheduleDetailsModal').modal('show');
     });
 });
 </script>

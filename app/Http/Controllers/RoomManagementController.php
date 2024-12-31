@@ -804,4 +804,38 @@ class RoomManagementController extends Controller
             ], 500);
         }
     }
+
+    public function updatePatientStatus(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'bed_id' => 'required|exists:beds,id',
+                'patient_id' => 'required|exists:users,id',
+                'condition' => 'required|in:Critical,Serious,Fair,Good',
+                'notes' => 'nullable|string'
+            ]);
+
+            // Use DB::update for direct SQL update
+            $updated = DB::update(
+                'update beds set `condition` = ?, notes = ? where id = ?',
+                [$validated['condition'], $validated['notes'], $validated['bed_id']]
+            );
+
+            if ($updated) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Patient status updated successfully'
+                ]);
+            }
+
+            throw new \Exception('Failed to update patient status');
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating patient status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update patient status'
+            ], 500);
+        }
+    }
 } 

@@ -14,8 +14,15 @@ class Bed extends Model
     protected $fillable = [
         'room_id',
         'bed_number',
+        'status',
+        'notes',
         'patient_id',
-        'status'
+        'condition'
+    ];
+
+    protected $casts = [
+        'status' => 'string',
+        'condition' => 'string'
     ];
 
     const STATUSES = ['available', 'occupied', 'maintenance'];
@@ -78,7 +85,7 @@ class Bed extends Model
      */
     public function getConditionColorAttribute()
     {
-        return match ($this->condition) {
+        return match($this->condition) {
             'Critical' => 'danger',
             'Serious' => 'warning',
             'Fair' => 'info',

@@ -25,6 +25,7 @@
                     title="Select action"
                     onchange="handleActionChange()">
               <option value="assignPatient" selected>Assign to Patient</option>
+              <option value="updatePatientStatus">Update Patient Status</option>
               <option value="setToMaintenance">Update Bed Status</option>
               <option value="transferPatient">Transfer Patient</option>
             </select>
@@ -74,6 +75,33 @@
                   <p><strong>Emergency Contact:</strong> <span id="patientEmergencyContact"></span></p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Patient Status Section -->
+          <div id="patientStatusSection" style="display: none;">
+            <div class="mb-3">
+              <label for="patientCondition" class="form-label fw-medium">Patient Condition</label>
+              <select class="form-select" 
+                      id="patientCondition" 
+                      name="condition"
+                      aria-label="Select patient condition"
+                      title="Select patient condition">
+                <option value="Good">Good</option>
+                <option value="Fair">Fair</option>
+                <option value="Serious">Serious</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="statusNotes" class="form-label fw-medium">Notes (Optional)</label>
+              <textarea class="form-control" 
+                        id="statusNotes" 
+                        name="notes"
+                        rows="3"
+                        aria-label="Status notes"
+                        placeholder="Enter any relevant notes about the patient's condition..."
+                        title="Enter status notes"></textarea>
             </div>
           </div>
         </div>
@@ -371,6 +399,8 @@
     } else if (currentBedStatus === 'occupied') {
         if (action === 'transferPatient') {
             handleTransfer();
+        } else if (action === 'updatePatientStatus') {
+            updatePatientStatus();
         }
     } else if (currentBedStatus === 'maintenance') {
         updateBedStatus();
@@ -578,11 +608,13 @@
     const assignSection = document.getElementById('assignPatientSection');
     const maintenanceSection = document.getElementById('maintenanceSection');
     const transferSection = document.getElementById('transferSection');
+    const patientStatusSection = document.getElementById('patientStatusSection');
 
     // Hide all sections first
     assignSection.style.display = 'none';
     maintenanceSection.style.display = 'none';
     transferSection.style.display = 'none';
+    patientStatusSection.style.display = 'none';
 
     // Show the selected section
     switch(action) {
@@ -594,7 +626,10 @@
             break;
         case 'transferPatient':
             transferSection.style.display = 'block';
-            loadAvailableRooms(); // This will load available rooms
+            loadAvailableRooms();
+            break;
+        case 'updatePatientStatus':
+            patientStatusSection.style.display = 'block';
             break;
     }
   }
@@ -653,6 +688,62 @@
   // Add this at the top of your script section
   console.log('Current User Role:', '{{ auth()->user()->role }}');
   console.log('CSRF Token:', document.querySelector('meta[name="csrf-token"]').content);
+
+  // Add new function to handle patient status updates
+  function updatePatientStatus() {
+    const condition = document.getElementById('patientCondition').value;
+    const notes = document.getElementById('statusNotes').value;
+    const bedElement = document.querySelector(`[data-bed-id="${currentBedId}"]`);
+    const patientId = bedElement?.dataset?.patientId;
+
+    if (!patientId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No patient found for this bed'
+        });
+        return;
+    }
+
+    fetch('/api/beds/update-patient-status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            bed_id: currentBedId,
+            patient_id: patientId,
+            condition: condition,
+            notes: notes
+        })
+    })
+    .then(async response => {
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to update patient status');
+        }
+        return result;
+    })
+    .then(result => {
+        $('#editBedModal').modal('hide');
+        Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: 'Patient status updated successfully'
+        }).then(() => {
+            location.reload();
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Failed to update patient status'
+        });
+    });
+  }
 </script>
 
 <style>

@@ -79,3 +79,6 @@ Route::get('/beds/patient/{patientId}', function ($patientId) {
     
     return response()->json($bed);
 });
+
+Route::post('/beds/update-patient-status', [RoomManagementController::class, 'updatePatientStatus'])
+    ->middleware(['auth', 'role:nurse_admin,nurse']);

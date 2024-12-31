@@ -2,6 +2,19 @@
 @section('title', 'Ward Nurse Dashboard')
 
 @section('content')
+@php
+function getBedConditionColor($condition) {
+    return match($condition) {
+        'Critical' => 'danger',
+        'Serious' => 'warning',
+        'Fair' => 'info',
+        'Good' => 'success',
+        'Stable' => 'primary',
+        default => 'secondary'
+    };
+}
+@endphp
+
 <!--
 <div class="container-fluid">
     <div class="row mb-4">
@@ -35,7 +48,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Assigned Patients</h6>
+                            <h6 class="text-muted mb-2">Responsible Patients</h6>
                             <h3 class="mb-0">
                                 {{ $patients->count() }}
                             </h3>
@@ -133,10 +146,10 @@
         </div>
     </div>
 
-    <!-- Assigned Patients Section -->
+    <!-- Responsible Patients Section -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 py-3">
-            <h5 class="mb-0">My Assigned Patients</h5>
+            <h5 class="mb-0">Responsible Patients</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -224,12 +237,18 @@
                                 @endif
                             </td>
                             <td>
-                                @if($patient->condition)
-                                    <span class="badge bg-{{ $patient->condition_color }}">
-                                        {{ $patient->condition }}
+                                @if($patient->bed && $patient->bed->condition)
+                                    <span class="badge bg-{{ getBedConditionColor($patient->bed->condition) }}-subtle 
+                                         text-{{ getBedConditionColor($patient->bed->condition) }}">
+                                        {{ $patient->bed->condition }}
                                     </span>
+                                    @if($patient->bed->notes)
+                                        <div class="small text-muted mt-1">
+                                            <i class="bi bi-info-circle"></i> {{ $patient->bed->notes }}
+                                        </div>
+                                    @endif
                                 @else
-                                    <span class="badge bg-secondary">
+                                    <span class="badge bg-secondary-subtle text-secondary">
                                         Not Set
                                     </span>
                                 @endif
@@ -425,6 +444,58 @@
     font-size: 12px;
     font-weight: bold;
     border: 2px solid #dc3545;
+}
+
+/* Condition badge styles */
+.badge.bg-danger-subtle {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.badge.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.badge.bg-info-subtle {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.badge.bg-success-subtle {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.badge.bg-primary-subtle {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.badge.text-danger {
+    color: #dc3545 !important;
+}
+
+.badge.text-warning {
+    color: #ffc107 !important;
+}
+
+.badge.text-info {
+    color: #0dcaf0 !important;
+}
+
+.badge.text-success {
+    color: #198754 !important;
+}
+
+.badge.text-primary {
+    color: #0d6efd !important;
+}
+
+/* Notes styling */
+.small.text-muted {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    margin-top: 0.25rem;
+}
+
+.small.text-muted i {
+    font-size: 0.7rem;
 }
 </style>
 

@@ -34,13 +34,17 @@ class Patient extends Model
 
     public function getConditionColorAttribute()
     {
-        return match($this->condition) {
-            'Critical' => 'danger',
-            'Serious' => 'warning',
-            'Fair' => 'info',
-            'Good' => 'success',
-            default => 'secondary'
-        };
+        if ($this->bed) {
+            return match($this->bed->condition) {
+                'Critical' => 'danger',
+                'Serious' => 'warning',
+                'Fair' => 'info',
+                'Good' => 'success',
+                'Stable' => 'primary',
+                default => 'secondary'
+            };
+        }
+        return 'secondary';
     }
 
     public function scopePatients($query)

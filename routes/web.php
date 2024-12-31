@@ -26,6 +26,7 @@ use App\Http\Controllers\NurseCalendarController;
 use App\Http\Controllers\BedController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\ScheduleController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -415,3 +416,7 @@ Route::middleware(['auth', 'role:doctor'])->group(function () {
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLink'])->name('password.email');
 Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify');
 Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])->name('password.update');
+
+Route::post('/nurseadmin/schedule/update', [ScheduleController::class, 'update'])
+    ->name('nurseadmin.schedule.update')
+    ->middleware(['auth', 'role:nurse_admin']);
