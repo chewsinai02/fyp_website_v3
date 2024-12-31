@@ -4,7 +4,20 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "vendor/**",
+      "storage/**",
+      "tests/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "destination": "https://suc-hospital-api.herokuapp.com/api/:1"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   },
   "database": {
@@ -16,5 +29,23 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 5000
+    },
+    "database": {
+      "port": 9000
+    },
+    "hosting": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
   }
 }

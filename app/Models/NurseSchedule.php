@@ -19,4 +19,25 @@ class NurseSchedule extends Model
     {
         return $this->belongsTo(Room::class);
     }
+
+    public function getStatusColorAttribute()
+    {
+        return match($this->status) {
+            'scheduled' => 'primary',
+            'completed' => 'success',
+            'cancelled' => 'danger',
+            'in_progress' => 'warning',
+            default => 'secondary'
+        };
+    }
+
+    public function getShiftColorAttribute()
+    {
+        return match($this->shift) {
+            'morning' => 'info',
+            'afternoon' => 'warning',
+            'night' => 'dark',
+            default => 'secondary'
+        };
+    }
 } 

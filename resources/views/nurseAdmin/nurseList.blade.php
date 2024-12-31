@@ -58,7 +58,7 @@
                                     $todaySchedule = $nurse->schedules->where('date', today())->first();
                                 @endphp
                                 @if($todaySchedule)
-                                    <span class="badge bg-{{ $todaySchedule->status_color }}-subtle text-{{ $todaySchedule->status_color }}">
+                                    <span class="badge bg-{{ $todaySchedule->shift_color }}-subtle text-{{ $todaySchedule->shift_color }}">
                                         {{ ucfirst($todaySchedule->shift) }}
                                     </span>
                                 @else
@@ -113,3 +113,37 @@ function preSelectNurse(nurseId) {
 // Your other JavaScript functions
 </script>
 @endpush 
+
+<style>
+/* Badge styling */
+.badge.bg-info-subtle {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.badge.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.badge.bg-dark-subtle {
+    background-color: rgba(33, 37, 41, 0.1) !important;
+}
+
+.badge.text-info {
+    color: #0dcaf0 !important;
+}
+
+.badge.text-warning {
+    color: #ffc107 !important;
+}
+
+.badge.text-dark {
+    color: #212529 !important;
+}
+
+/* Make badges more readable */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.5em 0.85em;
+    font-weight: 500;
+}
+</style> 

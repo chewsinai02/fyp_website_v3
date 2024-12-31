@@ -9,7 +9,7 @@
             <h2 class="text-gradient fs-1 mb-2">Appointments History</h2>
             <p class="text-muted-light fs-5 mb-0">
                 <i class="bi bi-calendar3 me-2"></i>
-                Managing all appointments including past and completed sessions
+                Managing all appointments including passed and completed sessions
             </p>
         </div>
 

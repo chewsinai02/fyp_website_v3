@@ -25,13 +25,13 @@
                                     <tr>
                                         <td>{{ $schedule->date->format('M d, Y') }}</td>
                                         <td>
-                                            <span class="badge bg-{{ $schedule->shift === 'morning' ? 'info' : ($schedule->shift === 'afternoon' ? 'warning' : 'dark') }}">
+                                            <span class="badge bg-{{ $schedule->shift_color }}-subtle text-{{ $schedule->shift_color }}">
                                                 {{ ucfirst($schedule->shift) }}
                                             </span>
                                         </td>
                                         <td>Room {{ $schedule->room_number }}</td>
                                         <td>
-                                            <span class="badge bg-{{ $schedule->date->isPast() ? 'secondary' : 'success' }}">
+                                            <span class="badge bg-{{ $schedule->date->isPast() ? 'secondary' : 'success' }}-subtle text-{{ $schedule->date->isPast() ? 'secondary' : 'success' }}">
                                                 {{ $schedule->date->isPast() ? 'Completed' : 'Upcoming' }}
                                             </span>
                                         </td>
@@ -49,4 +49,55 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Badge styling */
+.badge.bg-info-subtle {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.badge.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.badge.bg-dark-subtle {
+    background-color: rgba(33, 37, 41, 0.1) !important;
+}
+
+.badge.text-info {
+    color: #0dcaf0 !important;
+}
+
+.badge.text-warning {
+    color: #ffc107 !important;
+}
+
+.badge.text-dark {
+    color: #212529 !important;
+}
+
+/* Make badges more readable */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.5em 0.85em;
+    font-weight: 500;
+}
+
+/* Status badge colors */
+.badge.bg-success-subtle {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.badge.bg-secondary-subtle {
+    background-color: rgba(108, 117, 125, 0.1) !important;
+}
+
+.badge.text-success {
+    color: #198754 !important;
+}
+
+.badge.text-secondary {
+    color: #6c757d !important;
+}
+</style>
 @endsection 

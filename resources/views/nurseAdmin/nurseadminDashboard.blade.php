@@ -111,7 +111,7 @@
                             ->whereDate('date', today())
                             ->orderBy('shift')
                             ->get() as $schedule)
-                        <tr>
+                        <tr data-schedule-id="{{ $schedule->id }}">
                             <td>
                                 <div class="d-flex align-items-center">
                                     <img src="{{ $schedule->nurse->profile_picture ? asset($schedule->nurse->profile_picture) : asset('images/profile.png') }}" 
@@ -121,7 +121,11 @@
                                     {{ $schedule->nurse->name }}
                                 </div>
                             </td>
-                            <td>{{ ucfirst($schedule->shift) }}</td>
+                            <td>
+                                <span class="badge bg-{{ $schedule->shift_color }}-subtle text-{{ $schedule->shift_color }}">
+                                    {{ ucfirst($schedule->shift) }}
+                                </span>
+                            </td>
                             <td>
                                 @if($schedule->room)
                                     Room {{ $schedule->room->room_number }}
@@ -216,6 +220,37 @@
 
 .table tr:hover {
     background-color: rgba(0, 0, 0, 0.02);
+}
+
+.badge.bg-info-subtle {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.badge.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.badge.bg-dark-subtle {
+    background-color: rgba(33, 37, 41, 0.1) !important;
+}
+
+.badge.text-info {
+    color: #0dcaf0 !important;
+}
+
+.badge.text-warning {
+    color: #ffc107 !important;
+}
+
+.badge.text-dark {
+    color: #212529 !important;
+}
+
+/* Make badges more readable */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.5em 0.85em;
+    font-weight: 500;
 }
 </style>
 
@@ -409,23 +444,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Real-time schedule updates
 function initializeScheduleUpdates() {
-    const scheduleTable = document.querySelector('.schedule-table tbody');
+    const scheduleTable = document.querySelector('.table tbody');
     
-    // Update schedule status
     setInterval(() => {
         fetch('/nurseAdmin/current-schedules')
             .then(response => response.json())
             .then(schedules => {
                 schedules.forEach(schedule => {
-                    const row = scheduleTable.querySelector(`tr[data-schedule-id="${schedule.id}"]`);
+                    const row = document.querySelector(`tr[data-schedule-id="${schedule.id}"]`);
                     if (row) {
-                        const statusBadge = row.querySelector('.status-badge');
-                        statusBadge.className = `badge bg-${schedule.status_color}-subtle text-${schedule.status_color} status-badge`;
-                        statusBadge.textContent = schedule.status;
+                        // Update status badge
+                        const statusBadge = row.querySelector('.badge:last-of-type');
+                        if (statusBadge) {
+                            statusBadge.className = `badge bg-${schedule.status_color}-subtle text-${schedule.status_color}`;
+                            statusBadge.textContent = schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1);
+                        }
+                        
+                        // Update shift badge
+                        const shiftBadge = row.querySelector('.badge:first-of-type');
+                        if (shiftBadge) {
+                            shiftBadge.className = `badge bg-${schedule.shift_color}-subtle text-${schedule.shift_color}`;
+                            shiftBadge.textContent = schedule.shift.charAt(0).toUpperCase() + schedule.shift.slice(1);
+                        }
                     }
                 });
-            });
-    }, 30000); // Update every 30 seconds
+            })
+            .catch(error => console.error('Error updating schedules:', error));
+    }, 30000);
 }
 
 // Call this when the page loads
