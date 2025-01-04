@@ -92,6 +92,13 @@
                                         <td class="py-3">{{ $user->gender }}</td>
                                         <td class="py-3 text-end pe-4">
                                             <div class="d-flex gap-2 justify-content-end">
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-info" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#familyModal{{ $user->id }}"
+                                                        title="Manage Family Members">
+                                                    <i class="bi bi-people"></i>
+                                                </button>
                                                 <a href="{{ route('admindetailshow', $user->id) }}" 
                                                    class="btn btn-sm btn-light" 
                                                    title="View Details">
@@ -125,7 +132,241 @@
             </div>
         </div>
     @endif
+
+    <!-- Family Members Modals -->
+    @foreach($users as $user)
+        @if($user->role === 'patient')
+            <div class="modal fade" id="familyModal{{ $user->id }}" tabindex="-1" aria-labelledby="familyModalLabel{{ $user->id }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="familyModalLabel{{ $user->id }}">
+                                <i class="bi bi-people-fill me-2"></i>
+                                Manage Family Members - {{ $user->name }}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Add Family Member Form -->
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add New Family Member</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form action="{{ route('family-members.store') }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="user_id" value="{{ $user->id }}">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Select Family Member</label>
+                                                <select name="relationship" class="form-select select2" required 
+                                                        onchange="showMemberDetails(this, {{ $user->id }})">
+                                                    <option value="">Choose a person</option>
+                                                    @foreach($users->where('id', '!=', $user->id) as $patient)
+                                                        <option value="{{ $patient->id }}" 
+                                                                data-email="{{ $patient->email }}"
+                                                                data-contact="{{ $patient->contact_number }}"
+                                                                data-gender="{{ $patient->gender }}"
+                                                                data-role="{{ $patient->role }}">
+                                                            {{ $patient->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Relation Type</label>
+                                                <select name="relation" class="form-select" required>
+                                                    <option value="">Select type</option>
+                                                    <option value="Spouse">Spouse</option>
+                                                    <option value="Parent">Parent</option>
+                                                    <option value="Child">Child</option>
+                                                    <option value="Sibling">Sibling</option>
+                                                    <option value="Guardian">Guardian</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">&nbsp;</label>
+                                                <button type="submit" class="btn btn-primary w-100">
+                                                    <i class="bi bi-plus-lg me-1"></i> Add
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Selected Member Details Card -->
+                                        <div id="selectedPatientDetails{{ $user->id }}" class="card mt-3" style="display: none;">
+                                            <div class="card-body">
+                                                <h6 class="card-subtitle mb-3 text-muted">Selected Member Details</h6>
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <p class="mb-2">
+                                                            <i class="bi bi-envelope me-2 text-primary"></i>
+                                                            <strong>Email:</strong> 
+                                                            <span class="patient-email"></span>
+                                                        </p>
+                                                        <p class="mb-2">
+                                                            <i class="bi bi-telephone me-2 text-primary"></i>
+                                                            <strong>Contact:</strong> 
+                                                            <span class="patient-contact"></span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p class="mb-2">
+                                                            <i class="bi bi-gender-ambiguous me-2 text-primary"></i>
+                                                            <strong>Gender:</strong> 
+                                                            <span class="patient-gender"></span>
+                                                        </p>
+                                                        <p class="mb-2">
+                                                            <i class="bi bi-person-badge me-2 text-primary"></i>
+                                                            <strong>Role:</strong> 
+                                                            <span class="patient-role text-capitalize"></span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Family Members List -->
+                            <div class="card shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Current Family Members</h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 25%">Name</th>
+                                                <th style="width: 25%">Email</th>
+                                                <th style="width: 20%">Contact</th>
+                                                <th style="width: 20%">Relation</th>
+                                                <th style="width: 10%">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @php
+                                                $familyMember = \App\Models\FamilyMember::where('user_id', $user->id)->first();
+                                                $familyMembers = collect();
+                                                
+                                                if ($familyMember && !empty($familyMember->relationship)) {
+                                                    $relationshipIds = array_filter(explode(',', $familyMember->relationship));
+                                                    $relations = array_filter(explode(',', $familyMember->relation ?: ''));
+                                                    
+                                                    foreach ($relationshipIds as $index => $id) {
+                                                        $member = \App\Models\User::find($id);
+                                                        if ($member) {
+                                                            $familyMembers->push([
+                                                                'id' => $member->id,
+                                                                'name' => $member->name,
+                                                                'email' => $member->email,
+                                                                'contact_number' => $member->contact_number,
+                                                                'profile_picture' => $member->profile_picture,
+                                                                'relation' => isset($relations[$index]) ? $relations[$index] : 'Unknown'
+                                                            ]);
+                                                        }
+                                                    }
+                                                }
+                                            @endphp
+
+                                            @if($familyMembers->isNotEmpty())
+                                                @foreach($familyMembers as $index => $member)
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                <img src="{{ asset($member['profile_picture'] ?: 'images/profile.png') }}" 
+                                                                     alt="Profile Picture" 
+                                                                     class="rounded-circle me-2" 
+                                                                     style="width: 32px; height: 32px; object-fit: cover;">
+                                                                <span>{{ $member['name'] }}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>{{ $member['email'] }}</td>
+                                                        <td>{{ $member['contact_number'] }}</td>
+                                                        <td>
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <select name="relation" class="form-select form-select-sm" style="width: 100px;" 
+                                                                        onchange="updateRelation(this, {{ $familyMember->id }}, {{ $index }})">
+                                                                    <option value="">Type</option>
+                                                                    <option value="Spouse" {{ $member['relation'] === 'Spouse' ? 'selected' : '' }}>Spouse</option>
+                                                                    <option value="Parent" {{ $member['relation'] === 'Parent' ? 'selected' : '' }}>Parent</option>
+                                                                    <option value="Child" {{ $member['relation'] === 'Child' ? 'selected' : '' }}>Child</option>
+                                                                    <option value="Sibling" {{ $member['relation'] === 'Sibling' ? 'selected' : '' }}>Sibling</option>
+                                                                    <option value="Guardian" {{ $member['relation'] === 'Guardian' ? 'selected' : '' }}>Guardian</option>
+                                                                    <option value="Other" {{ $member['relation'] === 'Other' ? 'selected' : '' }}>Other</option>
+                                                                </select>
+                                                                <button type="button" class="btn btn-warning btn-sm" onclick="submitRelationForm(this)">
+                                                                    <i class="bi bi-pencil"></i>
+                                                                </button>
+                                                            </div>
+                                                            <form action="{{ route('family-members.updateRelation') }}" method="POST" class="d-none relation-form">
+                                                                @csrf
+                                                                <input type="hidden" name="family_member_id" value="{{ $familyMember->id }}">
+                                                                <input type="hidden" name="index" value="{{ $index }}">
+                                                                <input type="hidden" name="relation" value="{{ $member['relation'] }}">
+                                                            </form>
+                                                        </td>
+                                                        <td>
+                                                            <form action="{{ route('family-members.destroy', $familyMember->id) }}" method="POST" class="d-inline">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <input type="hidden" name="user_id" value="{{ $user->id }}">
+                                                                <input type="hidden" name="relationship_id" value="{{ $member['id'] }}">
+                                                                <input type="hidden" name="index" value="{{ $index }}">
+                                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove this family member?')">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            @else
+                                                <tr>
+                                                    <td colspan="5" class="text-center py-4 text-muted">
+                                                        <i class="bi bi-people display-4 d-block mb-2"></i>
+                                                        No family members added yet
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endforeach
 </div>
+
+<script>
+function showMemberDetails(selectElement, userId) {
+    const detailsDiv = document.querySelector(`#selectedPatientDetails${userId}`);
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    
+    if (selectElement.value) {
+        detailsDiv.querySelector('.patient-email').textContent = selectedOption.dataset.email;
+        detailsDiv.querySelector('.patient-contact').textContent = selectedOption.dataset.contact;
+        detailsDiv.querySelector('.patient-gender').textContent = selectedOption.dataset.gender;
+        detailsDiv.querySelector('.patient-role').textContent = selectedOption.dataset.role;
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
+
+function updateRelation(select, familyMemberId, index) {
+    const form = select.closest('td').querySelector('.relation-form');
+    form.querySelector('input[name="relation"]').value = select.value;
+}
+
+function submitRelationForm(button) {
+    const form = button.closest('td').querySelector('.relation-form');
+    form.submit();
+}
+</script>
 
 <style>
     .input-group {
@@ -275,6 +516,118 @@
 
     .btn-light:hover {
         background: #e2e8f0;
+    }
+
+    /* Family Members Modal Styles */
+    .modal-content {
+        border: none;
+        border-radius: 15px;
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        border-radius: 15px 15px 0 0;
+    }
+
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+    }
+
+    .btn-info {
+        background-color: #60A5FA;
+        border: none;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background-color: #3B82F6;
+        color: white;
+    }
+
+    .modal-header {
+        border-bottom: 0;
+    }
+
+    .modal-content {
+        border: none;
+        border-radius: 15px;
+    }
+
+    .card {
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,.125);
+    }
+
+    .card-header {
+        border-bottom: 1px solid rgba(0,0,0,.125);
+        background-color: #f8f9fa;
+    }
+
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    .table > :not(caption) > * > * {
+        padding: 1rem 0.75rem;
+    }
+
+    .form-select {
+        border-color: #dee2e6;
+    }
+
+    .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+    }
+
+    .btn-warning {
+        color: #fff;
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+
+    .btn-warning:hover {
+        color: #fff;
+        background-color: #ffca2c;
+        border-color: #ffc720;
+    }
+
+    .bg-primary-subtle {
+        background-color: rgba(13,110,253,.1);
+    }
+
+    .input-group-sm .form-select {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .input-group-sm .btn {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    .form-select-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        height: 31px;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        height: 31px;
+        width: 31px;
+    }
+
+    .table td {
+        padding: 0.75rem !important;
+    }
+
+    .gap-1 {
+        gap: 0.25rem !important;
     }
 </style>
 @endsection

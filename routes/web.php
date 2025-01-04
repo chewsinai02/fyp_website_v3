@@ -27,6 +27,7 @@ use App\Http\Controllers\BedController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\FamilyMemberController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -56,6 +57,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('admin/users/{id}', [UserController::class, 'adminupdate'])->name('details.update');    
     Route::delete('/admin/users/{id}', [UserController::class, 'admindestroy'])->name('users.destroy'); // Delete route
     Route::get('admin/details/{id}/detailshow', [AdminDashboardController::class, 'admindetailshow'])->name('admindetailshow');
+    
+    // Add these routes for family members management
+    Route::post('/family-members', [FamilyMemberController::class, 'store'])->name('family-members.store');
+    Route::delete('/family-members/{id}', [FamilyMemberController::class, 'destroy'])->name('family-members.destroy');
+
+    // Route for updating family member relation
+    Route::post('/family-members/update-relation', [FamilyMemberController::class, 'updateRelation'])->name('family-members.updateRelation');
+
     // Route to show the form for entering additional user details
     Route::middleware(['auth', 'can:isAdmin'])->group(function () {
         // Admin user data routes

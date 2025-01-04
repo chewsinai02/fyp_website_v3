@@ -99,7 +99,7 @@ class User extends Authenticatable
 
     public function schedules()
     {
-        return $this->hasMany(NurseSchedule::class, 'nurse_id');
+        return $this->hasMany(Schedule::class);
     }
 
     public function roomAssignments()
@@ -239,5 +239,10 @@ class User extends Authenticatable
         // Convert all roles to lowercase for comparison
         $roles = array_map('strtolower', (array) $roles);
         return in_array($userRole, $roles);
+    }
+
+    public function familyMembers()
+    {
+        return $this->hasMany(FamilyMember::class);
     }
 }
