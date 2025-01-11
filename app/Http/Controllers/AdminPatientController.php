@@ -31,7 +31,7 @@ class AdminPatientController extends Controller
         $query = $request->input('queryPatient');
         
         // Fetching patient matching the search query
-        $users = User::where('role', 'patient')
+        $filteredUsers = User::where('role', 'patient')
             ->where(function ($q) use ($query) {
                 $q->where('name', 'LIKE', "%{$query}%")
                 ->orWhere('email', 'LIKE', "%{$query}%")
@@ -45,7 +45,13 @@ class AdminPatientController extends Controller
         })
         ->get();
 
-        return view('admin.searchPatient', compact('users'));
+        // Get all users for family member selection
+        $allUsers = User::all();
+
+        return view('admin.searchPatient', [
+            'users' => $filteredUsers,
+            'allUsers' => $allUsers
+        ]);
     }
 
     public function showAddPatientForm()

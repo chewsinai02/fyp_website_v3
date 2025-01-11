@@ -99,7 +99,7 @@ class User extends Authenticatable
 
     public function schedules()
     {
-        return $this->hasMany(Schedule::class);
+        return $this->hasMany(NurseSchedule::class, 'nurse_id');
     }
 
     public function roomAssignments()
